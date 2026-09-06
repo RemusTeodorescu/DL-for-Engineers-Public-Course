@@ -25,8 +25,8 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L00-course-intro/` - [slides](lectures/L00-course-intro/L0_Welcome_How_This_Course_Works.pdf)
 - `lectures/L01.1-python-that-runs/` - [slides](lectures/L01.1-python-that-runs/L1.1_Python_That_Runs.pdf), [recording](lectures/L01.1-python-that-runs/L1.1_Python_That_Runs.mp4)
 - `lectures/L01.2-numpy-and-arrays/` - [slides](lectures/L01.2-numpy-and-arrays/L1.2_NumPy_and_the_Shape_of_Everything.pdf), [recording](lectures/L01.2-numpy-and-arrays/L1.2_NumPy_and_the_Shape_of_Everything.mp4)
-- `lectures/L02.1-scientific-python/` - [slides](lectures/L02.1-scientific-python/L2.1_Scientific_Python.pdf), [recording](lectures/L02.1-scientific-python/L2.1_Scientific_Python.mp4)
-- `lectures/L02.2-pytorch-and-autograd/` - [slides](lectures/L02.2-pytorch-and-autograd/L2.2_PyTorch_as_an_Array_Library.pdf), [recording](lectures/L02.2-pytorch-and-autograd/L2.2_PyTorch_as_an_Array_Library.mp4)
+- `lectures/L02.1-scientific-python/` - [slides](lectures/L02.1-scientific-python/L2.1_Scientific_Python.pdf), [slides (v2, revised)](lectures/L02.1-scientific-python/L2.1_Scientific_Python_v2.pdf), [recording](lectures/L02.1-scientific-python/L2.1_Scientific_Python.mp4)
+- `lectures/L02.2-pytorch-and-autograd/` - [slides](lectures/L02.2-pytorch-and-autograd/L2.2_PyTorch_as_an_Array_Library.pdf), [slides (v2, revised)](lectures/L02.2-pytorch-and-autograd/L2.2_PyTorch_as_an_Array_Library_v2.pdf), [recording](lectures/L02.2-pytorch-and-autograd/L2.2_PyTorch_as_an_Array_Library.mp4)
 - `lectures/L03.1-what-is-ai/` - [slides](lectures/L03.1-what-is-ai/L3.1_What_is_AI.pdf), [recording](lectures/L03.1-what-is-ai/L3.1_What_is_AI.mp4)
 - `lectures/L03.2-ai-application-examples/` - [slides](lectures/L03.2-ai-application-examples/L3.2_AI_Application_Examples.pdf), [recording](lectures/L03.2-ai-application-examples/L3.2_AI_Application_Examples.mp4)
 - `lectures/L04.1-perceptron-to-neural-network/` - [slides](lectures/L04.1-perceptron-to-neural-network/L4.1_From_Perceptron_to_Neural_Network.pdf), [recording](lectures/L04.1-perceptron-to-neural-network/L4.1_From_Perceptron_to_Neural_Network.mp4)
@@ -75,4 +75,4 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 26 lecture PDFs, 8 recordings and 18 exercise sets.
+Synced from the development repository; 28 lecture PDFs, 8 recordings and 18 exercise sets.

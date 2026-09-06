@@ -18,6 +18,7 @@ directory.
 
 ## Lectures
 
+- `lectures/L00-course-intro/`
 - `lectures/L01.1-python-that-runs/`
 - `lectures/L01.2-numpy-and-arrays/`
 - `lectures/L02.1-scientific-python/`
@@ -70,4 +71,4 @@ directory.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 25 lecture PDFs and 18 exercise sets.
+Synced from the development repository; 26 lecture PDFs and 18 exercise sets.

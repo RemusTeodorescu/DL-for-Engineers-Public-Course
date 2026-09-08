@@ -306,8 +306,8 @@ def score(prediction_fn, label=""):
     inside = rmse(prediction_fn(t_in), truth(t_in))
     outside = rmse(prediction_fn(t_out), truth(t_out))
     if label:
-        print(f"  {label:<32} inside {inside*1000:7.3f} mm   "
-              f"outside {outside*1000:7.3f} mm")
+        print(f"  {label:<32} RMSE inside {inside*1000:7.3f} mm   "
+              f"RMSE outside {outside*1000:7.3f} mm")
     return inside, outside
 
 

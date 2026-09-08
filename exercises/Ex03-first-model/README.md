@@ -165,8 +165,12 @@ Same as every Part 2 exercise set:
 - Self-contained folder. Requires `torch`, `numpy`, `matplotlib` — all
   preinstalled on Google Colab. No GPU needed.
 - `Ex_3_core.py` is complete and is **not** to be rewritten by students. The
-  work is in five `# TODO` blocks, each with the answer hinted on the same line
-  and a guard below that stops with an instruction if left unfilled.
+  work is in three `# TODO` blocks (8 Sep 2026: down from five), and each is
+  the same act: set the three loss weights `w_data`, `w_physics`, `w_initial`
+  for the network alone, the PINN, and the PINN with no measurements. No
+  other Python is written; the analytic solution and the peak fit (the
+  former TODOs 1 and 2) are worked cells. A guard stops the cell with an
+  instruction if all three weights are left at zero.
 - Module names use underscores because a Python module name cannot contain a
   dot: `Ex_3_core.py`, imported as `Ex_3_core`.
 - Every TODO is preceded by enough prose that the notebook works for a student

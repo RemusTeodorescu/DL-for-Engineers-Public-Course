@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/cover.jpg" alt="DL for ENG" width="100%"></p>
+
 # DL for Engineers - Public Course
 
 **Deep Learning for Engineering** - MSc course, AAU Energy, Aalborg University.

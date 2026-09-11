@@ -49,7 +49,6 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L11.2-dynamics-energy/` - [slides](lectures/L11.2-dynamics-energy/L11.2_Dynamics_Energy_and_Efficient_Driving.pdf)
 - `lectures/L12.1-power-grid-stability-estimation/` - [slides](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.pdf)
 - `lectures/L12.2-power-grid-stability-prediction/` - [slides](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.pdf)
-- `lectures/_template/` - [slides](lectures/_template/LXX_Template.pdf)
 
 ## Exercises
 
@@ -167,4 +166,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 28 lecture PDFs, 8 recordings and 18 exercise sets.
+Synced from the development repository; 27 lecture PDFs, 8 recordings and 18 exercise sets.

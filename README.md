@@ -160,6 +160,7 @@ to see the library files and the set's README.
   - Ex12.2_04_screening - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_04_screening.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_04_screening_light.ipynb)
   - Ex12.2_05_compare_and_report - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_05_compare_and_report.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_05_compare_and_report_light.ipynb)
   - Ex12.2_06_latency - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_06_latency.ipynb)
+  - Ex12.2_07_andes_comparison - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_07_andes_comparison.ipynb)
 
 ## Licence
 

@@ -289,8 +289,8 @@ class MLP(nn.Module):
     """A fully connected network with one input and one output.
 
     ``MLP(hidden=(64, 64), activation="tanh")`` is two hidden layers of 64
-    units with tanh activations. ``hidden=(D,)`` is the shallow network of L4.1
-    slides 13-15 — one hidden layer of D units.
+    neurons with tanh activations. ``hidden=(D,)`` is the shallow network of L4.1
+    slides 13-15 — one hidden layer of D neurons.
 
     ``activation="relu"`` gives a piecewise linear function, which is the right
     choice when you want to see kinks. ``activation="tanh"`` gives a smooth one,

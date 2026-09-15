@@ -213,7 +213,7 @@ R_CENTRE_EPS = 1e-3
 
 
 def particle_points(n, t_end=1.0, r_min=0.0, method="lhs", seed=None):
-    """Collocation points in (r, t) on the unit sphere radius and time window.
+    """Collocation points in (r, t) on the neuron sphere radius and time window.
 
     Returns ``(n, 2)`` NumPy, like every sampler in ``pinn_core`` — wrap it
     with ``to_tensor(..., requires_grad=True)`` before differentiating through

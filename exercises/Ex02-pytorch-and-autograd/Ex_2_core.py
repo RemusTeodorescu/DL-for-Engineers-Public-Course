@@ -459,7 +459,7 @@ def check_shape(name: str, got, want_shape) -> bool:
 
 def mlp(n_in: int = 1, n_out: int = 1, n_hidden: int = 32, n_layers: int = 3,
         activation: str = "tanh") -> nn.Sequential:
-    """A plain fully connected network: n_layers hidden layers of n_hidden units.
+    """A plain fully connected network: n_layers hidden layers of n_hidden neurons.
 
     `activation` is "tanh" or "relu". The default is tanh, and the reason is
     the subject of the last section of notebook 02: a ReLU network is
@@ -468,7 +468,7 @@ def mlp(n_in: int = 1, n_out: int = 1, n_hidden: int = 32, n_layers: int = 3,
     asks for. Every network in L7 to L12 uses tanh for that reason and no
     other.
 
-    The network is small on purpose. Four hidden layers of 20 to 50 units is
+    The network is small on purpose. Four hidden layers of 20 to 50 neurons is
     the usual size for the whole of Part 2, and a bigger one is generally a
     slower way of getting the same answer.
     """

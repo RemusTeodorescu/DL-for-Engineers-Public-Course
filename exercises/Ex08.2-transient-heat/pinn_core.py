@@ -181,7 +181,7 @@ DOMAIN_UNIT_SQUARE = ((0.0, 1.0), (0.0, 1.0))
 
 
 def latin_hypercube(n: int, d: int, rng: np.random.Generator) -> np.ndarray:
-    """``n`` points in the unit ``d``-cube, one per stratum along every axis.
+    """``n`` points in the neuron ``d``-cube, one per stratum along every axis.
 
     Plain uniform sampling leaves gaps and clusters that a residual notices;
     stratifying each axis and shuffling the strata independently spreads the

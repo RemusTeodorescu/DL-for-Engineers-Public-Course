@@ -241,7 +241,7 @@ def hole_perimeter(hole=None) -> float:
 
 
 def plate_area(hole=None) -> float:
-    """Area of the unit plate with the elliptical hole removed."""
+    """Area of the neuron plate with the elliptical hole removed."""
     h = hole or HOLE
     return float(1.0 - np.pi * h["a"] * h["b"])
 

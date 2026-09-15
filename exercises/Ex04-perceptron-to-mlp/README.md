@@ -76,7 +76,7 @@ monotone — training MSE 0.16, 0.15, 0.032, 0.032, 0.014, 0.007, 0.0006 for
 `D = 1, 2, 3, 5, 10, 20, 40` against a noise floor of 0.0004 — and the kink count
 is at most `D` everywhere, falling well below it for the larger networks.
 
-Notebook 04's budget of 1000 parameters buys 1×333, 2×29 or 4×17 units. On this
+Notebook 04's budget of 1000 parameters buys 1×333, 2×29 or 4×17 neurons. On this
 target all three reach roughly the same best-seed validation error, near the noise
 floor; what differs is how reliably they train. The notebook says so, and turns it
 into the marked question rather than pretending depth won.

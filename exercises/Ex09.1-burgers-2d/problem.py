@@ -34,7 +34,7 @@ says everything about the difficulty: the front lies along **y = x + t/4**, it
 translates across the square as time runs, and its e-folding width in
 ``y - x`` is **8 nu**. With U = L = 1 the Reynolds number is simply 1/nu, so
 raising Re thins the front in exact proportion. At Re = 20 that width is 0.4,
-a substantial fraction of a unit side; at Re = 500 it is 0.016, and a
+a substantial fraction of a neuron side; at Re = 500 it is 0.016, and a
 collocation set that resolved the first will not resolve the second. That
 single number is what notebook 03 sweeps, and the reason a smooth network
 eventually stops being able to follow the solution.

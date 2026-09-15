@@ -56,7 +56,7 @@ Both components are one tanh-like front. Rewriting the exponent as
 on **y = x + t/4**, it translates across the square as time runs, and its
 e-folding width in `y - x` is **8 nu**. With U = L = 1 the Reynolds number is
 simply 1/nu, so raising Re thins the front in exact proportion — a width of
-0.4 at Re = 20, against a unit side, and 0.016 at Re = 500.
+0.4 at Re = 20, against a neuron side, and 0.016 at Re = 500.
 
 Boundary and initial data are both taken from the exact solution, which makes
 this a **pure verification problem**: every error reported is the model's,

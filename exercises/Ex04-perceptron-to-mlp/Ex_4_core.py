@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 from typing import Callable, Dict, Optional, Sequence, Tuple
 
 import numpy as np
@@ -43,9 +44,118 @@ import torch.nn as nn
 
 SEED = 0
 
-#: Where notebooks write anything a later notebook reads.
+#: Where notebooks write anything a later notebook reads. Notebooks 03, 04
+#: and 05 each save one file here and notebook 06 reads all three. On Google
+#: Colab this is moved into the student's Drive by ``keep_outputs()``.
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "Ex04_outputs")
+
+#: The folder in Google Drive that ``keep_outputs()`` uses on Colab.
+DRIVE_FOLDER = "DL4Eng/Ex04_outputs"
+
+#: The files notebook 06 needs, and the notebook that writes each one.
+OUTPUT_FILES = {
+    "breakpoints.npz": "Ex04_03_counting_kinks",
+    "depth_vs_width.npz": "Ex04_04_depth_vs_width",
+    "regularisation.npz": "Ex04_05_overfit_then_regularise",
+}
+
+
+def on_colab() -> bool:
+    """True when running on Google Colab."""
+    try:
+        import google.colab  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _in_drive() -> bool:
+    return OUTPUT_DIR.startswith("/content/drive/")
+
+
+def keep_outputs(drive_folder: str = DRIVE_FOLDER) -> str:
+    """Make ``OUTPUT_DIR`` survive from one notebook to the next on Colab.
+
+    Every Colab notebook runs on its own temporary machine. A file that
+    notebook 03 saves is not on the machine notebook 06 opens on, and it is
+    gone from its own machine once that notebook is closed or idle for a
+    while. So on Colab this mounts your Google Drive and points OUTPUT_DIR
+    at ``MyDrive/<drive_folder>``. Approve the access request when Colab shows
+    it. Locally, and when Drive is declined or unavailable, nothing changes:
+    OUTPUT_DIR stays beside the notebook, and ``save_output`` / ``load_output``
+    fall back to downloading the files and asking for them back.
+    """
+    global OUTPUT_DIR
+    if not on_colab():
+        return OUTPUT_DIR
+    if _in_drive():
+        return OUTPUT_DIR
+    try:
+        from google.colab import drive
+        drive.mount("/content/drive")
+        OUTPUT_DIR = os.path.join("/content/drive/MyDrive", drive_folder)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        print("results are kept in your Google Drive, in", drive_folder)
+    except Exception as exc:  # declined, no Google account, or Drive is down
+        reason = str(exc).strip().splitlines()[0] if str(exc).strip() else type(exc).__name__
+        print("Google Drive is not available (" + reason + ").")
+        print("Results will be downloaded to your computer instead. Keep the files:")
+        print("notebook 06 asks for them.")
+    return OUTPUT_DIR
+
+
+def save_output(name: str, **arrays) -> str:
+    """Save ``arrays`` as ``OUTPUT_DIR/name`` for a later notebook to read.
+
+    On Colab without Drive the file is also downloaded, because the machine
+    it was written on will not exist when notebook 06 runs.
+    """
+    if name not in OUTPUT_FILES:
+        raise ValueError(f"unknown output file {name!r}; expected one of "
+                         + ", ".join(OUTPUT_FILES))
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    path = os.path.join(OUTPUT_DIR, name)
+    np.savez(path, **arrays)
+    print("saved:", path)
+    if on_colab() and not _in_drive():
+        from google.colab import files
+        print("This Colab machine is temporary, so", name,
+              "is being downloaded. Keep it for notebook 06.")
+        files.download(path)
+    return path
+
+
+def load_output(name: str):
+    """Load ``OUTPUT_DIR/name``, asking for the file when it is not there.
+
+    On Colab without Drive, a missing file is requested as an upload: the
+    student picks the copy that ``save_output`` downloaded earlier.
+    """
+    if name not in OUTPUT_FILES:
+        raise ValueError(f"unknown output file {name!r}; expected one of "
+                         + ", ".join(OUTPUT_FILES))
+    path = os.path.join(OUTPUT_DIR, name)
+    if not os.path.exists(path) and on_colab() and not _in_drive():
+        from google.colab import files
+        print(f"{name} is not on this machine. Upload the copy that "
+              f"{OUTPUT_FILES[name]} downloaded (cancel if you never ran it).")
+        uploaded = files.upload()
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        for fname, data in uploaded.items():
+            # browsers rename a second download to "name (1).npz"
+            clean = re.sub(r" \(\d+\)(?=\.npz$)", "", os.path.basename(fname))
+            if clean not in OUTPUT_FILES and len(uploaded) == 1:
+                clean = name
+            with open(os.path.join(OUTPUT_DIR, clean), "wb") as fh:
+                fh.write(data)
+            print("received", clean)
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"{name} is missing — run {OUTPUT_FILES[name]} to the end first"
+            + (" and approve the Drive request in both notebooks"
+               if on_colab() and _in_drive() else ""))
+    return np.load(path, allow_pickle=True)
 
 
 def set_seed(seed: int = SEED) -> None:

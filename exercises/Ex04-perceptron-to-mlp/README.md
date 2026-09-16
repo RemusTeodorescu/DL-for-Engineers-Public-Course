@@ -43,6 +43,16 @@ Ex04_06_report.ipynb                    the two marked questions, plus the four 
 Notebooks 03, 04 and 05 each write an `.npz` into `Ex04_outputs/`; notebook 06
 reads all three and refuses to build a report without them.
 
+On Google Colab every notebook runs on its own temporary machine, so a file
+written by 03 is not there when 06 opens, and it vanishes from 03's machine as
+soon as that runtime is recycled. The `outputs-cell` near the top of 03, 04, 05
+and 06 (`core.keep_outputs()`) therefore mounts the student's Google Drive and
+moves `OUTPUT_DIR` to `MyDrive/DL4Eng/Ex04_outputs`. If the student declines
+the Drive request or has no Google account, `core.save_output()` downloads each
+`.npz` when it is written and `core.load_output()` in notebook 06 asks for the
+files to be uploaded. Locally the cell does nothing. Notebook 06 also writes
+`Ex04_report.md` and `Ex04_report.pdf` into the same `OUTPUT_DIR`.
+
 ## Notebook 01 is meant to fail
 
 Section 4 runs the perceptron learning rule on XOR for two hundred epochs and it

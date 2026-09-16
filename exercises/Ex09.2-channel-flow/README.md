@@ -155,3 +155,16 @@ exposition in this exercise set are original to this course** — written from t
 2019 paper and the PyTorch documentation, and not derived from any publisher's
 code listings. Where a symbol matches a textbook's, it is because both follow
 the standard notation of the field.
+
+## Results between notebooks on Colab
+
+Later notebooks read `.npz` / `.pkl` files that earlier ones write into
+`Ex09.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
+so those files would not survive from one notebook to the next. Notebooks
+01 to 04 therefore start with an `outputs-cell` that calls `keep_outputs()` from
+`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
+folder to `MyDrive/DL4Eng/Ex09.2_outputs`. If the student declines the Drive request or
+has no Google account, `saved()` downloads each result file when it is written
+and `needed()` asks for the files to be uploaded before they are read. Locally
+the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
+same folder.

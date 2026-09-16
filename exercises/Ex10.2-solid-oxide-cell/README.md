@@ -162,3 +162,16 @@ not be installed. Every equation, constant and operating point is carried over
 unchanged from the previous version of this set; only the library calls
 changed. **Nothing has been executed.** Run notebooks 00 to 05 end to end
 before this goes to students.
+
+## Results between notebooks on Colab
+
+Later notebooks read `.npz` / `.pkl` files that earlier ones write into
+`Ex10.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
+so those files would not survive from one notebook to the next. Notebooks
+01, 04 and 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
+`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
+folder to `MyDrive/DL4Eng/Ex10.2_outputs`. If the student declines the Drive request or
+has no Google account, `saved()` downloads each result file when it is written
+and `needed()` asks for the files to be uploaded before they are read. Locally
+the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
+same folder.

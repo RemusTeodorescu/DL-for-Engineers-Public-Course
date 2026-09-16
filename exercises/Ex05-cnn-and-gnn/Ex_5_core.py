@@ -37,6 +37,7 @@ Everything uses `torch`, `numpy` and `matplotlib` only, on a CPU, in minutes.
 from __future__ import annotations
 
 import os
+import re
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -51,6 +52,115 @@ SEED = 0
 #: Where notebooks write anything a later notebook reads.
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "Ex05_outputs")
+
+# ── keeping results between notebooks ─────────────────────────────────────
+#
+# Later notebooks read what earlier ones saved. On Google Colab every notebook
+# runs on its own temporary machine, so a file saved in one notebook is not
+# there when the next one opens, and it is gone from its own machine once that
+# runtime is recycled. ``keep_outputs()`` therefore moves OUTPUT_DIR into the
+# student's Google Drive. When Drive is declined or unavailable, ``saved()``
+# downloads each result file and ``needed()`` asks for it back. Locally none
+# of this does anything.
+
+DRIVE_ROOT = "DL4Eng"
+
+
+def on_colab() -> bool:
+    """True when running on Google Colab."""
+    try:
+        import google.colab  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _in_drive(directory=None) -> bool:
+    directory = OUTPUT_DIR if directory is None else directory
+    return bool(directory) and str(directory).startswith("/content/drive/")
+
+
+def keep_outputs(local_dir=None) -> str:
+    """Make ``OUTPUT_DIR`` survive from one notebook to the next on Colab.
+
+    ``local_dir`` is the results folder beside the notebooks, e.g.
+    ``"Ex07.1_outputs"``. On Colab this mounts Google Drive and points
+    OUTPUT_DIR at ``MyDrive/DL4Eng/<local_dir>``; approve the access request
+    when Colab shows it. Locally, and when Drive is declined or unavailable,
+    OUTPUT_DIR is ``local_dir`` itself and ``saved`` / ``needed`` fall back to
+    downloading the files and asking for them back. Returns OUTPUT_DIR.
+    """
+    global OUTPUT_DIR
+    if local_dir is not None:
+        OUTPUT_DIR = local_dir
+    if OUTPUT_DIR is None:
+        raise ValueError("keep_outputs() needs the name of the results folder")
+    if not on_colab() or _in_drive():
+        return OUTPUT_DIR
+    name = os.path.basename(os.path.normpath(OUTPUT_DIR))
+    try:
+        from google.colab import drive
+        drive.mount("/content/drive")
+        OUTPUT_DIR = os.path.join("/content/drive/MyDrive", DRIVE_ROOT, name)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        print("results are kept in your Google Drive, in",
+              DRIVE_ROOT + "/" + name)
+    except Exception as exc:  # declined, no Google account, or Drive is down
+        text = str(exc).strip()
+        reason = text.splitlines()[0] if text else type(exc).__name__
+        print("Google Drive is not available (" + reason + ").")
+        print("Results will be downloaded to your computer instead. Keep the")
+        print("files: the notebook that needs them asks for them.")
+    return OUTPUT_DIR
+
+
+def output_path(name: str) -> str:
+    """``OUTPUT_DIR/name``, creating the folder."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    return os.path.join(OUTPUT_DIR, name)
+
+
+def saved(*paths) -> None:
+    """Call after writing result files. On Colab without Drive, download them.
+
+    The machine the files were written on will not exist when the next
+    notebook runs, so the student keeps a copy and ``needed`` asks for it.
+    """
+    for path in paths:
+        print("saved:", path)
+    if on_colab() and paths and not _in_drive(os.path.dirname(paths[0])):
+        from google.colab import files
+        print("This Colab machine is temporary, so the file(s) above are being "
+              "downloaded. Keep them for the later notebooks.")
+        for path in paths:
+            files.download(path)
+
+
+def needed(*names, directory=None) -> list:
+    """Call before reading result files. Returns the names still missing.
+
+    On Colab without Drive, missing files are requested as one upload: the
+    student picks the copies that ``saved`` downloaded earlier (or cancels,
+    if that notebook was never run). Elsewhere this only reports.
+    """
+    directory = OUTPUT_DIR if directory is None else directory
+    missing = [n for n in names if not os.path.exists(os.path.join(directory, n))]
+    if missing and on_colab() and not _in_drive(directory):
+        from google.colab import files
+        print("Not on this machine:", ", ".join(missing))
+        print("Upload the copies downloaded by the notebooks that wrote them "
+              "(cancel if you never ran those notebooks).")
+        uploaded = files.upload()
+        os.makedirs(directory, exist_ok=True)
+        for fname, data in uploaded.items():
+            # browsers rename a second download to "name (1).ext"
+            clean = re.sub(r" \(\d+\)(?=\.[A-Za-z0-9]+$)", "", os.path.basename(fname))
+            with open(os.path.join(directory, clean), "wb") as fh:
+                fh.write(data)
+            print("received", clean)
+        missing = [n for n in names if not os.path.exists(os.path.join(directory, n))]
+    return missing
+
 
 
 def set_seed(seed: int = SEED) -> None:

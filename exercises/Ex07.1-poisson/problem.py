@@ -186,9 +186,14 @@ def plot_field(values, nx: int = 121, ny: int = 121, ax=None,
     import matplotlib.pyplot as plt
     from course_core import new_axes
     from pinn_core import grid_points
+    values = np.asarray(values).ravel()
+    if values.size != nx * ny:            # sampled on another square grid
+        n = int(round(np.sqrt(values.size)))
+        if n * n == values.size:
+            nx = ny = n
     X, Y, _ = grid_points(nx, ny, DOMAIN)
     ax = new_axes(ax, figsize=(4.6, 6.2))
-    c = ax.contourf(_mm(X), _mm(Y), np.asarray(values).reshape(X.shape),
+    c = ax.contourf(_mm(X), _mm(Y), values.reshape(X.shape),
                     levels=24, cmap=cmap)
     ax.set_aspect("equal")
     ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
@@ -206,8 +211,13 @@ def plot_error(predicted, nx: int = 121, ny: int = 121, ax=None,
     hot spot, which is the only place a machine designer cares about.
     """
     from pinn_core import grid_points
+    predicted = np.asarray(predicted).ravel()
+    if predicted.size != nx * ny:         # sampled on another square grid
+        n = int(round(np.sqrt(predicted.size)))
+        if n * n == predicted.size:
+            nx = ny = n
     X, Y, pts = grid_points(nx, ny, DOMAIN)
-    err = np.asarray(predicted).ravel() - theta_exact(pts[:, 0], pts[:, 1])
+    err = predicted - theta_exact(pts[:, 0], pts[:, 1])
     return plot_field(err, nx, ny, ax, title, label="error  [K]", cmap="coolwarm")
 
 

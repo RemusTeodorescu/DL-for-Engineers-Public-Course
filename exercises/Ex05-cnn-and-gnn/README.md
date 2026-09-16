@@ -250,3 +250,16 @@ minutes, most of it in the depth sweep. Notebook 04 is the slowest — a Python
 loop over twenty-four time steps cannot be vectorised away, which is one of
 L5.2's own points — and takes about five minutes including the three-seed
 comparison. The difficulty is conceptual, not computational.
+
+## Results between notebooks on Colab
+
+Later notebooks read `.npz` / `.pkl` files that earlier ones write into
+`Ex05_outputs/`. On Google Colab every notebook runs on its own temporary machine,
+so those files would not survive from one notebook to the next. Notebooks
+01, 03, 04 and 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
+`Ex_5_core.py`: on Colab it mounts the student's Google Drive and moves the results
+folder to `MyDrive/DL4Eng/Ex05_outputs`. If the student declines the Drive request or
+has no Google account, `saved()` downloads each result file when it is written
+and `needed()` asks for the files to be uploaded before they are read. Locally
+the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
+same folder.

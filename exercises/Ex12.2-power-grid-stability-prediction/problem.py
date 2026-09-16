@@ -125,6 +125,8 @@ import time
 
 import numpy as np
 import torch
+
+import course_core
 import torch.nn as nn
 
 from pinn_core import MLP, parameter_count, to_numpy, to_tensor
@@ -1271,11 +1273,13 @@ def save(name, **arrays):
     path = os.path.join(RESULTS, name + ".npz")
     np.savez(path, **arrays)
     print(f"  saved -> {path}  ({', '.join(arrays)})")
+    course_core.saved(path)      # on Colab without Drive: download it
     return path
 
 
 def load(name, required=True):
     path = os.path.join(RESULTS, name + ".npz")
+    course_core.needed(name + ".npz", directory=RESULTS)   # on Colab without Drive: ask for it
     if not os.path.exists(path):
         if required:
             raise FileNotFoundError(

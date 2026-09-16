@@ -264,3 +264,16 @@ mismatch predates it and should be resolved in one direction or the other before
 the continuity claim in L5.1 is repeated to students.
 
 Run notebook 00 end to end before this goes out. See `docs/REPO_NOTES_PART1.md` §9.
+
+## Results between notebooks on Colab
+
+Later notebooks read `.npz` / `.pkl` files that earlier ones write into
+`Ex12.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
+so those files would not survive from one notebook to the next. Notebooks
+00 to 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
+`course_core.py` (used by `problem.save` / `problem.load`): on Colab it mounts the student's Google Drive and moves the results
+folder to `MyDrive/DL4Eng/Ex12.2_outputs`. If the student declines the Drive request or
+has no Google account, `saved()` downloads each result file when it is written
+and `needed()` asks for the files to be uploaded before they are read. Locally
+the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
+same folder.

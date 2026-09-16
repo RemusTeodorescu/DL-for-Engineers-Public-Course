@@ -86,6 +86,8 @@ import urllib.request
 
 import numpy as np
 import torch
+
+import course_core
 import torch.nn as nn
 
 from pinn_core import (DEVICE, MLP, describe, grad, parameter_count,
@@ -1233,6 +1235,7 @@ def save(name, **arrays):
     path = os.path.join(RESULTS, name + ".npz")
     np.savez(path, **arrays)
     print(f"  saved -> {path}  ({', '.join(arrays)})")
+    course_core.saved(path)      # on Colab without Drive: download it
     return path
 
 
@@ -1270,6 +1273,7 @@ _REBUILDERS = {"00_reference": reference_state}
 
 def load(name, required=True):
     path = os.path.join(RESULTS, name + ".npz")
+    course_core.needed(name + ".npz", directory=RESULTS)   # on Colab without Drive: ask for it
     if not os.path.exists(path):
         if name in _REBUILDERS:
             print(f"  [load] {path} not found - rebuilding it now.")

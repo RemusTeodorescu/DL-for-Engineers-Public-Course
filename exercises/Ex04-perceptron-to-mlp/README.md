@@ -14,7 +14,7 @@ By the end of this exercise set you can
    failure rather than being told about it;
 2. set by hand the nine parameters of a 2-2-1 network that computes XOR, and
    say what the hidden layer did;
-3. count the kinks a shallow ReLU network produces and confirm the
+3. count the breakpoints a shallow ReLU network produces and confirm the
    piecewise-linear picture that L4.1 argues for;
 4. compare depth against width at a **fixed parameter budget**, as a controlled
    experiment with more than one seed;
@@ -34,7 +34,7 @@ Run in order; later notebooks load results saved by earlier ones.
 Ex04_00_environment_check.ipynb         read only — versions, three datasets, one run
 Ex04_01_perceptron_and_xor.ipynb        NumPy perceptron: AND works, XOR does not
 Ex04_02_pytorch_mlp.ipynb               the same nine parameters, found by gradient descent
-Ex04_03_counting_kinks.ipynb            sweep D; the fit is piecewise linear with D kinks
+Ex04_03_counting_kinks.ipynb            sweep D; the fit is piecewise linear with D breakpoints
 Ex04_04_depth_vs_width.ipynb            one budget of 1000 parameters, spent three ways
 Ex04_05_overfit_then_regularise.ipynb   the lecture's eleven points, overfitted then rescued
 Ex04_06_report.ipynb                    the two marked questions, plus the four from L3.2
@@ -65,15 +65,15 @@ how to train them. Notebook 02 trains them, which is the point of notebook 02.
 ## The capacity target
 
 `wiggly_truth` is `sin(πx) + 0.35 sin(3πx)` on **[-1, 1]**, used by notebooks 03
-and 04. Two length scales, so a network needs more than three kinks before it can
+and 04. Two length scales, so a network needs more than three breakpoints before it can
 follow it; centred on zero, because a ReLU network trains markedly better on
 centred inputs and Ex_04 would rather not spend a notebook on input scaling.
 
 Notebook 03 trains each `D` from four seeds and keeps the best, and says why in
 the text: a single-seed sweep of shallow ReLU networks is mostly a picture of
-initialisation luck, and units that die never recover. With that, the sweep is
+initialisation luck, and neurons that die never recover. With that, the sweep is
 monotone — training MSE 0.16, 0.15, 0.032, 0.032, 0.014, 0.007, 0.0006 for
-`D = 1, 2, 3, 5, 10, 20, 40` against a noise floor of 0.0004 — and the kink count
+`D = 1, 2, 3, 5, 10, 20, 40` against a noise floor of 0.0004 — and the breakpoint count
 is at most `D` everywhere, falling well below it for the larger networks.
 
 Notebook 04's budget of 1000 parameters buys 1×333, 2×29 or 4×17 neurons. On this
@@ -147,7 +147,7 @@ expected standard is visible rather than guessed.
 
 ## Depends on
 
-- **L4.1** slides 9 (the fix), 12 (why Part 2 uses tanh), 14–15 (kinks), 16
+- **L4.1** slides 9 (the fix), 12 (why Part 2 uses tanh), 14–15 (breakpoints), 16
   (universal approximation and its five caveats), 21 (failure modes) and 22
   (this exercise).
 - **L4.2** slides 3–6 (depth and regions), 10 (capacity as a dial), 11–13 (the

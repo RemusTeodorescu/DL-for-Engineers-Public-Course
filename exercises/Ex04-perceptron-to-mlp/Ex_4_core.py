@@ -8,7 +8,7 @@ see docs/PROVENANCE.md for what each reference text is cited for.
     Ex04_00_environment_check.ipynb        # 0 — check the tools, run this first
     Ex04_01_perceptron_and_xor.ipynb       # 1 — NumPy perceptron; AND, then XOR
     Ex04_02_pytorch_mlp.ipynb              # 2 — the same network, in PyTorch
-    Ex04_03_counting_kinks.ipynb           # 3 — sweep D, count the kinks
+    Ex04_03_counting_kinks.ipynb           # 3 — sweep D, count the breakpoints
     Ex04_04_depth_vs_width.ipynb           # 4 — one budget, spent three ways
     Ex04_05_overfit_then_regularise.ipynb  # 5 — the lecture's eleven points
     Ex04_06_report.ipynb                   # 6 — the report
@@ -213,7 +213,7 @@ def wiggly_truth(x: np.ndarray) -> np.ndarray:
     """A smooth curve with two length scales, on [-1, 1].
 
     Used for the capacity experiments. It is deliberately harder than a single
-    hump: a network needs several kinks before it can follow the small ripple
+    hump: a network needs several breakpoints before it can follow the small ripple
     as well as the large oscillation, which is what makes the sweep in notebook
     03 worth plotting.
     """
@@ -293,7 +293,7 @@ class MLP(nn.Module):
     slides 13-15 — one hidden layer of D neurons.
 
     ``activation="relu"`` gives a piecewise linear function, which is the right
-    choice when you want to see kinks. ``activation="tanh"`` gives a smooth one,
+    choice when you want to see breakpoints. ``activation="tanh"`` gives a smooth one,
     which is the right choice for notebook 05 and for every network in Part 2
     of this course.
     """
@@ -439,19 +439,19 @@ def evaluate(model: nn.Module, x: np.ndarray, y: np.ndarray) -> float:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# 4 · kinks — notebook 03
+# 4 · breakpoints — notebook 03
 # ──────────────────────────────────────────────────────────────────────────
 
-def numeric_kinks(x: np.ndarray, y: np.ndarray,
+def numeric_breakpoints(x: np.ndarray, y: np.ndarray,
                   threshold: float = 0.02) -> np.ndarray:
-    """Find kinks in a sampled piecewise-linear curve, numerically.
+    """Find breakpoints in a sampled piecewise-linear curve, numerically.
 
-    A kink is a place where the slope changes. This estimates the slope by
+    A breakpoint is a place where the slope changes. This estimates the slope by
     first differences and reports the midpoints where the slope changes by more
     than ``threshold`` times the total slope range.
 
-    It is an estimate: two kinks closer together than the sample spacing look
-    like one, and a very shallow kink looks like none. Notebook 03 asks you to
+    It is an estimate: two breakpoints closer together than the sample spacing look
+    like one, and a very shallow breakpoint looks like none. Notebook 03 asks you to
     compute the exact positions from the weights instead, and to compare.
     """
     x = np.asarray(x, dtype=float)
@@ -463,7 +463,7 @@ def numeric_kinks(x: np.ndarray, y: np.ndarray,
     if idx.size == 0:
         return np.array([])
 
-    # A single kink that falls between two samples shows up as a change spread
+    # A single breakpoint that falls between two samples shows up as a change spread
     # over two neighbouring intervals, so merge runs of adjacent indices and
     # report the centre of mass of each run.
     positions = []
@@ -483,10 +483,10 @@ def numeric_kinks(x: np.ndarray, y: np.ndarray,
     return np.asarray(out)
 
 
-def plot_kinks(ax, kinks: Sequence[float], colour: str = "#7b61a8",
+def plot_breakpoints(ax, breakpoints: Sequence[float], colour: str = "#7b61a8",
                label: Optional[str] = None):
-    """Draw a vertical line at every kink position."""
-    for i, k in enumerate(np.atleast_1d(np.asarray(kinks, dtype=float))):
+    """Draw a vertical line at every breakpoint position."""
+    for i, k in enumerate(np.atleast_1d(np.asarray(breakpoints, dtype=float))):
         ax.axvline(float(k), color=colour, lw=1.0, ls=":", alpha=0.9,
                    label=label if i == 0 else None, zorder=1)
     return ax
@@ -589,3 +589,18 @@ FOUR_QUESTIONS = (
 def four_questions() -> Tuple[str, ...]:
     """The four questions from L3.2 slide 2, in order."""
     return FOUR_QUESTIONS
+
+
+# ── deprecated names ────────────────────────────────────────────────────────
+# The course calls the points where a ReLU network's slope changes
+# "breakpoints", and the straight pieces between them "linear regions". These
+# notebooks called both a "kink" until 16 September 2026.
+#
+# The aliases exist because the notebooks fetch this file from the repository
+# at run time, so a student who opened notebook 03 before the rename has old
+# cells calling the old names against a new library. Without these, that
+# combination fails with AttributeError in the middle of an exercise session.
+#
+# Safe to delete once no one is running a notebook from before that date.
+numeric_kinks = numeric_breakpoints
+plot_kinks = plot_breakpoints

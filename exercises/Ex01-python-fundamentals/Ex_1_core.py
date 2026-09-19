@@ -41,8 +41,9 @@ HOW TO RUN Ex_1
 WHAT YOU NEED
 
     Python 3.9+, with:  numpy  matplotlib
-    Notebook 00 also looks for torch, because Ex_2 needs it and it is better to
-    find out now than in week two. Nothing in Ex_1 imports torch.
+    Notebook 00 also looks for torch, because the rest of the course needs it
+    and it is better to find out now than in week two. Nothing in Ex_1
+    imports torch.
 
     Google Colab has all three preinstalled. No GPU is needed - nothing in this
     exercise takes longer than a few seconds to run.
@@ -60,7 +61,7 @@ FILES IN THIS EXERCISE
 
 A NOTE ON THE FILE NAMES
 
-    Notebooks are named with the exercise number, Ex01_ / Ex02_, but the
+    Notebooks are named with the exercise number, Ex01_, but the
     importable module uses underscores: Ex_1_core.py. This is not an
     inconsistency for its own sake - a Python module name cannot contain a
     dot, because a dot means "inside a package". The import in every setup
@@ -109,8 +110,8 @@ HOW THE EXERCISE IS STRUCTURED
 
     Ex_1 carries far more explanatory text than the Part 2 exercises do. That
     is deliberate. It is written to be readable on its own, so that a student
-    who missed the recorded lecture can still work through it. From Ex_7
-    onwards the prose thins out considerably.
+    who missed the recorded lecture can still work through it. In Part 2
+    the prose thins out considerably.
 
     Run notebooks in order. Notebook 02 assumes the vocabulary of notebook 01,
     and notebook 03 plots arrays built the way notebook 02 builds them.
@@ -216,7 +217,7 @@ def check_environment(verbose: bool = True) -> dict:
 
     torch is reported but not required: nothing in Ex_1 imports it. It is
     checked here so that a missing install is discovered in week one rather
-    than in the middle of Ex_2.
+    than when PyTorch is first needed.
     """
     info = {
         "python": ".".join(str(v) for v in sys.version_info[:3]),

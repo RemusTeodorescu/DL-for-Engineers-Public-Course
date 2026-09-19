@@ -16,8 +16,8 @@ The architectural question it turns on is narrow and it decides everything:
 > **A line outage changes the network's topology.** A dense network sees a
 > fixed-length vector and can only be told about the outage by a one-hot flag;
 > a graph network is handed the modified adjacency directly. A line out is a
-> *different input*, not a different label — and that is why the graph network
-> from Ex_05 notebook 03 and L5.1 is the right architecture here.
+> *different input*, not a different label — and that is why a graph network is
+> the right architecture here.
 
 ## Running on Colab: one runtime, in order
 
@@ -74,15 +74,6 @@ By the end you can
 The same six-bus, DK2-representative network as **Ex_12.1** — `BUSES` and
 `BRANCHES` character-identical, and `problem.check_continuity()` prints them so
 a student can diff rather than trust.
-
-Ex_05 notebook 03 and L5.1 also work on a six-bus network, and it is **not this
-one**: that is a DC, susceptance-only model with eight lines and buses named
-`B1 gen … B6 HVDC`, chosen so message passing can be done by hand. This set and
-Ex_12.1 use six `(r, x, b)` branches and named buses `Slack / SE link … HVDC /
-DE link`. The continuity across the course is of the *object* — a small meshed
-transmission system carried from a supervised regression to a state estimator to
-a stability screen — not of the numbers. Do not expect a diff of the two to
-match.
 
 A contingency is the textbook one:
 
@@ -237,13 +228,13 @@ measurements and should be checked on the first real run:
 
 **Also verified without torch.** Every notebook parses as JSON with
 `nbformat == 4`; every code cell passes `ast.parse`; `problem.py` passes
-`ast.parse`; the setup cell is byte-identical to Ex_07.1's in all six notebooks;
-no notebook carries a course-header cell (the stamping tool adds those); every
-`pb.*` name referenced in a notebook exists in `problem.py`. Every code cell
-that does not need torch was **executed**, including all of notebooks 00 and 01
-except the two TODO-dependent cells, and every post-TODO cell in notebooks 04
-and 05 was executed against a stand-in solution to confirm it uses the names the
-TODO asks for and runs.
+`ast.parse`; the setup cell is the course's standard one, byte for byte, in all
+six notebooks; no notebook carries a course-header cell (the stamping tool adds
+those); every `pb.*` name referenced in a notebook exists in `problem.py`. Every
+code cell that does not need torch was **executed**, including all of
+notebooks 00 and 01 except the two TODO-dependent cells, and every post-TODO
+cell in notebooks 04 and 05 was executed against a stand-in solution to confirm
+it uses the names the TODO asks for and runs.
 
 **One open question, and it is a real one.** Notebook 05's held-out-topology
 table predicts that the graph model degrades less than the dense one. That is
@@ -254,14 +245,6 @@ negative if they get one, and lists the three things to check first. **Run
 notebook 05 before this goes to students** — if the graph model does not win,
 the text is already written to accommodate it, but the teaching staff should
 know which way it went.
-
-**One discrepancy worth recording.** The six-bus network in `Ex05-cnn-and-gnn/Ex_5_core.py`
-is *not* this network: it has eight lines described by susceptances
-(`SIX_BUS_LINES`), where Ex_12.1 and Ex_12.2 have six lines described by
-`(r, x, b)`. The two share a bus count and a role, not a topology. This set is
-byte-identical to **Ex_12.1**, which is what the brief required; the Ex_05
-mismatch predates it and should be resolved in one direction or the other before
-the continuity claim in L5.1 is repeated to students.
 
 Run notebook 00 end to end before this goes out. See `docs/REPO_NOTES_PART1.md` §9.
 

@@ -21,7 +21,7 @@ internal heat generation:
     T = 0                       on the hole wall
     ∂T/∂n = 0                   on the four outer edges
 
-Nothing in the *equation* is new — it is a Poisson problem, as in Ex_07.1.
+Nothing in the *equation* is new — it is a standard Poisson problem.
 What is new is **geometry**. The domain is not a rectangle, so the samplers in
 ``pinn_core`` do not describe it; the boundary that carries the interesting
 condition is curved; and the outward normal there is a function of position

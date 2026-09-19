@@ -40,7 +40,7 @@ The hole is an ellipse at the centre of the unit square, `a = 0.18`,
 `b = 0.11` — 6.22% of the plate's area, with 0.924 of wall through which
 everything generated in the remaining 0.938 of area has to leave.
 
-The equation is the elliptic problem of Ex_07.1 again. What is new is
+The equation is a plain elliptic (Poisson) problem. What is new is
 **geometry**: the domain is not a rectangle, so `pinn_core`'s samplers do not
 describe it; the boundary carrying the interesting condition is curved; and the
 outward normal there is a function of position rather than one of four constant

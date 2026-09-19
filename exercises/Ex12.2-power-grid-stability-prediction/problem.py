@@ -48,10 +48,9 @@ flag, and the flag is a name, not a structure. A graph network is handed the
 modified adjacency itself, so a line out is a **different input**, not a
 different case identifier.
 
-That is the whole reason the graph network from Ex_05 notebook 03 and L5.1 is
-the right architecture here, and notebook 03 measures the consequence: permute
-the bus numbering and the graph model's prediction does not move, while the
-dense model's does.
+That is the whole reason a graph network is the right architecture here, and
+notebook 03 measures the consequence: permute the bus numbering and the graph
+model's prediction does not move, while the dense model's does.
 
 ## Network provenance — read this before quoting a number
 
@@ -66,9 +65,6 @@ on structure are on firmer ground.
 
 :data:`BUSES` and :data:`BRANCHES` are **character-identical** to Ex_12.1's, and
 :func:`check_continuity` prints them so you can see it rather than trust it.
-The same object under three different questions — a supervised regression in
-Ex_05, a state estimator in Ex_12.1, a stability screen here — is the point of
-carrying it through the course.
 
 ## What is new here, and what was inherited
 
@@ -234,14 +230,10 @@ def pq_from_state(V, th, Y):
 def check_continuity(verbose=True):
     """Print the buses and the lines, so you can see this is the same network.
 
-    **Why this function exists.** The six-bus case appears four times in this
-    course: as a supervised node-regression problem in Ex_05 notebook 03, as
-    the network in L5.1, as the object of a state estimator in Ex_12.1, and as
-    the thing being screened here. A student who has to take on trust that they
-    are the same network learns nothing from the repetition. A student who can
-    print the bus names and the line impedances in two folders and diff them
-    learns that a model is a *thing*, carried between problems, not a fresh
-    invention each time.
+    **Why this function exists.** The network here is the one Ex_12.1 estimates.
+    A student who can print the bus names and the line impedances in both
+    folders and diff them learns that a model is a *thing*, carried between
+    problems, not a fresh invention each time.
 
     It also fails loudly if someone edits an impedance. Every number in
     notebooks 00–05 depends on :data:`BRANCHES`; a silent change to one entry
@@ -1119,11 +1111,10 @@ def normalised_adjacency(A):
     a well-connected bus does not simply shout louder than a poorly connected
     one.
 
-    Identical in form to ``Ex_5_core.normalised_adjacency`` — the same
-    normalisation you built by hand in Ex_05 notebook 02 — except that this one
-    also accepts a **stack** of adjacencies, ``(n, N, N)``, because here the
-    graph changes from case to case. That difference is the whole exercise in
-    one function signature.
+    The symmetric normalisation of Kipf and Welling. This one also accepts a
+    **stack** of adjacencies, ``(n, N, N)``, because here the graph changes from
+    case to case. That difference is the whole exercise in one function
+    signature.
     """
     A = np.asarray(A, dtype=float)
     single = (A.ndim == 2)
@@ -1140,8 +1131,7 @@ def permutation_matrix(perm):
     """The matrix ``P`` with ``P[i, perm[i]] = 1``.
 
     Left-multiplying node features by ``P`` relabels the buses: row ``i`` of
-    ``P X`` is row ``perm[i]`` of ``X``. Same definition as Ex_05's, so the
-    permutation test in notebook 03 is the same test you ran in Part 1.
+    ``P X`` is row ``perm[i]`` of ``X``.
     """
     perm = np.asarray(perm, dtype=int)
     n = len(perm)
@@ -1161,7 +1151,7 @@ class GraphLayer(nn.Module):
     Two weight matrices, not one: what a bus does and what its neighbours do
     are physically different things, and pooling them before transforming
     forces the layer to express that difference through the normalisation
-    constants alone. Ex_05 notebook 03 measures what that costs.
+    constants alone.
 
     ``A_hat`` may be ``(N, N)`` — one graph for every case — or ``(n, N, N)``,
     one graph per case. **In this exercise it is always the second**, because
@@ -1190,8 +1180,7 @@ class ScreeningGNN(nn.Module):
 
     **Depth is a physical quantity.** One layer moves information one hop. The
     six-bus network has a diameter of three, so a machine at bus 1 cannot feel
-    the loss of the line from bus 3 to bus 5 in fewer than three layers. That
-    is the same argument Ex_05 notebook 03 made with a depth sweep, and it is
+    the loss of the line from bus 3 to bus 5 in fewer than three layers. That is
     why ``depth=3`` is the default rather than a number that was tuned.
 
     **Mean pooling, because the target is one number for the whole graph.**

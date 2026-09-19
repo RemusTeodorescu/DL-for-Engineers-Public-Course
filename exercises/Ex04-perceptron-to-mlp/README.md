@@ -163,8 +163,6 @@ expected standard is visible rather than guessed.
 - **L4.2** slides 3–6 (depth and regions), 10 (capacity as a dial), 11–13 (the
   eleven points), 14 (train/validation/test), 17–19 (regularisation) and 22
   (this exercise).
-- **Ex_03**, whose extrapolation plot is explained again in notebook 03 section 4
-  once the piecewise-linear picture is available.
 
 ## Expected runtime
 

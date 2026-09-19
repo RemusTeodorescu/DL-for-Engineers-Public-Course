@@ -4,20 +4,18 @@
 
 The first exercise of Part 2, and the one that establishes the machinery the
 rest reuse: a residual built by automatic differentiation, a composite loss, and
-the Adam-then-L-BFGS schedule from Ex_06.
+the Adam-then-L-BFGS schedule of L6.1.
 
-**On the relationship with Ex_03.** Students have already seen a differential
-equation in a loss function — Ex_03 put a damped oscillator there and measured
-what it bought. That was deliberate, and it means the *idea* is not new here.
-What is new is that they build it. In Ex_03 the residual is written for them in
-`Ex_3_core.py` and the exercise is to turn the weights; here the first TODO is
-to write the residual themselves, on a PDE with two independent variables, and
-nothing is supplied but the domain and the source term.
+**What is new here.** A differential equation in a loss function is not a new
+*idea* by this point: L3.2 already shows a damped oscillator's equation used
+that way. What is new is that students build it. The first TODO is to write
+the residual themselves, on a PDE with two independent variables, and nothing
+is supplied but the domain and the source term.
 
-The two also differ in what a condition is. Ex_03 has an initial condition
-imposed as one more loss term. Here the boundary condition is imposed twice —
-once softly and once exactly by construction — and comparing the two is the
-whole point of the exercise.
+A condition is also treated differently. The simplest pattern imposes it as
+one more loss term. Here the boundary condition is imposed twice — once softly
+and once exactly by construction — and comparing the two is the whole point of
+the exercise.
 
 The question it answers is narrow and it matters everywhere afterwards:
 **when you know something about the solution, where should you put it?**

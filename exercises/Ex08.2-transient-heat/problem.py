@@ -38,8 +38,8 @@ correctly, at great expense.
 
 ## 2 · The same plate with an elliptical hole
 
-Carried over from Ex_08.1 and now given a time coordinate. The hole is a
-level set,
+The steady plate-with-a-hole geometry, now given a time coordinate. The hole
+is a level set,
 
     phi(x, y) = ((x - xc)/a)^2 + ((y - yc)/b)^2 - 1
 
@@ -236,7 +236,7 @@ def plate_spacetime_points(n, t_end=1.0, with_hole=False, domain=PLATE_DOMAIN,
 # ══════════════════════════════════════════════════════════════════════════
 
 def exact_manufactured(X, Y):
-    """T = sin(pi x) sin(pi y) — the field used throughout L7 and Ex_07.1."""
+    """T = sin(pi x) sin(pi y) — the field used throughout L7."""
     lib = _lib(X)
     return lib.sin(np.pi * X) * lib.sin(np.pi * Y)
 

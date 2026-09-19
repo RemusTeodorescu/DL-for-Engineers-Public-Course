@@ -16,7 +16,7 @@ failure.
 
 ## Prerequisites
 
-Ex_9.1 and Ex_9.2 completed. You will reuse `Ex_9_2_pipe.py` and the control
+Ex_9.2 completed. You will reuse `Ex_9_2_pipe.py` and the control
 panel; the geometry, the sampling and the reporting are already built.
 
 ## Tracks

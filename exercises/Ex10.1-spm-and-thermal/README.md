@@ -7,8 +7,8 @@ reference** and a control panel for C-rate, ambient temperature, initial SOC
 and cooling.
 
 Having a community reference implementation to compare against is a luxury.
-Ex_10.2 removes it, and the difference in how confident you can be is the point
-of the pair.
+Most models have none, so notice how much of your confidence here comes from
+the reference rather than from the network.
 
 ## Goals
 
@@ -33,9 +33,10 @@ By the end you can
 **One particle — parabolic, radial, singular at the centre.** The
 single-particle model reduces an electrode to one representative sphere:
 $c_t = c_{rr} + (2/r)c_r$, with zero flux at the centre, unit flux at the
-surface and $c=0$ initially. Two things separate it from everything in Ex_07:
-the Laplacian carries a curvature term that blows up at $r=0$, and **both**
-boundary conditions are on the flux — nothing fixes the concentration anywhere.
+surface and $c=0$ initially. Two things separate it from the Cartesian
+problems of L7: the Laplacian carries a curvature term that blows up at $r=0$,
+and **both** boundary conditions are on the flux — nothing fixes the
+concentration anywhere.
 `analytic_sphere` in `problem.py` is the classical series solution (Crank,
 *Mathematics of Diffusion*), so the error is measurable without PyBaMM and
 without training anything.

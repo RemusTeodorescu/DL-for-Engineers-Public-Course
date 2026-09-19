@@ -77,7 +77,7 @@ Same as every Part 2 exercise set:
 - Self-contained folder. Requires `torch`, `numpy`, `matplotlib` — all
   preinstalled on Google Colab. No GPU needed. Nothing in Ex01 actually imports
   `torch`; notebook 00 checks for it so that a missing install is found in week
-  one rather than in the middle of Ex02.
+  one rather than when PyTorch is first needed.
 - Notebook `00` is a read-only environment check. Run it first.
 - Modules (`Ex_1_core.py`) are complete and are **not** to be rewritten by
   students. The work is in `# TODO:` cells in the numbered notebooks, each
@@ -89,11 +89,12 @@ Same as every Part 2 exercise set:
 
 ## Deliberately unlike Part 2
 
-The Part 2 exercises are terse: a paragraph of physics, then a TODO. Ex01 and
-Ex02 are not. Every TODO here is preceded by several paragraphs explaining what
+The Part 2 exercises are terse: a paragraph of physics, then a TODO. This set
+is not. Every TODO here is preceded by several paragraphs explaining what
 is being asked, why it is being asked, and what a correct answer looks like,
 because L1 and L2 are recorded rather than live and a student who missed them
-has no room to ask. The prose thins out from Ex03 and is gone by Ex07.
+has no room to ask. The prose thins out through the rest of Part 1 and is
+gone by Part 2.
 
 ## Expected runtime
 

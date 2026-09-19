@@ -164,7 +164,7 @@ def wave_velocity(x, y, t):
 def hard_bc_factor(x, y, domain):
     """Vanishes on all four edges of ``domain`` — for hard spatial enforcement.
 
-    Ex_07.1 used the same idea on a slot. Here the edges are at 0 and L rather
+    The same idea works on any rectangle. Here the edges are at 0 and L rather
     than symmetric about the origin, so the factor is written in the scaled
     coordinate directly: ``X (1 - X) Y (1 - Y)``, up to a constant.
     """

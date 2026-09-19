@@ -94,7 +94,7 @@ Requires `torch`, `numpy`, `matplotlib` and — for notebook 02 — **`ipywidget
 which is preinstalled on Colab and is `pip install ipywidgets` locally.
 
 See also `MiniProject_Turbulence.md`, which defines the L13 project building on
-this exercise and on Ex_09.1.
+this exercise.
 
 ## Expected runtime
 

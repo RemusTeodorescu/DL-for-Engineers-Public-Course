@@ -5,8 +5,7 @@
 One idea, three domains: **a learned local rule, applied everywhere.** A
 convolution applies it on a grid, message passing applies it on a graph, a
 recurrent cell applies it along time. Notebook 03 does node regression on a
-six-bus power network — deliberately the same object Ex_12.1 uses, so the
-continuity into Part 2 is felt rather than asserted.
+six-bus power network.
 
 ## Goals
 
@@ -55,10 +54,9 @@ twenty lines of NumPy and are identical on every machine in the room.
 
 `Ex_5_core.six_bus_dataset()` builds a small load-flow dataset on a six-bus
 network with two generators, three load centres and an HVDC infeed. The module
-docstring separates **real physics from teaching simplification** explicitly, and
-notebook 03 section 1 repeats the separation in the student's face, because
-Ex_12.1 makes the same kind of declaration about its own network and the habit is
-the point:
+docstring separates **real physics from teaching simplification** explicitly,
+and notebook 03 section 1 repeats the separation in the student's face, because
+labelling assumptions is a habit worth forming early:
 
 - **Real.** The topology; the susceptance matrix as a weighted graph Laplacian;
   the bus angles, obtained by Newton-Raphson on the lossless active power flow
@@ -99,7 +97,7 @@ be right?*
   argument.
 - **A line trip.** Both models degrade badly on a topology they never saw — the
   graph network to 0.115 rad, the dense one to 0.265, against a data spread of
-  0.32. The conclusion is the one L12.1 slide 13 reaches: being able to *accept*
+  0.32. The conclusion: being able to *accept*
   a new topology is necessary for transfer and not sufficient. Training across
   topologies is the fix, and it is offered as an extension in notebook 05.
 
@@ -108,8 +106,8 @@ be right?*
 Angles are defined only up to a common offset, so one bus must be nominated as
 the reference. A permutation-equivariant model has no notion of bus number and
 therefore cannot know which one — so the reference is supplied as a **node
-feature** that permutes with everything else. This is the same design point
-L12.1 makes about measurement masks: anything positional must be a feature.
+feature** that permutes with everything else. Anything positional must be a
+feature.
 
 ## Notebook 04 ends where L5.2's closing slide does
 
@@ -230,17 +228,9 @@ is visible rather than guessed.
   gradients, the LSTM's gates (GBC Ch. 10), scaled dot-product self-attention and
   positional encoding, and the honest closing slide.
 - **L3.2** — the weld-inspection framing of notebook 01, and the four questions.
-- **Ex_04**, whose seed-variation lesson notebook 04 repeats, and whose
-  equal-budget sweep notebook 05 suggests as an extension.
-
-## Forward to Part 2
-
-- **L12.1 slide 12** says *"you met graph neural networks in Part 1"*. This is
-  where. Ex_12.1's six buses are these six buses.
-- **L12.2** on depth as a physical choice, on equivariance, and on the difference
-  between avoiding retraining and avoiding recomputation — notebook 03 sections 7
-  and 8 are the Part 1 version of both arguments.
-- **L11.1** runs a CNN on the JetRacer camera; notebook 01 is the preparation.
+- **L4.2** — depth against width at an equal parameter budget, the extension
+  notebook 05 suggests for the depth sweep. Notebook 04 also repeats the habit
+  of checking a result across several seeds.
 
 ## Expected runtime
 

@@ -66,7 +66,8 @@ The argument it builds, in order:
    numerical precision.
 6. **A residual.** u'' + k²u evaluated on a solution (zero) and on a
    non-solution (not zero). The first physics-informed object in the course,
-   and the notebook says plainly that this is Ex_7.1 with a different equation.
+   and the notebook says plainly that a physics-informed network is this with a
+   different equation.
 7. **The derivative of a network with respect to its input**, verified against
    a central difference of the network itself.
 8. **ReLU against tanh.** Identical networks, identical seed. The tanh second
@@ -137,7 +138,8 @@ Same as every Part 2 exercise set:
 Every TODO is preceded by several paragraphs explaining what is being asked,
 why, and what a correct answer looks like. L2 is recorded rather than live, so a
 student who missed it has no room to ask a question; the notebooks are written
-to work on their own. The prose thins out from Ex03 and is gone by Ex07.
+to work on their own. The prose thins out through the rest of Part 1 and is
+gone by Part 2.
 
 ## Verification
 
@@ -147,7 +149,7 @@ cell references a name that has not been defined by an earlier cell or by the
 module.
 
 `torch` could not be installed in the environment these files were authored in,
-so the Ex02 notebooks have **not** been executed end to end. Ex01 has. Before
+so these notebooks have **not** been executed end to end. Before
 this set is given to students, run all four notebooks once with a solution
 copy — the numbers quoted in the "What you should see" notes are reasoned
 estimates, not transcripts.

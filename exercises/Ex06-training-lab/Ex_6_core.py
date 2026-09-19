@@ -9,20 +9,15 @@ see docs/PROVENANCE.md for what each reference text is cited for.
     Ex06_01_loss_functions.ipynb           # 1 — likelihood, cross entropy, robustness
     Ex06_02_optimiser_comparison.ipynb     # 2 — SGD, momentum, Adam, and the
                                            #     Adam-to-L-BFGS handoff Part 2 uses
-    Ex06_03_overfit_then_regularise.ipynb  # 3 — twenty points, too much capacity
+    Ex06_03_transfer_and_fine_tuning.ipynb # 3 — a second machine, ten labels per class
     Ex06_04_quantisation.ipynb             # 4 — smaller and faster, and what it costs
     Ex06_05_report.ipynb                   # 5 — the report
-
-Notebooks 02 to 05 are **not written yet**; see this folder's README. The four
-datasets they are specified against live here already, so they behave the same
-way when those notebooks arrive as they do in 00 and 01 today.
 
 This module is complete. You are not expected to change anything in it. Your
 work is in the ``# TODO:`` cells of the notebooks.
 
-Four datasets, all generated on your own machine — **nothing is downloaded**,
-for the same reason as in Ex_05: a lecture theatre's network is not to be
-trusted.
+Five datasets, all generated on your own machine — **nothing is downloaded**,
+because a lecture theatre's network is not to be trusted.
 
 * **a load-cell calibration line** — forty readings against applied load, with
   Gaussian instrument noise of known standard deviation. Notebook 01 uses it to
@@ -37,7 +32,7 @@ trusted.
   optimiser to the same floor and the comparison measures nothing but the
   noise.
 * **fatigue measurements** — twenty training points and sixty held out from the
-  same curve, used by notebook 02 as a second regression target.
+  same curve. Notebook 00 generates and plots it; no later notebook uses it.
 * **a second machine** — the same three vibration classes measured through a
   different sensor on a different mounting, so the features are rotated,
   scaled and offset. Notebook 03 transfers the network trained on machine A
@@ -98,7 +93,7 @@ def keep_outputs(local_dir=None) -> str:
     """Make ``OUTPUT_DIR`` survive from one notebook to the next on Colab.
 
     ``local_dir`` is the results folder beside the notebooks, e.g.
-    ``"Ex07.1_outputs"``. On Colab this mounts Google Drive and points
+    ``"Ex06_outputs"``. On Colab this mounts Google Drive and points
     OUTPUT_DIR at ``MyDrive/DL4Eng/<local_dir>``; approve the access request
     when Colab shows it. Locally, and when Drive is declined or unavailable,
     OUTPUT_DIR is ``local_dir`` itself and ``saved`` / ``needed`` fall back to

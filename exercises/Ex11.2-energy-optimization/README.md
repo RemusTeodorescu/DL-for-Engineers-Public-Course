@@ -4,8 +4,9 @@
 
 Ex_11.1 asked whether the car could drive the course. This asks what it cost.
 You identify the vehicle's dynamics and electrical parameters from measured
-data — an inverse problem, the same shape as Ex_08.2's — predict the energy of
-a lap **before** you run it, then optimise the speed profile.
+data — an inverse problem: known model structure, unknown coefficients —
+predict the energy of a lap **before** you run it, then optimise the speed
+profile.
 
 Prerequisite: a working Ex_11.1 policy and its submission file.
 

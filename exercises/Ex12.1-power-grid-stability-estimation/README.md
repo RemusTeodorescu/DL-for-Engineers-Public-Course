@@ -69,9 +69,6 @@ Say this in your report. Results that depend only on structure — which buses
 are observable, how error grows with distance from a meter — are on firmer
 ground than results that depend on a specific reactance.
 
-The same six-bus case appears in L5.1 and again in L12.1. It does not change
-between them.
-
 ## The notebooks
 
 Run in order; later notebooks load results saved by earlier ones.

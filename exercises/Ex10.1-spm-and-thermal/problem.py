@@ -27,9 +27,9 @@ sphere. In the dimensionless variables that is
 
     c_t = c_rr + (2/r) c_r,   c_r(0, t) = 0,  c_r(1, t) = 1,  c(r, 0) = 0
 
-Two things separate this from every problem in Ex_07. **The domain is radial**:
-one spatial coordinate, and the Laplacian carries the curvature term ``2/r``
-which is singular at the centre. Sample away from ``r = 0`` or handle it
+Two things separate this from the Cartesian problems of L7. **The domain is
+radial**: one spatial coordinate, and the Laplacian carries the curvature term
+``2/r`` which is singular at the centre. Sample away from ``r = 0`` or handle it
 explicitly — it is a real numerical trap, not a formality. **And the boundary
 condition at the surface is on the flux, not the value**: the current pulls
 lithium out through the surface at a fixed rate, and nothing fixes the

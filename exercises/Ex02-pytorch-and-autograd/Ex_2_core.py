@@ -68,7 +68,7 @@ FILES IN THIS EXERCISE
 
 A NOTE ON THE FILE NAMES
 
-    Notebooks are named with the exercise number, Ex01_ / Ex02_, but the
+    Notebooks are named with the exercise number, Ex02_, but the
     importable module uses underscores: Ex_2_core.py. This is not an
     inconsistency for its own sake - a Python module name cannot contain a
     dot, because a dot means "inside a package". The import in every setup
@@ -338,7 +338,7 @@ def as_input(x, requires_grad: bool = True) -> torch.Tensor:
     course, because a network with one input takes a batch of n samples each of
     dimension 1, and `nn.Linear` expects that trailing feature axis. Keeping
     the convention everywhere means the (n,) against (n, 1) broadcasting trap
-    from Ex_1 notebook 02 has no opportunity to appear.
+    has no opportunity to appear.
 
     requires_grad=True marks the tensor as something autograd should track, so
     that grad(u, x) is possible. That single flag is the difference between an
@@ -428,9 +428,10 @@ def check(name: str, got, want, tol: float = 1e-5) -> bool:
     Accepts tensors, arrays and scalars in any combination, and prints the
     largest absolute difference, which is the number that decided the verdict.
 
-    The default tolerance is 1e-5 rather than the 1e-10 of Ex_1 because these
-    are float32 tensors: float32 carries roughly seven significant decimal
-    digits, so agreement to 1e-5 on numbers of order one is as good as it gets.
+    The default tolerance is 1e-5 rather than 1e-10, the natural choice for
+    float64 NumPy arrays, because these are float32 tensors: float32 carries
+    roughly seven significant decimal digits, so agreement to 1e-5 on numbers
+    of order one is as good as it gets.
     Asking for more is asking the arithmetic for something it does not have.
     """
     g = np.asarray(to_numpy(got), dtype=float)
@@ -526,8 +527,8 @@ def engineering_axes(ax, xlabel: str, ylabel: str, title: str | None = None,
                      grid: bool = True, legend: bool = False):
     """Apply this course's figure conventions to one matplotlib Axes.
 
-    The same helper as in Ex_1: labels carry units, the grid is light, the box
-    is gone. An engineering figure with an unlabelled axis is a decoration.
+    The course's standard figure helper: labels carry units, the grid is light,
+    the box is gone. An engineering figure with an unlabelled axis is a decoration.
     """
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)

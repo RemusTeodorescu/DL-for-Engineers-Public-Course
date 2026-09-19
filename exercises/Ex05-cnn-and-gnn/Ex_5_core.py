@@ -22,10 +22,7 @@ flaky MNIST mirror has ruined more exercise sessions than any bug:
 * **weld radiographs**, 16 x 16 greyscale, three classes — clean, crack, pit.
   Procedural, in the spirit of the weld-inspection example from L3.2.
 * **a six-bus power network** — the adjacency matrix, the line susceptances and
-  a small synthetic load-flow dataset. This is deliberately the same object
-  **Ex_12.1 in Part 2** works on, so that when L12.1 says "you met graph neural
-  networks in Part 1" you remember not only the architecture but the same six
-  buses.
+  a small synthetic load-flow dataset.
 * **a load profile** — a synthetic thirty-day substation demand trace for the
   sequence notebook.
 * **a handful of fixed convolution kernels**, so that notebook 01 can check a
@@ -408,8 +405,7 @@ def print_confusion(m: np.ndarray) -> None:
 # 2 · the six-bus network — notebooks 02 and 03
 # ──────────────────────────────────────────────────────────────────────────
 
-#: The six buses. Two generators, three load centres, one HVDC infeed —
-#: the shape of network Ex_12.1 works on.
+#: The six buses. Two generators, three load centres, one HVDC infeed.
 BUS_NAMES = ("B1 gen", "B2 gen", "B3 load", "B4 load", "B5 load", "B6 HVDC")
 
 #: Which of the three roles each bus has, in the same order.
@@ -599,8 +595,7 @@ def dc_power_flow(P: np.ndarray, lines=SIX_BUS_LINES) -> np.ndarray:
 
     This is the classical approximation, in daily use for market clearing and
     contingency screening. Notebook 03 uses it as the **baseline your network
-    has to beat**, which is the same role weighted least squares plays in
-    Ex_12.1.
+    has to beat**.
     """
     P = np.asarray(P, dtype=float)
     Bp = np.linalg.pinv(susceptance_matrix(lines))
@@ -682,9 +677,8 @@ def six_bus_dataset(n_cases: int = 800, seed: int = 12, noise: float = 5e-4,
     corridor. Right qualitative behaviour, wrong numbers.
 
     *Also invented:* the line susceptances, the injection ranges, and the
-    measurement noise level. Ex_12.1 in Part 2 makes the same kind of
-    declaration about its own network, and for the same reason — the discipline
-    is not avoiding assumptions, it is labelling them.
+    measurement noise level. The discipline is not avoiding assumptions, it is
+    labelling them.
 
     *Why it is still worth training on.* The map from injections to state is
     **nonlinear**, **local** — a bus is affected most by its neighbours — and

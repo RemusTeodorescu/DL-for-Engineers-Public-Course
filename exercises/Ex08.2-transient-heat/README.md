@@ -2,13 +2,13 @@
 
 **Paired with L8.2 · Dynamic Heat · Part 2**
 
-Transient conduction on the Ex_08.1 geometry: soft versus hard initial
-conditions, the plate with a hole in time, and recovering an unknown
-diffusivity from a cooling curve.
+Transient conduction in a heated plate: soft versus hard initial conditions,
+the plate with a hole in time, and recovering an unknown diffusivity from a
+cooling curve.
 
 The inverse problem at the end is the first time in the course that the network
-is asked to find a **physical constant** rather than a field. It returns in
-L11.2 and again in Ex_12.1.
+is asked to find a **physical constant** rather than a field. It returns
+in L11.2.
 
 ## Goals
 
@@ -41,8 +41,8 @@ $\tau = L^2/(\pi^2 c) = 0.1013$ and the transient is essentially over by
 $4\tau$. By $t = 1$ the amplitude is about $3\times10^{-9}$, which is why every
 error in this set is reported twice.
 
-**The plate with a hole.** The Ex_08.1 geometry, now transient: an elliptical
-hole at the centre, held at zero, with a uniform source switched on at $t=0$.
+**The plate with a hole.** The same unit square, now with an elliptical hole
+at the centre, held at zero, with a uniform source switched on at $t=0$.
 The hole is a level set, so no multiplier network has to be trained — and there
 is no exact solution to score against, which from here on is the normal
 situation.
@@ -122,7 +122,8 @@ points before training.
 ## What to hand in
 
 - soft versus hard IC, with the error at early time reported separately
-- the transient plate solution, compared against your Ex_08.1 steady result
+- the transient plate solution, with the evidence that its last frame is the
+  steady state
 - your recovered diffusivity, with a statement of how much the data supports it
 - what would happen to the inverse fit if the cooling curve were shorter
 

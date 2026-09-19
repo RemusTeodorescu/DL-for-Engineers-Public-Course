@@ -2,8 +2,7 @@
 
 **Paired with L7.2 · Fundamental PDEs · Part 2**
 
-Time enters. Everything in Ex_07.1 was steady — one field, two coordinates, no
-history. Here the network takes $(x, y, t)$ and the question becomes **how many
+Time enters. A steady problem has one field, two coordinates and no history. Here the network takes $(x, y, t)$ and the question becomes **how many
 conditions a problem needs**, and what happens when it does not get them.
 
 ## Goals

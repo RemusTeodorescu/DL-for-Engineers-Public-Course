@@ -34,7 +34,7 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L04.1-perceptron-to-neural-network/` - [slides](lectures/L04.1-perceptron-to-neural-network/L4.1_From_Perceptron_to_Neural_Network.pdf), [recording](lectures/L04.1-perceptron-to-neural-network/L4.1_From_Perceptron_to_Neural_Network.mp4)
 - `lectures/L04.2-deep-neural-networks/` - [slides](lectures/L04.2-deep-neural-networks/L4.2_Deep_Neural_Networks.pdf), [recording](lectures/L04.2-deep-neural-networks/L4.2_Deep_Neural_Networks.mp4)
 - `lectures/L05.1-convolutional-and-graph-networks/` - [slides](lectures/L05.1-convolutional-and-graph-networks/L5.1_Convolutional_and_Graph_Networks.pdf), [recording](lectures/L05.1-convolutional-and-graph-networks/L5.1_Convolutional_and_Graph_Networks.mp4)
-- `lectures/L05.2-sequences-and-attention/` - [slides](lectures/L05.2-sequences-and-attention/L5.2_RNN_LSTM_and_Attention.pdf)
+- `lectures/L05.2-sequences-and-attention/` - [slides](lectures/L05.2-sequences-and-attention/L5.2_RNN_LSTM_and_Attention.pdf), [recording](lectures/L05.2-sequences-and-attention/L5.2_RNN_LSTM_and_Attention.mp4)
 - `lectures/L06.1-loss-functions-and-gradients/` - [slides](lectures/L06.1-loss-functions-and-gradients/L6.1_Loss_Functions_and_Gradients.pdf), [recording](lectures/L06.1-loss-functions-and-gradients/L6.1_Loss_Functions_and_Gradients.mp4)
 - `lectures/L06.2-post-training/` - [slides](lectures/L06.2-post-training/L6.2_Post_Training_and_Reinforcement_Learning.pdf), [recording](lectures/L06.2-post-training/L6.2_Post_Training_and_Reinforcement_Learning.mp4)
 - `lectures/L07.1-fundamentals-of-pinns/` - [slides](lectures/L07.1-fundamentals-of-pinns/L7.1_Fundamentals_of_PINNs.pdf), [slides](lectures/L07.1-fundamentals-of-pinns/L7.1_Physics_Informed_Neural_Networks.pdf)
@@ -167,4 +167,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 28 lecture PDFs, 11 recordings and 18 exercise sets.
+Synced from the development repository; 28 lecture PDFs, 12 recordings and 18 exercise sets.

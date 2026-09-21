@@ -40,6 +40,11 @@ Ex05_04_sequence_model.ipynb             RNN, LSTM and self-attention written ou
 Ex05_05_report.ipynb                     the two marked questions, plus the four from L3.2
 ```
 
+Notebooks 01 to 04 each have a `_light` twin with the same text and the code
+already written — `Ex05_01_cnn_image_classification_light.ipynb` and so on.
+Notebook 00 and the report are the same for both. Start from notebook 00,
+which links to whichever of the two you choose.
+
 Notebooks 01, 03 and 04 each write an `.npz` into `Ex05_outputs/`; notebook 05
 reads all three and refuses to build a report without them.
 

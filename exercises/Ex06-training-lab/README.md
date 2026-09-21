@@ -79,8 +79,8 @@ Same as every exercise set in this course:
   work is in the `# TODO:` cells, each followed by `raise NotImplementedError`.
 - Module names use underscores because a Python module name cannot contain a
   dot: `Ex_6_core.py`, imported as `Ex_6_core`.
-- **Colab needs the whole folder**, not just one notebook — the imports expect
-  `Ex_6_core.py` beside them.
+- **On Colab nothing needs uploading**: each notebook's first code cell fetches
+  `Ex_6_core.py` from the public course repository.
 
 ## The five datasets
 

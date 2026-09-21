@@ -148,8 +148,8 @@ the dataset; sections 9–10 are the graph machinery and the lab helpers.
 Outputs — the dataset cache, the saved predictions and the report — go to
 `Ex12.2_outputs/`.
 
-**Colab needs the whole folder**, not just a notebook — the imports expect the
-three modules beside them. `scipy` is required as well as `torch`; Colab has it.
+**On Colab nothing needs uploading**: each notebook's first code cell fetches
+the three modules from the public course repository. `scipy` is required as well as `torch`; Colab has it.
 
 ## Expected runtime
 

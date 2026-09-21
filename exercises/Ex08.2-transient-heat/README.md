@@ -84,8 +84,8 @@ contains the reference implementations your work is judged against.
 | `problem.py` | the geometry, the reference solution, the timescales and the plots |
 
 The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **Colab needs the whole folder** — upload
-every file to one directory, keeping them together, and run notebook 00 first.
+`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each
+notebook fetches the modules itself. Run notebook 00 first.
 Requires `torch`, `numpy` and `matplotlib`, all preinstalled on Colab. **No GPU
 is needed.**
 

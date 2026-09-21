@@ -86,8 +86,8 @@ differs between sets.
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**Colab needs the whole folder**, not just a notebook — the imports expect the
-three modules beside them. Uploaded files vanish when the runtime restarts; if
+**On Colab nothing needs uploading**: each notebook's first code cell fetches
+the three modules from the public course repository. Uploaded files vanish when the runtime restarts; if
 you get a `FileNotFoundError` partway through a session, re-upload, and the
 first cell of every notebook will prompt you.
 

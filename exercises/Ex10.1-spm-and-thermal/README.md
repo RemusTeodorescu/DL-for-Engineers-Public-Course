@@ -74,7 +74,7 @@ Run them in order — later ones load results the earlier ones saved into
 | `problem.py` | the cell — parameters, the analytic sphere, OCPs, heat sources, the PyBaMM reference, the control panel and the report |
 
 The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **Colab needs the whole folder.**
+`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each notebook fetches them.
 
 The samplers in `pinn_core.py` know about rectangles. The (r, t) slab is one,
 so `pb.particle_points` is a thin wrapper — but its four edges are the centre

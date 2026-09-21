@@ -63,7 +63,7 @@ exact solution to check against.
 | `problem.py` | both problems — exact solutions, initial fields, plots |
 
 The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **Colab needs the whole folder.**
+`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each notebook fetches them.
 
 ## Expected runtime
 

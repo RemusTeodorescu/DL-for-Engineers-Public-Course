@@ -94,8 +94,8 @@ differs between sets.
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**Colab needs the whole folder**, not just a notebook — the imports expect the
-three modules beside them. The control panel also needs `ipywidgets`, which is
+**On Colab nothing needs uploading**: each notebook's first code cell fetches
+the three modules from the public course repository. The control panel also needs `ipywidgets`, which is
 preinstalled on Colab; locally, `pip install ipywidgets`.
 
 ## Expected runtime

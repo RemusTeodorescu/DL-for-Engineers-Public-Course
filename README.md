@@ -37,7 +37,7 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L05.2-sequences-and-attention/` - [slides](lectures/L05.2-sequences-and-attention/L5.2_RNN_LSTM_and_Attention.pdf), [recording](lectures/L05.2-sequences-and-attention/L5.2_RNN_LSTM_and_Attention.mp4)
 - `lectures/L06.1-loss-functions-and-gradients/` - [slides](lectures/L06.1-loss-functions-and-gradients/L6.1_Loss_Functions_and_Gradients.pdf), [recording](lectures/L06.1-loss-functions-and-gradients/L6.1_Loss_Functions_and_Gradients.mp4)
 - `lectures/L06.2-post-training/` - [slides](lectures/L06.2-post-training/L6.2_Post_Training_and_Reinforcement_Learning.pdf), [recording](lectures/L06.2-post-training/L6.2_Post_Training_and_Reinforcement_Learning.mp4)
-- `lectures/L07.1-fundamentals-of-pinns/` - [slides](lectures/L07.1-fundamentals-of-pinns/L7.1_Fundamentals_of_PINNs.pdf), [slides](lectures/L07.1-fundamentals-of-pinns/L7.1_Physics_Informed_Neural_Networks.pdf)
+- `lectures/L07.1-fundamentals-of-pinns/` - [slides](lectures/L07.1-fundamentals-of-pinns/L7.1_Physics_Informed_Neural_Networks.pdf)
 - `lectures/L07.2-fundamental-pdes/` - [slides](lectures/L07.2-fundamental-pdes/L7.2_Fundamental_PDEs.pdf)
 - `lectures/L08.1-stationary-heat/` - [slides](lectures/L08.1-stationary-heat/L8.1_Stationary_Heat.pdf)
 - `lectures/L08.2-dynamic-heat-transfer/` - [slides](lectures/L08.2-dynamic-heat-transfer/L8.2_Dynamic_Heat_Transfer.pdf)
@@ -167,4 +167,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 28 lecture PDFs, 12 recordings and 18 exercise sets.
+Synced from the development repository; 27 lecture PDFs, 12 recordings and 18 exercise sets.

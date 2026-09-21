@@ -46,7 +46,7 @@ and unit-tested without a device or a graph. Call :func:`to_tensor` at the
 point of use.
 
 **tanh, not ReLU.** ReLU's second derivative is zero wherever it is defined, so
-a second-order residual has nothing to work with. L4.1 slide 12 makes this
+a second-order residual has nothing to work with. L4.1's Activation Function slide makes this
 argument eight weeks before it is needed; this is where it is needed.
 
 Importing ``pinn_core`` pulls ``course_core`` in with it, so one line is
@@ -181,7 +181,7 @@ DOMAIN_UNIT_SQUARE = ((0.0, 1.0), (0.0, 1.0))
 
 
 def latin_hypercube(n: int, d: int, rng: np.random.Generator) -> np.ndarray:
-    """``n`` points in the neuron ``d``-cube, one per stratum along every axis.
+    """``n`` points in the unit ``d``-cube, one per stratum along every axis.
 
     Plain uniform sampling leaves gaps and clusters that a residual notices;
     stratifying each axis and shuffling the strata independently spreads the

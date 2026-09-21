@@ -36,9 +36,9 @@ Four things, and they are the four things any non-rectangular PINN needs.
    domain?" and "how far in?" at the same time.
 2. **A hard-enforcement multiplier.** :func:`hole_multiplier` is that same
    level set, used as a factor: a network multiplied by it *cannot* be non-zero
-   on the hole wall, whatever it learns. This is the analytic shortcut of L8.1
-   slide 15 — for a shape with a closed-form level set, no multiplier network
-   needs training.
+   on the hole wall, whatever it learns. This is the analytic shortcut in
+   L8.1's slide on a learned boundary multiplier — for a shape with a
+   closed-form level set, no multiplier network needs training.
 3. **Samplers that respect the geometry.** Rejection sampling for the interior;
    arc-length spacing on the ellipse, because uniform spacing *in the angle*
    starves the high-curvature ends, which is exactly where the flux
@@ -119,8 +119,9 @@ def ellipse_phi(xy, hole=None):
 def hole_multiplier(xy, hole=None):
     """Vanishes on the hole boundary, positive in the material.
 
-    This is the analytic shortcut of L8.1 slide 15: for a shape with a
-    closed-form level set, no multiplier network needs training.
+    This is the analytic shortcut in L8.1's slide on a learned boundary
+    multiplier: for a shape with a closed-form level set, no multiplier
+    network needs training.
     """
     return ellipse_phi(xy, hole)
 
@@ -241,7 +242,7 @@ def hole_perimeter(hole=None) -> float:
 
 
 def plate_area(hole=None) -> float:
-    """Area of the neuron plate with the elliptical hole removed."""
+    """Area of the unit plate with the elliptical hole removed."""
     h = hole or HOLE
     return float(1.0 - np.pi * h["a"] * h["b"])
 

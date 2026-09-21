@@ -95,7 +95,8 @@ highly as one showing success.
 - **Verify before you interpret.** Reproduce a case from Ex_9.2 before changing
   anything.
 - **Distrust a pretty picture.** A smooth, plausible, wrong field is the
-  characteristic failure of a PINN on turbulent flow — L9.2 slide 12.
+  characteristic failure of a PINN on turbulent flow — L9.2, *Where This
+  Stops Working*.
 
 ## Reading
 

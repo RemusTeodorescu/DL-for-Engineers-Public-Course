@@ -137,8 +137,12 @@ class CellParams:
 
     @property
     def tau_diff_n(self):
-        """Particle diffusion time, Rs^2/Ds. The natural timescale of the SPM."""
-        return self.Rs_n ** 2 / self.Ds_n
+        """Particle diffusion time, Rs^2/Ds. The natural timescale of the SPM.
+
+        Ds is taken at the ambient temperature through the Arrhenius law, so the
+        ambient slider moves this number. At 25 C it is the reference value.
+        """
+        return self.Rs_n ** 2 / arrhenius(self.Ds_n, self.E_act_Ds, self.T_amb)
 
     @property
     def biot(self):
@@ -213,7 +217,7 @@ R_CENTRE_EPS = 1e-3
 
 
 def particle_points(n, t_end=1.0, r_min=0.0, method="lhs", seed=None):
-    """Collocation points in (r, t) on the neuron sphere radius and time window.
+    """Collocation points in (r, t) on the unit sphere radius and time window.
 
     Returns ``(n, 2)`` NumPy, like every sampler in ``pinn_core`` — wrap it
     with ``to_tensor(..., requires_grad=True)`` before differentiating through
@@ -354,7 +358,7 @@ def pybamm_reference(model="SPM", c_rate=1.0, parameter_set="Chen2020",
     if thermal and parameter_set == "Chen2020":
         raise ValueError(
             "Chen2020 has no thermal parameters. Use parameter_set='ORegan2022' "
-            "for thermal runs (see L10.1 slide 17).")
+            "for thermal runs (see PyBaMM as the Reference in L10.1).")
 
     options = {"thermal": "lumped"} if thermal else {}
     cls = {"SPM": pybamm.lithium_ion.SPM,
@@ -453,7 +457,8 @@ def lumped_temperature(cell, q_total, t):
     """Lumped thermal response, for comparison with a distributed solution.
 
     rho c_p dT/dt = q - (hA/V)(T - T_amb).  Valid when the Biot number is
-    small; print cell.biot before trusting it (L10.1 slide 14).
+    small; print cell.biot before trusting it (the Biot number in L10.1, on
+    why the temperature field is not uniform).
     """
     A_over_V = 2.0 / cell.R_cell + 2.0 / cell.H_cell
     tau = cell.rho_cp / (cell.h_cool * A_over_V)
@@ -465,7 +470,8 @@ def plot_rz_field(cell, T_core_rise, k=(60, 90)):
     """Sketch the r-z temperature field of a cylindrical cell.
 
     A parabolic radial profile with an axial gradient towards the cooled tab -
-    the qualitative picture of L10.1 slide 14. Replace with your trained field
+    the qualitative picture of L10.1, on why the temperature field is not
+    uniform. It is a prescribed shape, not a solved field. Replace with your trained field
     once notebook 03 works.
     """
     r = np.linspace(0, cell.R_cell, k[0])

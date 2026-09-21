@@ -515,7 +515,7 @@ def simulate_swing(machines, Yred_pre, Yred_post, t_end=3.0, dt=0.002,
 #: with H = 150 s, which is the same statement in the time domain.
 #:
 #: Machine 1 is the local plant. 0.30 p.u. on 100 MVA is about 0.25 p.u. on the
-#: machine base of a neuron large enough to carry the 115 MW of the base
+#: machine base of a unit large enough to carry the 115 MW of the base
 #: dispatch, which is the textbook range for a salient-pole or cylindrical
 #: rotor unit including its step-up transformer. ESTIMATED, like H and D — a
 #: plausible number for plant of this size, not a measurement of any real unit.

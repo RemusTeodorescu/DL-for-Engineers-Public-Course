@@ -493,7 +493,7 @@ class MLP(nn.Module):
     ReLU's second derivative is zero everywhere it is defined — a second-order
     PDE residual would have nothing to work with. Using ``tanh`` here means the
     networks in this exercise set are the same objects you meet in L7. See
-    L4.1 slide 12.
+    L4.1's Activation Function slide.
     """
 
     def __init__(self, in_dim: int = 1, out_dim: int = 1,

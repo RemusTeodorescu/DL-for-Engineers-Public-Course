@@ -36,13 +36,15 @@ $$T_t = c\,(T_{xx}+T_{yy}), \qquad T(x,y,0)=\sin(\pi x)\sin(\pi y)$$
 
 with the exact solution $T=e^{-2\pi^2 c t}\sin(\pi x)\sin(\pi y)$ — the fundamental mode, by separation of variables.
 The eigenvalue of the lowest mode, $2\pi^2$, *is* the decay rate: the shape
-never changes, only the amplitude. The time constant is
-$\tau = L^2/(\pi^2 c) = 0.1013$ and the transient is essentially over by
-$4\tau$. By $t = 1$ the amplitude is about $3\times10^{-9}$, which is why every
+never changes, only the amplitude. The time constant the set quotes,
+$\tau = L^2/(\pi^2 c) = 0.1013$, is that of a slab with both faces held; the
+square decays twice as fast, $\tau = L^2/(2\pi^2 c) = 0.0507$, so a window of
+$4\tau$ on the slab figure is conservative. By $t = 1$ the amplitude is about $3\times10^{-9}$, which is why every
 error in this set is reported twice.
 
 **The plate with a hole.** The same unit square, now with an elliptical hole
-at the centre, held at zero, with a uniform source switched on at $t=0$.
+at the centre, held at zero, insulated outer edges as in Ex_8.1, and a uniform
+source switched on at $t=0$.
 The hole is a level set, so no multiplier network has to be trained — and there
 is no exact solution to score against, which from here on is the normal
 situation.

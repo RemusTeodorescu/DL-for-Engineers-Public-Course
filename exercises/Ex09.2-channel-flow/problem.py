@@ -28,8 +28,9 @@ your own case is what this exercise is marked on.
 Incompressibility is hard-enforced: the network outputs a **stream function**
 ψ and a pressure p, and the velocity is taken as ``u = ψ_y``, ``v = −ψ_x``. So
 ``∇·u = 0`` holds identically and there is no continuity term in the loss at
-all — the hard-enforcement route of L9.1 slide 8, applied to a constraint
-rather than to a boundary condition.
+all — the stream-function route of L9.1's *Three Ways to Impose
+Incompressibility*, hard enforcement applied to a constraint rather than to a
+boundary condition.
 
 ## Why this file carries its own samplers
 
@@ -46,6 +47,10 @@ these are this set's:
     sample_inlet       x = 0
     sample_outlet      x = L
     sample_obstacle    the obstacle surface, plus a graded near-wall cloud
+
+The graded near-wall cloud lies **in the fluid**, just outside the surface, so
+it is a set of residual points, not boundary points: :func:`run_case` appends
+it to the interior set ``pts["f"]``. No-slip applies on the surface only.
 
 Only the first of them touches the shared machinery: it draws its candidate
 batches with :func:`pinn_core.interior_points` over the bounding rectangle and
@@ -75,7 +80,7 @@ from pinn_core import (SEED, DEVICE, set_seed, to_tensor, to_numpy,
                        interior_points, grid_points, train_two_stage)
 
 __all__ = [
-    "SHAPES", "CHANNEL", "DOMAIN", "LBFGS_INNER", "Obstacle", "ChannelPINN",
+    "SHAPES", "CHANNEL", "DOMAIN", "LBFGS_INNER", "AEROFOIL_THICK", "Obstacle", "ChannelPINN",
     "sample_channel", "sample_walls", "sample_inlet", "sample_outlet",
     "sample_obstacle", "inlet_profile", "eddy_viscosity",
     "drag_coefficient", "pressure_drop",
@@ -102,6 +107,10 @@ DOMAIN = ((0.0, CHANNEL["L"]), (0.0, CHANNEL["H"]))
 #: number of L-BFGS iterations — and keeps the runtime what it has always been.
 LBFGS_INNER = 20
 
+#: Largest half-thickness of the aerofoil outline per unit size and aspect:
+#: the maximum of ``(1 - s) * sqrt((s + 1) / 2)`` on ``[-1, 1]``, at ``s = -1/3``.
+AEROFOIL_THICK = 4.0 / (3.0 * np.sqrt(3.0))
+
 
 class Obstacle:
     """Signed level set: negative inside, zero on the surface, positive outside.
@@ -118,8 +127,18 @@ class Obstacle:
 
     @property
     def D(self):
-        """Projected height - the length scale for drag and Strouhal."""
-        return 2 * self.size * (self.aspect if self.shape in ("ellipse", "aerofoil") else 1.0)
+        """Projected height - the length scale for drag and for blockage.
+
+        Measured from the real outline. For the circle, square and diamond it
+        is ``2 * size``, for the ellipse ``2 * size * aspect``. The aerofoil's
+        half-thickness ``aspect * (1 - s) * sqrt((s + 1) / 2)`` peaks a third
+        of the chord behind the nose, at ``AEROFOIL_THICK * aspect`` with
+        ``AEROFOIL_THICK = 4 / (3 sqrt 3) = 0.770``, so its height is about
+        ``1.54 * size`` at aspect 1, not ``2 * size``.
+        """
+        if self.shape == "aerofoil":
+            return 2 * self.size * self.aspect * AEROFOIL_THICK
+        return 2 * self.size * (self.aspect if self.shape == "ellipse" else 1.0)
 
     def phi(self, x, y):
         """Level set, accepting numpy arrays or torch tensors."""
@@ -172,7 +191,8 @@ class ChannelPINN(torch.nn.Module):
     """Outputs the stream function and pressure, (psi, p).
 
     Taking the velocity from psi makes the flow divergence-free by
-    construction - the hard-enforcement route of L9.1 slide 8.
+    construction - the stream-function route of L9.1's "Three Ways to Impose
+    Incompressibility".
 
     A thin wrapper around the shared :class:`MLP`: two inputs ``(x, y)``, two
     outputs ``(psi, p)``, tanh throughout. The size attributes are copied onto
@@ -252,7 +272,10 @@ def sample_outlet(n, chan=None):
 def sample_obstacle(n, obs, grade=2.2, seed=None):
     """Points on the obstacle surface, plus a graded cloud just outside it.
 
-    The graded cloud is what resolves the boundary layer - see L9.1 slide 14.
+    The graded cloud is what resolves the boundary layer - see "Where the
+    Points Must Go" in L9.1. Its points lie in the fluid, so they are residual
+    (collocation) points: :func:`run_case` adds them to ``pts["f"]``. Putting
+    no-slip on them would stop the flow in a band around the obstacle.
 
     Returns ``(surface, near)``, both NumPy.
     """
@@ -299,13 +322,18 @@ def drag_coefficient(model, obs, nu_eff, rho=1.0, U=1.0, n=400):
 
     Approximate: it uses the surface normal from the level set and a
     one-sided velocity gradient. Good enough to compare shapes, not a
-    certified value - see L9.2 slide 12 on the validation gap.
+    certified value - see the validation gap in L9.2's "Where This Stops
+    Working".
     """
     xs, ys = obs.outline(n)
     P = to_tensor(np.column_stack([xs, ys]), requires_grad=True)
     u, v, p = model.velocity(P)
     gx = torch.autograd.grad(obs.phi(P[:, 0:1], P[:, 1:2]).sum(), P,
                              create_graph=False, retain_graph=True)[0]
+    # The aerofoil's level set has an infinite slope at its nose (a square
+    # root at zero), which made every aerofoil C_D NaN. Those one or two
+    # points are dropped from the integral rather than poisoning it.
+    gx = torch.nan_to_num(gx, nan=0.0, posinf=0.0, neginf=0.0)
     nrm = torch.sqrt((gx ** 2).sum(dim=1, keepdim=True)) + 1e-12
     nx, ny = gx[:, 0:1] / nrm, gx[:, 1:2] / nrm
     gu = grad(u, P)
@@ -340,12 +368,14 @@ class PipeConfig:
     def __init__(self, shape="circle", size=0.2, aspect=1.0, x_pos=1.2,
                  reynolds=100.0, inlet_speed=1.0, inlet_kind="poiseuille",
                  closure="none", n_collocation=6000, n_surface=250,
+                 near_wall=True,
                  n_hidden=48, n_layers=6, adam_epochs=3000, lbfgs_epochs=300,
                  seed=88):
         self.shape, self.size, self.aspect, self.x_pos = shape, float(size), float(aspect), float(x_pos)
         self.reynolds, self.inlet_speed = float(reynolds), float(inlet_speed)
         self.inlet_kind, self.closure = inlet_kind, closure
         self.n_collocation, self.n_surface = int(n_collocation), int(n_surface)
+        self.near_wall = bool(near_wall)
         self.n_hidden, self.n_layers = int(n_hidden), int(n_layers)
         self.adam_epochs, self.lbfgs_epochs = int(adam_epochs), int(lbfgs_epochs)
         self.seed = int(seed)
@@ -365,7 +395,7 @@ class PipeConfig:
     def __repr__(self):
         return (f"PipeConfig({self.shape}, Re={self.reynolds:g}, "
                 f"blockage={self.blockage:.2f}, closure={self.closure}, "
-                f"N_f={self.n_collocation})")
+                f"N_f={self.n_collocation}, near_wall={self.near_wall})")
 
 
 def run_case(cfg, residual_fn, loss_fn_factory, verbose=True):
@@ -375,22 +405,28 @@ def run_case(cfg, residual_fn, loss_fn_factory, verbose=True):
     ``requires_grad=True``, including the boundary sets, because the velocity
     is itself a derivative of the network output and so even a no-slip term
     differentiates through its points.
+
+    The graded near-wall cloud is fluid, not boundary: with
+    ``cfg.near_wall`` on (the default) it is appended to the interior set, so
+    ``pts["f"]`` holds both and the residual is enforced on both. Switch it
+    off to measure what the grading does to the drag.
     """
     set_seed(cfg.seed)
     obs = cfg.obstacle
     model = ChannelPINN(cfg.n_hidden, cfg.n_layers).to(DEVICE)
     surf, near = sample_obstacle(cfg.n_surface, obs, seed=cfg.seed)
+    f = sample_channel(cfg.n_collocation, obs, seed=cfg.seed)
+    if cfg.near_wall:
+        f = np.vstack([f, near])
     pts = {
-        "f": to_tensor(sample_channel(cfg.n_collocation, obs, seed=cfg.seed),
-                       requires_grad=True),
+        "f": to_tensor(f, requires_grad=True),
         "walls": to_tensor(sample_walls(120), requires_grad=True),
         "inlet": to_tensor(sample_inlet(80), requires_grad=True),
         "outlet": to_tensor(sample_outlet(80), requires_grad=True),
         "surf": to_tensor(surf, requires_grad=True),
-        "near": to_tensor(near, requires_grad=True),
     }
     if verbose:
-        describe(model, cfg.n_collocation)
+        describe(model, len(f))
 
     t0 = time.time()
     hist = train_two_stage(model, loss_fn_factory(model, pts, cfg),
@@ -410,7 +446,8 @@ def run_case(cfg, residual_fn, loss_fn_factory, verbose=True):
 
     res = {"config": cfg, "model": model, "history": hist, "seconds": wall,
            "final_loss": float(hist["lbfgs"][-1]), "C_D": cd, "dp": dp,
-           "n_params": parameter_count(model)}
+           "n_params": parameter_count(model),
+           "n_near": len(near) if cfg.near_wall else 0}
     if verbose:
         print(f"\n{cfg}\n  wall {wall:.1f}s  loss {res['final_loss']:.3e}  "
               f"C_D {cd:.3f}  dp {dp:.4f}")
@@ -485,6 +522,8 @@ def control_panel(on_run, defaults=None):
                               description="Turbulence closure", style=style, layout=lay),
         "n_collocation": W.IntSlider(value=d.n_collocation, min=1000, max=25000, step=1000,
                                      description="Collocation points", style=style, layout=lay),
+        "near_wall": W.Checkbox(value=d.near_wall, description="Graded near-wall points",
+                                style=style, layout=lay),
         "n_hidden": W.IntSlider(value=d.n_hidden, min=20, max=100, step=10,
                                 description="Neurons per layer", style=style, layout=lay),
         "n_layers": W.IntSlider(value=d.n_layers, min=3, max=9, step=1,
@@ -544,12 +583,12 @@ def make_report(results, filename="Ex09.2_report.md", author="", notes=""):
     if author:
         L.append(f"**Author:** {author}  ")
     L += [f"**Cases run:** {len(results)}", "", "## Cases", "",
-          "| # | shape | blockage | Re | closure | N_f | params | wall (s) | final loss | C_D | dp |",
-          "|---|-------|----------|----|---------|-----|--------|----------|------------|-----|----|"]
+          "| # | shape | blockage | Re | closure | N_f | near-wall | params | wall (s) | final loss | C_D | dp |",
+          "|---|-------|----------|----|---------|-----|-----------|--------|----------|------------|-----|----|"]
     for i, r in enumerate(results, 1):
         c = r["config"]
         L.append(f"| {i} | {c.shape} | {c.blockage:.2f} | {c.reynolds:g} | {c.closure} | "
-                 f"{c.n_collocation} | {r['n_params']} | {r['seconds']:.1f} | "
+                 f"{c.n_collocation} | {r.get('n_near', '-')} | {r['n_params']} | {r['seconds']:.1f} | "
                  f"{r['final_loss']:.3e} | {r['C_D']:.3f} | {r['dp']:.4f} |")
     L += ["", "## Your interpretation", "",
           "1. **Shape.** Compare two shapes at the same Reynolds number and the same",
@@ -561,8 +600,9 @@ def make_report(results, filename="Ex09.2_report.md", author="", notes=""):
           "3. **Closure.** Compare `closure='none'` with `closure='uniform'` at the same",
           "   Re. What changed, and what does that tell you about the eddy-viscosity",
           "   hypothesis?", "",
-          "4. **Sampling.** Did the near-wall grading change your drag figure? Why is",
-          "   drag more sensitive to it than the pressure drop is?", "",
+          "4. **Sampling.** Run one case twice, with the graded near-wall points on",
+          "   and off. How much did the drag move, and the pressure drop? Why is drag",
+          "   more sensitive to the grading than the pressure drop is?", "",
           "5. **Honest assessment.** Would you present any of these numbers to a client?",
           "   State what validation would be needed first.", ""]
     if notes:

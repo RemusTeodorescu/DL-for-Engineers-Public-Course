@@ -118,19 +118,17 @@ per-bus estimation report, split metered from unmetered. Reach it as
 
 ## Getting started on Colab
 
-1. Upload **every file in this folder** to one Colab directory, keeping them
-   together. The notebooks import the modules by name from the working
-   directory.
+1. Open a notebook from its Colab link. Nothing needs uploading: each
+   notebook's first code cell fetches `course_core.py`, `pinn_core.py` and
+   `problem.py` from the public course repository.
 2. Run `Ex12.1_00_system_check.ipynb` first. It checks your environment, checks
    that automatic differentiation works, solves the reference power flow, and
    tells you if something is missing.
-3. Work through the numbered notebooks in order, **in the same runtime**.
-   Every Colab tab is a separate machine with its own filesystem, so a file
-   saved by notebook 00 in one tab does not exist in another. The reference
-   state repairs itself — `pb.load("00_reference")` rebuilds it if it is
-   missing — but the training results of 01–04 are your runs and do not. To
-   move them between runtimes, download the `Ex12.1_outputs/` folder from the
-   Files panel and upload it in the new tab.
+3. Work through the numbered notebooks in order, and approve the Google Drive
+   request each one makes. Every Colab tab is a separate machine, so results
+   are kept in your Drive between notebooks — see *Results between notebooks
+   on Colab* below. The reference state also repairs itself:
+   `pb.load("00_reference")` rebuilds it if it is missing.
 
 ## Expected runtime
 

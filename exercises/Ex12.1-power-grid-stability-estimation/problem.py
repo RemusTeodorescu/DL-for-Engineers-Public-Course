@@ -880,7 +880,15 @@ class StateVariables(nn.Module):
 
     Hard constraints, as in L7.1:
         slack angle is not a variable at all, so it is exactly zero
-        magnitudes pass through a scaled sigmoid, so they cannot leave the band
+        magnitudes pass through a scaled sigmoid, so they cannot leave
+        [v_min, v_max]
+
+    The default 0.90 to 1.10 p.u. is a loose physical bound, not L12.1's
+    0.94 to 1.06 operating band. The operating band is a rule a grid in trouble
+    breaks, so it is checked on the estimate and never imposed; this wider
+    interval only keeps the optimiser away from voltages no plausible state has.
+    It is still a modelling choice: an estimate sitting at either limit is a
+    finding to report, not an answer.
     """
 
     def __init__(self, n_bus, v_min=0.90, v_max=1.10, slack=0):

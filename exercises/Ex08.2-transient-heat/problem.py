@@ -31,9 +31,13 @@ clean benchmark, and also what makes the number reported alongside it matter:
 by t = 1 the amplitude is about 3e-9, so a relative error of 100% there can
 mean an absolute error of 1e-8. :func:`error_vs_time` returns both, always.
 
-The time constant is ``tau = L^2 / (pi^2 c)``, and the transient is
-essentially over by ``4 tau``. Choose ``t_end`` from that number rather than
-from habit: solve for very much longer and you have computed a steady state,
+The time constant quoted throughout the set is ``tau = L^2 / (pi^2 c)``,
+0.1013 for c = 1. It is the slowest mode of a **slab** of thickness L with both
+faces held. Each dimension adds its own pi^2 to the decay rate, so a box of
+side L in d dimensions has ``tau = L^2 / (d pi^2 c)``: the square decays twice
+as fast, with tau = 0.0507, and ``4 tau`` of the slab figure is a conservative
+end for the window here. Choose ``t_end`` from that number rather than from
+habit: solve for very much longer and you have computed a steady state,
 correctly, at great expense.
 
 ## 2 · The same plate with an elliptical hole
@@ -47,8 +51,8 @@ negative inside the hole, zero on it, positive in the material. Two things
 follow, and both are used:
 
 * ``phi`` **is** the hard-boundary multiplier. For a shape with a closed-form
-  level set no multiplier network needs training — the analytic shortcut of
-  L8.1 slide 15.
+  level set no multiplier network needs training — the analytic shortcut in
+  L8.1's slide on a learned boundary multiplier.
 * ``grad phi`` gives the normal. The material's outward normal is the hole's
   *inward* normal, so :func:`ellipse_normal` carries a minus sign. Getting it
   backwards produces a plausible, inverted field and a flux balance that is
@@ -136,8 +140,9 @@ def ellipse_phi(xy, hole=None):
 def hole_multiplier(xy, hole=None):
     """Vanishes on the hole boundary, positive in the material.
 
-    This is the analytic shortcut of L8.1 slide 15: for a shape with a
-    closed-form level set, no multiplier network needs training.
+    This is the analytic shortcut in L8.1's slide on a learned boundary
+    multiplier: for a shape with a closed-form level set, no multiplier
+    network needs training.
     """
     return ellipse_phi(xy, hole)
 
@@ -306,9 +311,15 @@ def exact_transient(X, Y, t, c=1.0):
             * lib.sin(np.pi * X) * lib.sin(np.pi * Y))
 
 
-def time_constant(c=1.0, L=1.0):
-    """tau = L^2 / (pi^2 alpha). Steady state is reached at roughly 4 tau."""
-    return L ** 2 / (np.pi ** 2 * c)
+def time_constant(c=1.0, L=1.0, d=1):
+    """tau = L^2 / (d pi^2 alpha): the slowest mode of a box of side L, held at
+    zero on every face, in ``d`` dimensions. Steady by roughly 4 tau.
+
+    The default ``d = 1`` is the slab figure the set quotes, 0.1013 for c = 1.
+    The square benchmark (``d = 2``) decays twice as fast, so 4 tau of the slab
+    figure is a conservative window for it.
+    """
+    return L ** 2 / (d * np.pi ** 2 * c)
 
 
 def fourier_number(t, c=1.0, L=1.0):
@@ -338,7 +349,7 @@ def error_vs_time(model, ts=None, c=1.0, trial=None, k=101,
                   domain=PLATE_DOMAIN):
     """Relative L2 error at a sequence of instants, plus the absolute error.
 
-    Report BOTH. By t = 1 the exact amplitude is about 5e-9, so a relative
+    Report BOTH. By t = 1 the exact amplitude is about 3e-9, so a relative
     error of 100% there may mean an absolute error of 1e-8. Where the
     reference has decayed into the noise the relative figure is returned as
     ``NaN`` rather than as a large number that means nothing.
@@ -368,6 +379,8 @@ def describe_problem(c=1.0, t_end=1.0) -> None:
     print("    initial field   : sin(pi x) sin(pi y)   (one mode, amplitude 1)")
     print(f"    time constant   : tau = {tau:.4f}"
           f"   steady by about 4 tau = {4 * tau:.3f}")
+    print(f"    the square      : decays twice as fast, tau = "
+          f"{time_constant(c, d=2):.4f}, so 4 tau is conservative")
     print(f"    window          : {t_end / tau:.1f} time constants")
     print()
     print("    t        Fo       amplitude")

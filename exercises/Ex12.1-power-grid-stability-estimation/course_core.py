@@ -228,7 +228,7 @@ class MLP(nn.Module):
 
     ``tanh`` and not ReLU, everywhere in this course. ReLU's second derivative
     is zero wherever it is defined, so a second-order PDE residual has nothing
-    to work with. L4.1 slide 12 makes the argument eight weeks before Part 2
+    to work with. L4.1's Activation Function slide makes the argument eight weeks before Part 2
     needs it.
 
     Xavier initialisation: the default for ``nn.Linear`` is tuned for ReLU and

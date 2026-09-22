@@ -10,10 +10,12 @@ see docs/PROVENANCE.md for what each reference text is cited for.
     Ex06_02_optimiser_comparison.ipynb     # 2 — SGD, momentum, Adam, and the
                                            #     Adam-to-L-BFGS handoff Part 2 uses
     Ex06_03_transfer_and_fine_tuning.ipynb # 3 — a second machine, ten labels per class
-    Ex06_04_quantisation.ipynb             # 4 — smaller and faster, and what it costs
-    Ex06_05_battery_arbitrage.ipynb        # 5 — a battery that learns to trade: RL,
+    Ex06_04_battery_arbitrage.ipynb        # 4 — a battery that learns to trade: RL,
                                            #     the exact optimum, and imitation of it
-    Ex06_06_report.ipynb                   # 6 — the report
+    Ex06_05_report.ipynb                   # 5 — the report
+
+The quantisation notebook moved to Ex11.1 on 22 September 2026, with the
+size and timing helpers it used (``quantisation_core.py`` there).
 
 This module is complete. You are not expected to change anything in it. Your
 work is in the ``# TODO:`` cells of the notebooks.
@@ -34,19 +36,19 @@ because a lecture theatre's network is not to be trusted.
   optimiser to the same floor and the comparison measures nothing but the
   noise.
 * **fatigue measurements** — twenty training points and sixty held out from the
-  same curve. Notebook 00 generates and plots it; no later notebook uses it.
+  same curve. Kept for optional use; no notebook uses it.
 * **a second machine** — the same three vibration classes measured through a
   different sensor on a different mounting, so the features are rotated,
   scaled and offset. Notebook 03 transfers the network trained on machine A
   to machine B using ten labelled samples per class, which is the realistic
   amount an engineer gets.
 * **day-ahead electricity prices** — synthetic 24-hour price curves with a
-  morning and an evening peak and a solar dip at noon. Notebook 05 trades a
+  morning and an evening peak and a solar dip at noon. Notebook 04 trades a
   200 kWh battery on them by reinforcement learning, against the exact optimum
   from a linear program.
 
 Everything uses ``torch``, ``numpy`` and ``matplotlib``, and ``scipy`` for
-notebook 05's one linear program, on a CPU, in minutes.
+notebook 04's one linear program, on a CPU, in minutes.
 """
 
 from __future__ import annotations
@@ -519,50 +521,6 @@ class MLP(nn.Module):
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# 6 · what a deployed model costs
-# ──────────────────────────────────────────────────────────────────────────
-
-def model_size_bytes(model: nn.Module) -> int:
-    """Serialised size of the model's weights, in bytes.
-
-    Measured the way it is measured in practice — by writing the state
-    dictionary out and looking at how many bytes appeared — rather than by
-    counting parameters and multiplying by four. Quantised tensors do not obey
-    that multiplication, and the whole point of notebook 04 is the number you
-    would actually copy onto the device.
-    """
-    import io
-    buffer = io.BytesIO()
-    torch.save(model.state_dict(), buffer)
-    return buffer.getbuffer().nbytes
-
-
-def time_forward(model: nn.Module, X: torch.Tensor, repeats: int = 50,
-                 warmup: int = 5) -> float:
-    """Median wall-clock seconds for one forward pass over ``X``.
-
-    Median, not mean: on a shared laptop one scheduling hiccup ruins a mean
-    and leaves a median untouched. ``warmup`` passes are run and discarded,
-    because the first call through a freshly built graph is never
-    representative.
-
-    Timings on a laptop under load are noisy. Report the ratio between two
-    models measured in the same session, never an absolute figure.
-    """
-    import time
-    model.eval()
-    with torch.no_grad():
-        for _ in range(warmup):
-            model(X)
-        samples = []
-        for _ in range(repeats):
-            t0 = time.perf_counter()
-            model(X)
-            samples.append(time.perf_counter() - t0)
-    return float(np.median(samples))
-
-
-# ──────────────────────────────────────────────────────────────────────────
 # 6 · reporting
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -613,7 +571,7 @@ def error_table(rows, headers) -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-#  Notebook 05 — a battery that trades on the day-ahead price
+#  Notebook 04 — a battery that trades on the day-ahead price
 # ──────────────────────────────────────────────────────────────────────────
 
 #: The battery: 200 kWh, 50 kW (a four-hour battery), 95 % efficient each way,

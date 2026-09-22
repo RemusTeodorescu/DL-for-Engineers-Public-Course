@@ -45,15 +45,25 @@ clearance on the course you are capped at `N = 1.00` however fast you drove.
 Raise the loop rate or slow down — those are the only two levers the algebra
 allows.
 
-## The notebook
+## The notebooks
 
 ```
+Ex11.1_01_quantisation.ipynb         making it fit on the device, on Colab or a laptop
 Ex11.1_10_camera_navigation.ipynb    the whole exercise, run on the car
 ```
 
-It is one notebook rather than six because the car is the bottleneck: the
-sections are hardware check, data collection, training with a held-out split,
-the instrumented control loop, the failsafe gate, and the scored run.
+**01 · Making it fit on the device.** Before the car: post-training dynamic
+quantisation of a small classifier, measured on size, latency and accuracy
+together, against simply using a narrower float model; then weights rounded by
+hand from 8 bits to 2 on a classifier and a regression, to show which of the two
+the rounding hurts. The steering network is a regression. Moved here from Ex06
+on 22 September 2026, when deployment moved from L6.2 to L11.1. It has a light
+version, and its data and helpers are in `quantisation_core.py`.
+
+**10 · Camera navigation** is one notebook rather than six because the car is
+the bottleneck: the sections are hardware check, data collection, training with
+a held-out split, the instrumented control loop, the failsafe gate, and the
+scored run.
 
 ## Files
 
@@ -61,6 +71,7 @@ the instrumented control loop, the failsafe gate, and the scored run.
 |---|---|
 | `SETUP.md` | flash, configure and verify the car — **do this first** |
 | `course_core.py` | shared by the whole course |
+| `quantisation_core.py` | notebook 01's datasets, network, and size and timing helpers |
 
 `course_core.py` is generated: edit `tools/pinn/course_core.py` and run
 `python3 tools/pinn/sync_cores.py`.

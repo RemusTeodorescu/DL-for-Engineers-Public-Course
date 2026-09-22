@@ -4,7 +4,8 @@
 
 Where a loss comes from, how you get to the bottom of it, and what happens to a
 trained model afterwards. Notebooks 01 and 02 belong to **L6.1 · Loss Functions
-and Gradients**; 03 belongs to **L6.2 · Training Philosophies**; 04, quantisation, belongs to the deployment section taught in **L11.1**.
+and Gradients**; 03 and 04 belong to **L6.2 · Training Philosophies**. The
+quantisation notebook moved to Ex11.1 on 22 September 2026, with deployment.
 
 ## Goals
 
@@ -18,9 +19,7 @@ By the end of this exercise set you can
    **Adam-then-L-BFGS handoff** that every exercise in Part 2 uses;
 4. transfer a trained classifier to a second machine with ten labels per class,
    and find the learning rate at which fine-tuning destroys what it was given;
-5. quantise a deployed model and report size, latency and accuracy **together**,
-   and say when a narrower float model would have been the better lever;
-6. train a battery to trade by reinforcement learning, measure it against the
+5. train a battery to trade by reinforcement learning, measure it against the
    exact optimum of a linear program, and imitate the optimiser with a network
    that runs a hundred times faster.
 
@@ -39,9 +38,8 @@ Ex06_00_environment_check.ipynb        # the tools, three datasets, the L-BFGS c
 Ex06_01_loss_functions.ipynb           # a loss is a noise assumption written down
 Ex06_02_optimiser_comparison.ipynb     # SGD, momentum, Adam, L-BFGS, and the handoff
 Ex06_03_transfer_and_fine_tuning.ipynb # a second machine and ten labels per class
-Ex06_04_quantisation.ipynb             # making it fit on the device
-Ex06_05_battery_arbitrage.ipynb        # a battery that learns to trade
-Ex06_06_report.ipynb                   # the report
+Ex06_04_battery_arbitrage.ipynb        # a battery that learns to trade
+Ex06_05_report.ipynb                   # the report
 ```
 
 ### What each one is for
@@ -65,19 +63,14 @@ labels. Finds the learning rate at which fine-tuning destroys what it was
 given, and the label budget at which transfer stops paying. This is L11's
 pretrained ResNet-18 argument at a size you can see.
 
-**04 · Making it fit on the device.** Post-training dynamic quantisation.
-Measures size, latency and accuracy before and after, then asks the question
-that keeps the result honest: would a narrower float model have been smaller
-still at the same accuracy?
-
-**05 · A battery that learns to trade.** A 200 kWh battery on the day-ahead
+**04 · A battery that learns to trade.** A 200 kWh battery on the day-ahead
 market. REINFORCE learns a policy from the reward alone and reaches about four
 fifths of the optimum that a linear program computes in milliseconds; a network
 trained to imitate the linear program reaches nineteen twentieths and runs
 over a hundred times faster. Paired with L6.2: reinforcement learning, where it
 does not fit, and approximate MPC.
 
-**06 · The report.** Six questions, tight word limits, checked before assembly,
+**05 · The report.** Six questions, tight word limits, checked before assembly,
 then every notebook's questions and one question to conclude.
 
 ## Conventions
@@ -85,7 +78,7 @@ then every notebook's questions and one question to conclude.
 Same as every exercise set in this course:
 
 - Self-contained folder. Requires `torch`, `numpy`, `matplotlib`, and `scipy`
-  for notebook 05's linear program — all preinstalled on Google Colab. No GPU
+  for notebook 04's linear program — all preinstalled on Google Colab. No GPU
   needed.
 - Notebook `00` is a read-only environment check. Run it first.
 - `Ex_6_core.py` is complete and is **not** to be rewritten by students. The
@@ -106,7 +99,7 @@ All generated on your machine; nothing is downloaded.
 | damped response | 200 **noiseless** samples of `exp(-0.9x) sin(4x)` |
 | fatigue | 20 training points, 60 held out — in `Ex_6_core.py` for optional use; no notebook uses it |
 | machine B | the vibration classes again, through a different sensor |
-| day-ahead prices | 24-hour price curves with two peaks and a solar dip — notebook 05 |
+| day-ahead prices | 24-hour price curves with two peaks and a solar dip — notebook 04 |
 
 Two of these are deliberately unusual and the notebooks say so aloud. The
 damped response carries **no noise**, because when you compare optimisers,
@@ -130,21 +123,21 @@ Deliberate boundaries:
 
 CPU only, under a minute of compute per notebook (22 September 2026, the light
 notebooks run end to end by `tools/exercises/run_light.py`: 01 8 s, 02 33 s,
-03 12 s, 04 9 s, 05 21 s). The difficulty is conceptual, not computational.
+03 12 s, 04 21 s). The difficulty is conceptual, not computational.
 
 ## Before this is assigned
 
-`Ex_6_core.py` and notebooks 02 to 05 were written in an environment where
+`Ex_6_core.py` and notebooks 02 to 04 were written in an environment where
 **PyTorch could not be installed**. On 19 September 2026 notebook 00 was run end
 to end with PyTorch 2.14 (CPU): every cell runs, the printed datasets match the
 notes, and `MLP` and `to_tensor` work. The run showed that L-BFGS without a line
 search stalls on the smoke test (loss 0.061 against Adam's 0.010), so notebook 00
 now uses `line_search_fn="strong_wolfe"`, as `pinn_core.py` does in Part 2
-(loss 0.00075). Notebooks 02 and 04 still build L-BFGS without a line search.
-Since 22 September every light notebook, 01 to 05, runs end to end, and the
+(loss 0.00075). Notebook 02 still builds L-BFGS without a line search.
+Since 22 September every light notebook, 01 to 04, runs end to end, and the
 report loads what they save.
 
-Run notebooks 01 to 05 once, with the TODO cells completed, before this goes to
+Run notebooks 01 to 04 once, with the TODO cells completed, before this goes to
 students. See `docs/REPO_NOTES_PART1.md` §9.
 
 ## Results between notebooks on Colab
@@ -152,7 +145,7 @@ students. See `docs/REPO_NOTES_PART1.md` §9.
 Later notebooks read `.npz` / `.pkl` files that earlier ones write into
 `Ex06_outputs/`. On Google Colab every notebook runs on its own temporary machine,
 so those files would not survive from one notebook to the next. Notebooks
-01 to 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
+01 to 04 therefore start with an `outputs-cell` that calls `keep_outputs()` from
 `Ex_6_core.py`: on Colab it mounts the student's Google Drive and moves the results
 folder to `MyDrive/DL4Eng/Ex06_outputs`. If the student declines the Drive request or
 has no Google account, `saved()` downloads each result file when it is written

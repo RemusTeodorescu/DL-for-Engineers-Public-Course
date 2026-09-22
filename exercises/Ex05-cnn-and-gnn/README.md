@@ -2,193 +2,189 @@
 
 **Paired with lecture block L5 · Part 1**
 
-One idea, three domains: **a learned local rule, applied everywhere.** A
+One idea, three kinds of data: **a learned local rule, applied everywhere.** A
 convolution applies it on a grid, message passing applies it on a graph, a
-recurrent cell applies it along time. Notebook 03 does node regression on a
-six-bus power network.
+recurrent network applies it along time. Notebook 03 predicts the power flow on
+a six-bus network with a graph network.
+
+The set was simplified on 21 September 2026, with L5.1 and L5.2, after the first
+teaching session: fewer TODOs, one straight line from problem to result in each
+notebook, and only what the two lectures now teach — convolution, message
+passing, the recurrent network and the LSTM.
 
 ## Goals
 
 By the end of this exercise set you can
 
-1. implement a 2-D convolution by hand and check it against fixed kernels;
-2. justify the parameter argument for convolution over a dense layer with
-   counts you computed yourself;
-3. build an adjacency matrix, perform message passing by hand, and write a
-   graph convolution layer in one matrix expression;
-4. demonstrate permutation equivariance to machine precision, and show a dense
-   baseline failing the same test;
-5. write a recurrent cell, an LSTM cell and single-head self-attention, and
-   compare all four models honestly on the same held-out data — including the
-   one that wins for uninteresting reasons.
+1. build a small CNN, set a convolution's weights by hand, and show that the
+   trained CNN beats a dense network on the same images with far fewer
+   parameters;
+2. build an adjacency matrix and perform message passing by hand;
+3. show permutation equivariance to machine precision, and a dense network
+   failing the same test;
+4. train a graph network to approximate the AC power flow, compare it with a
+   dense network, and weigh its accuracy against its speed — also after a line
+   trips;
+5. build a recurrent network and an LSTM, and compare them with the persistence
+   forecast on the same held-out data.
 
 ## State
 
-**Written.** Six notebooks and one module. No solutions notebook; the `# TODO:`
-cells are the exercise.
+**Written.** Six notebooks and one module. Every light notebook was run end to
+end against PyTorch on 21 September 2026, and every number under a "What you
+should see" heading is a number that run printed.
 
 ## Notebooks
 
 Run in order; notebook 05 loads results saved by 01, 03 and 04.
 
 ```
-Ex05_00_environment_check.ipynb          read only — versions, four datasets, three one-liners
-Ex05_01_cnn_image_classification.ipynb   convolution by hand, then a CNN on synthetic weld radiographs
-Ex05_02_graph_basics.ipynb               adjacency, neighbourhoods, message passing — NumPy only, no torch
-Ex05_03_gnn_six_bus_network.ipynb        node regression on six buses; permutation equivariance measured
-Ex05_04_sequence_model.ipynb             RNN, LSTM and self-attention written out; the honest comparison
+Ex05_00_environment_check.ipynb          read only — versions, the three datasets, three one-liners
+Ex05_01_cnn_image_classification.ipynb   a CNN on synthetic weld radiographs, against a dense network
+Ex05_02_graph_basics.ipynb               adjacency, neighbours, message passing — NumPy only, no torch
+Ex05_03_gnn_six_bus_network.ipynb        a graph network predicts the AC power flow on six buses
+Ex05_04_sequence_model.ipynb             persistence, a recurrent network and an LSTM on hourly load
 Ex05_05_report.ipynb                     the two marked questions, plus the four from L3.2
 ```
 
-Notebooks 01 to 04 each have a `_light` twin with the same text and the code
-already written — `Ex05_01_cnn_image_classification_light.ipynb` and so on.
-Notebook 00 and the report are the same for both. Start from notebook 00,
-which links to whichever of the two you choose.
+Notebooks 01 to 04 each have a `_light` twin with the same text and every cell
+written out — `Ex05_01_cnn_image_classification_light.ipynb` and so on.
+Notebook 00 and the report are the same for both. Start from notebook 00, which
+links to whichever of the two you choose.
 
 Notebooks 01, 03 and 04 each write an `.npz` into `Ex05_outputs/`; notebook 05
 reads all three and refuses to build a report without them.
 
 ## Nothing is downloaded
 
-All four datasets are generated on the student's machine by `Ex_5_core.py`. The
+All three datasets are generated on the student's machine by `Ex_5_core.py`. The
 usual first CNN exercise fetches MNIST from a mirror, and every year that mirror
 is slow, blocked by a university firewall, or has moved. The weld radiographs are
 twenty lines of NumPy and are identical on every machine in the room.
 
-## Notebook 03 is the one that matters
+## Notebook 01 — a CNN against a dense network
 
-`Ex_5_core.six_bus_dataset()` builds a small load-flow dataset on a six-bus
-network with two generators, three load centres and an HVDC infeed. The module
-docstring separates **real physics from teaching simplification** explicitly,
-and notebook 03 section 1 repeats the separation in the student's face, because
-labelling assumptions is a habit worth forming early:
+Three classes of 16 × 16 weld radiograph: clean, crack, pit. The notebook
+defines a two-layer CNN (2,019 parameters), sets four classic 3 × 3 kernels into
+a convolution by hand to show what a feature map is, trains the CNN, and then
+trains a dense network (16,643 parameters) with exactly the same recipe:
 
-- **Real.** The topology; the susceptance matrix as a weighted graph Laplacian;
-  the bus angles, obtained by Newton-Raphson on the lossless active power flow
-  `P_i = Σ b_ij sin(θ_i − θ_j)`; balanced injections; the sign conventions.
-- **Simplified.** Everything about voltage magnitude — a linear response to
-  reactive injection minus a sag proportional to squared line angle differences.
-  Right qualitative behaviour, wrong numbers.
-- **Invented.** Line susceptances, injection ranges, noise level, and the fact
-  that bus 5 is an HVDC link.
-
-### The result the notebook is built around
-
-| model | parameters | angle RMSE [rad] | voltage RMSE [p.u.] | permutation gap [rad] |
-|---|---|---|---|---|
-| DC power flow (no training) | 0 | 0.00232 | not predicted | — |
-| graph network, 3 layers | 4,578 | 0.00431 | 0.00170 | 1.7e-16 |
-| dense network on the flattened state | 6,924 | 0.00163 | 0.00071 | 5.7e-01 |
-
-**The dense baseline is the most accurate model, and the fifty-year-old linear
-approximation beats the graph network on angles.** The notebook says so plainly
-rather than arranging a win, because arranging a win teaches students to expect
-one. What the graph network has instead: it predicts voltage magnitude, which the
-DC solve does not; its parameter count does not grow with the network; and it is
-**exactly** permutation equivariant, so relabelling the buses leaves its accuracy
-unchanged to five decimal places while the dense network's error rises by two
-orders of magnitude.
-
-That is the L5.1 report question: *the more accurate model is broken by a
-relabelling — which would you deploy, and what would have to be true for that to
-be right?*
-
-### Two further experiments in notebook 03
-
-- **Depth sweep.** Angle RMSE 0.0304, 0.0075, 0.0043, 0.0055 for one to four
-  layers. The graph's diameter is three, measured in notebook 02, and that is
-  where the returns stop. The notebook is explicit that depth and parameter count
-  moved together, so only the *shape* of the curve supports the diameter
-  argument.
-- **A line trip.** Both models degrade badly on a topology they never saw — the
-  graph network to 0.115 rad, the dense one to 0.265, against a data spread of
-  0.32. The conclusion: being able to *accept*
-  a new topology is necessary for transfer and not sufficient. Training across
-  topologies is the fix, and it is offered as an extension in notebook 05.
-
-### The `is_reference` feature
-
-Angles are defined only up to a common offset, so one bus must be nominated as
-the reference. A permutation-equivariant model has no notion of bus number and
-therefore cannot know which one — so the reference is supplied as a **node
-feature** that permutes with everything else. Anything positional must be a
-feature.
-
-## Notebook 04 ends where L5.2's closing slide does
-
-Four architectures on 702 windows of a synthetic load profile:
-
-| model | parameters | held-out MSE | seconds |
+| model | parameters | train accuracy | held-out accuracy |
 |---|---|---|---|
-| perceptron | 417 | 0.000786 | 0.5 |
-| recurrent | 305 | 0.001271 | 5.4 |
-| LSTM | 1,169 | 0.000793 | 27.6 |
-| attention | 409 | 0.000705 | 14.3 |
-| persistence baseline | 0 | 0.003320 | — |
+| CNN | 2,019 | 1.000 | 0.989 |
+| dense | 16,643 | 0.995 | 0.711 |
 
-Attention looks best by ten per cent — so the notebook makes the student train
-both contenders from three seeds. Perceptron: 0.000786, 0.000709, 0.000771.
-Attention: 0.000705, 0.000778, 0.001066. **The distributions overlap completely
-and the attention model's mean is worse.** The advantage was a property of seed
-zero.
-
-The RNN, the LSTM's four gates and scaled dot-product attention are all written
-out by hand rather than called from `torch.nn`, because those five or six lines
-are the entire content of each architecture.
-
-**The residual check is deliberately a failure.** The perceptron's held-out MSE
-looks excellent against persistence, and its residuals have a lag-1
-autocorrelation of about 0.5 — the AR(1) noise in the generator is half
-predictable and the model did not take it. Neither the loss curves nor the MSE
-revealed this; only the two-line diagnostic did. That is the point of the
-section, and it becomes report question 4.
-
-## Notebook 01
-
-2,019-parameter CNN reaches 0.983 held-out accuracy on the three-class weld task;
-a 16,643-parameter dense network reaches 0.722, and is worse on the **training**
-set too. The notebook is careful that the second fact is not overfitting: the
-dense model has to learn translation invariance from data, separately in every
-region of the image, and 420 images are not enough. It is also explicit that the
-comparison is deliberately favourable, because the defects are uniformly
-distributed over the plate.
+Both fit their training images; only the CNN carries what it learned to images it
+has not seen, because it uses one kernel at every position. The notebook is also
+honest about the cost: the CNN trains several times slower. A convolution saves
+parameters, not computation. The comparison favours the CNN because the defects
+are equally likely anywhere on the plate, and the notebook says so.
 
 ## Notebook 02 uses no torch at all
 
-Adjacency from an edge list, neighbourhoods, the diameter from powers of `A`,
-message passing with loops and then as a matrix product, `Â = D̃^-1/2 Ã D̃^-1/2`
-built by hand, and permutation equivariance verified on **random** weights — a
-stronger statement than verifying it on a trained model. The over-smoothing
-demonstration (a signal starting at bus 0 and flattening after four rounds) is
-what motivates the residual connections in notebook 03.
+Adjacency from an edge list, neighbourhoods, the diameter (three hops) from
+powers of `A`, one round of mean aggregation with loops and then as a matrix
+product, and permutation equivariance of a message-passing layer,
+`tanh(H W_self + A H W_neigh)`, verified on **random** weights — a stronger
+statement than verifying it on a trained model. The gap is exactly zero. The
+over-smoothing demonstration, a signal starting at bus 0 and flattening after a
+few rounds, is what the depth sweep in notebook 03 measures.
 
-## How the numbers in these notebooks were verified
+## Notebook 03 is the one that matters
 
-Every notebook was executed end to end with reference solutions filled into the
-`# TODO:` cells, and every figure quoted under a "What you should see" heading is
-a number that run actually produced. Nothing here is estimated.
+`Ex_5_core.six_bus_dataset()` solves 800 operating points of a six-bus network
+with a full AC power flow (Newton-Raphson). **The AC power flow is the ground
+truth; the graph network learns to approximate it, faster.** Bus 0 is the slack
+bus (|V| = 1.03 p.u., θ = 0), bus 1 a PV generator (|V| = 1.02 p.u.), and buses
+2 to 5 are PQ buses — three loads and an HVDC infeed. Each line is given by its
+impedance R + jX. The notebook separates what is real from what is invented,
+because labelling assumptions is a habit worth forming early:
 
-One caveat the reader should have. `torch` could not be installed in the machine
-these notebooks were written on, so the runs used a **NumPy reverse-mode autograd
-stand-in** implementing the slice of the torch API these notebooks touch
-(`Linear`, `Conv2d`, `MaxPool2d`, `Flatten`, `Dropout`, the losses, `SGD`, `Adam`
-and `LBFGS`), gradient-checked against finite differences. It is a test double,
-not a copy of PyTorch, so:
+- **Real.** The AC power-flow equations, the bus types, per unit on 100 MVA.
+- **Invented.** The line impedances (X/R about 8), the injection ranges and the
+  set-points. Line charging is neglected and generator reactive limits are not
+  enforced.
 
-- **Deterministic quantities are exact** and will match on any machine —
-  parameter counts, shapes, hand-written convolutions, adjacency and permutation
-  algebra, closed-form fits, softmax and cross-entropy values, quantisation
-  arithmetic, and the analytic gradient tables.
-- **Anything downstream of a random initialisation will differ**, because the
-  stand-in draws its initial weights from NumPy's generator rather than
-  PyTorch's. Trained losses and accuracies should land within the range each
-  notebook states, and the notebooks say so wherever it matters.
-- **The L-BFGS implementation uses a backtracking Armijo line search**, whereas
-  `torch.optim.LBFGS` offers a strong-Wolfe search. The behaviour is the same and
-  the ordering of the recipes is the same; the exact final losses will not be.
+The graph network is three message-passing layers — one per hop of the diameter —
+with 32 numbers per bus. Its error against the AC power flow on the 200 held-out
+cases, next to a dense network on the flattened state:
 
-Re-run the notebooks once against real PyTorch before the first teaching session
-and adjust any quoted figure that has moved outside the stated range.
+| model | parameters | angle RMSE [rad] | \|V\| RMSE [p.u.] | angle RMSE, buses renumbered |
+|---|---|---|---|---|
+| graph network, 3 layers | 4,642 | 0.00057 | 0.00033 | 0.00057 |
+| dense network | 7,308 | 0.00078 | 0.00041 | 0.04860 |
+
+**The graph network is the more accurate, and the only one that survives a
+renumbering of the buses** — 0.03° on angles and 0.03 % of nominal on |V|.
+
+**Accuracy against speed.** Time per case on the CPU, median of several runs,
+from the notebook run of 21 September (timings vary between runs and machines;
+read the ratios):
+
+| | AC power flow | GNN, one case | GNN, 200 cases at once |
+|---|---|---|---|
+| six buses, trained network | 0.25 ms | 0.12 ms (about 2x faster) | 0.0023 ms per case (about 100x faster) |
+
+A sweep over synthetic grids (`core.synthetic_grid`: a ring with chords, a PV
+generator every fourth bus, the same three-layer network with random weights,
+since a forward pass costs the same whatever the weights) asks how the two grow
+with size. Newton-Raphson is timed dense or sparse, whichever is faster at that
+size. The notebook runs 6 to 768 buses in about half a minute; a separate run
+took it to 6,144:
+
+| buses | AC power flow [ms] | GNN, one case [ms] | GNN, batch of 256 [ms per case] |
+|---|---|---|---|
+| 6 | 0.157 | 0.107 | 0.0029 |
+| 96 | 1.51 | 0.20 | 0.014 |
+| 768 | 14.2 | 0.76 | 0.32 |
+| 6,144 | 184 | 4.0 | 3.1 |
+
+In a batch the graph network is faster at every size, about fifty times at six
+buses. One case at a time the two are level up to about fifty buses and the
+graph network pulls ahead from about a hundred, to about twenty times at 768
+and forty-five at 6,144. The notebook states the caveats: both sides are Python,
+so the small-grid times are mostly overhead; a network that must reach across a
+large grid needs about one layer per hop, which shrinks the batched margin to
+about four times at 768 buses; and the timed networks are untrained.
+
+Two further experiments:
+
+- **Depth sweep.** Angle RMSE 0.00706, 0.00073, 0.00057, 0.00069 and 0.00277 for
+  1, 2, 3, 4 and 6 layers. One layer cannot reach across the network; six
+  over-smooth.
+- **A line trips.** With line 1-3 out and no retraining, the error against a new
+  AC power flow rises to 0.052 rad for the graph network (given the new
+  adjacency) and 0.078 rad for the dense network. The power flow has voltages
+  below 0.95 p.u. at buses 3 to 5 that both networks miss. Being able to
+  *accept* a new topology is necessary for transfer and not sufficient; training
+  across topologies is offered as an extension in notebook 05.
+
+Fast and nearly right on the network it was trained on, wrong where a
+contingency study needs it to be right: that is the L5.1 report question.
+
+Because the model has no notion of bus number, the bus type — slack, PV or PQ —
+reaches it as three flag features that move with the bus when the buses are
+renumbered.
+
+## Notebook 04 — persistence, a recurrent network and an LSTM
+
+One-hour-ahead forecasting of forty days of synthetic substation load, 702
+training windows of 24 hours and 234 held out, split in time order. The two
+networks are `nn.RNN` and `nn.LSTM` (hidden size 16) with a linear head, each in
+its own cell with its parameter count written beside it, trained with one recipe
+(full batch, Adam, learning rate 0.01, 300 epochs):
+
+| model | parameters | held-out MSE [p.u.²] | vs persistence |
+|---|---|---|---|
+| persistence (next hour = this hour) | 0 | 0.003320 | 1.00 |
+| recurrent network | 321 | 0.001298 | 0.39 |
+| LSTM | 1,233 | 0.000910 | 0.27 |
+
+Both networks beat persistence; the LSTM beats the recurrent network with 3.8
+times the parameters. The notebook says that this is one seed and that neither
+network has converged at 300 epochs. The forecast plot shows where the gain
+comes from: persistence is always an hour late on the morning rise and the
+evening fall.
 
 ## Conventions
 
@@ -197,64 +193,62 @@ Same as every Part 2 exercise set:
 - Self-contained folder. Requires `torch`, `numpy`, `matplotlib` — all
   preinstalled on Google Colab. No GPU needed.
 - Notebook `00` is a read-only environment check. Run it first.
-- Modules (`Ex_5_core.py`) are complete and are **not** to be rewritten by
-  students. The work is in `# TODO:` cells in the numbered notebooks, each
-  followed by `raise NotImplementedError`.
+- The module (`Ex_5_core.py`) is complete and is **not** to be rewritten by
+  students. The work is in the `TODO` cells of the numbered notebooks: three or
+  four per notebook, one to three lines each.
 - Module names use underscores because a Python module name cannot contain a
   dot: `Ex_5_core.py`, imported as `Ex_5_core`.
 - Every `TODO` is preceded by enough prose that the notebook works for a student
-  who missed the lecture. Part 1 exercises are deliberately more discursive than
-  the Part 2 ones.
-- Seeds are set everywhere, and notebook 04 makes the point that a single seed is
-  not evidence by training three of them.
+  who missed the lecture.
+- Seeds are set everywhere, so every printed number is the same on every
+  machine; the training times are not.
 - British spelling throughout.
 
 ## The two marked questions
 
-> **L5.1.** On the six-bus network the dense baseline was more accurate and the
-> graph network survived a relabelling. Which would you deploy, and what would
-> have to be true about the deployment for that to be the right choice?
+The same questions as on the lectures' Exercise slides; the report in notebook 05
+is built around them.
 
-> **L5.2.** Four architectures came within a factor of two of each other, and the
-> differences were comparable to the seed-to-seed spread. What would have to
-> change about the data for the ranking to become meaningful?
+> **L5.1.** The graph network answers far faster than the AC power flow, and
+> less exactly. When is the speed worth the error, before and after a line
+> trips?
 
-Notebook 05 also asks the four questions from L3.2 slide 2 about the model the
-student chose, and includes a worked example answer so that the expected standard
-is visible rather than guessed.
+> **L5.2.** Three forecasts of the same load. Which would you deploy on a
+> substation controller, and which number or plot decided it?
+
+Notebook 05 also asks the four questions from L3.2 about the model the student
+chose, and includes a worked example answer so that the expected standard is
+visible rather than guessed. It then collects the student's answers to the four
+"Before you move on" questions of each notebook.
 
 ## Depends on
 
-- **L5.1** — the opening framing (a learned local rule applied everywhere),
-  invariance and equivariance, CNN mechanics, residual connections, message
-  passing, the graph convolution in matrix form, and permutation equivariance.
-  All six of L5.1's rendered equations appear in these notebooks.
-- **L5.2** — sequential data in engineering, the recurrence relation, vanishing
-  gradients, the LSTM's gates (GBC Ch. 10), scaled dot-product self-attention and
-  positional encoding, and the honest closing slide.
+- **L5.1** — a learned local rule applied everywhere, convolution, stride,
+  padding, channels and pooling, graphs as X, A and E, message passing, and
+  permutation equivariance.
+- **L5.2** — sequences and the persistence baseline, the recurrent network and
+  its hidden state, and the LSTM's cell state and gates (GBC ch. 10).
 - **L3.2** — the weld-inspection framing of notebook 01, and the four questions.
 - **L4.2** — depth against width at an equal parameter budget, the extension
-  notebook 05 suggests for the depth sweep. Notebook 04 also repeats the habit
-  of checking a result across several seeds.
+  notebook 05 suggests for the depth sweep.
 
 ## Expected runtime
 
-CPU only. Notebooks 00 and 02 take seconds. Notebook 01 trains two models and
-takes a minute or two. Notebook 03 trains six models and takes three to five
-minutes, most of it in the depth sweep. Notebook 04 is the slowest — a Python
-loop over twenty-four time steps cannot be vectorised away, which is one of
-L5.2's own points — and takes about five minutes including the three-seed
-comparison. The difficulty is conceptual, not computational.
+CPU only. Measured on 21 September 2026 on a desktop CPU, running the light
+notebooks top to bottom: notebook 00 about 2 s, 01 about 10 s, 02 about 2 s, 03
+under a minute (the depth sweep, five graph networks, and the speed sweep to 768
+buses), 04 about 10 s, and the report 2 s. Allow several times that on a laptop or on Colab. The difficulty
+is conceptual, not computational.
 
 ## Results between notebooks on Colab
 
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex05_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01, 03, 04 and 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`Ex_5_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex05_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+Later notebooks read `.npz` files that earlier ones write into `Ex05_outputs/`.
+On Google Colab every notebook runs on its own temporary machine, so those files
+would not survive from one notebook to the next. Notebooks 01, 03, 04 and 05
+therefore start with an `outputs-cell` that calls `keep_outputs()` from
+`Ex_5_core.py`: on Colab it mounts the student's Google Drive and moves the
+results folder to `MyDrive/DL4Eng/Ex05_outputs`. If the student declines the
+Drive request or has no Google account, `saved()` downloads each result file when
+it is written, and `needed()` asks for the files to be uploaded before they are
+read. Locally the cell does nothing. The report notebook writes its `.md` and
+`.pdf` into the same folder.

@@ -35,7 +35,7 @@ Notebook 00 has been run end to end against real PyTorch — see the note at the
 Run in order; later notebooks load results saved by earlier ones.
 
 ```
-Ex06_00_environment_check.ipynb        # the tools, the datasets, four optimisers
+Ex06_00_environment_check.ipynb        # the tools, three datasets, the L-BFGS closure
 Ex06_01_loss_functions.ipynb           # a loss is a noise assumption written down
 Ex06_02_optimiser_comparison.ipynb     # SGD, momentum, Adam, L-BFGS, and the handoff
 Ex06_03_transfer_and_fine_tuning.ipynb # a second machine and ten labels per class
@@ -54,7 +54,8 @@ objective*.
 
 **02 · Four optimisers, one problem.** The same network and the same noiseless
 target, four update rules. Sweeps the learning rate until both failure
-directions appear, then meets L-BFGS's closure interface and measures the
+directions appear, trains plain SGD on random batches of four sizes, then meets
+L-BFGS's closure interface and measures the
 **Adam-then-L-BFGS handoff** that every exercise in Part 2 uses.
 
 **03 · A second machine, and ten labels each.** A classifier trained on machine
@@ -103,7 +104,7 @@ All generated on your machine; nothing is downloaded.
 | calibration line | 40 load-cell readings, Gaussian noise of known σ |
 | vibration classes | 360 signatures in 2 features — balanced, imbalance, bearing fault |
 | damped response | 200 **noiseless** samples of `exp(-0.9x) sin(4x)` |
-| fatigue | 20 training points, 60 held out — generated and plotted in notebook 00 only |
+| fatigue | 20 training points, 60 held out — in `Ex_6_core.py` for optional use; no notebook uses it |
 | machine B | the vibration classes again, through a different sensor |
 | day-ahead prices | 24-hour price curves with two peaks and a solar dip — notebook 05 |
 
@@ -127,9 +128,9 @@ Deliberate boundaries:
 
 ## Expected runtime
 
-CPU only, a few minutes per notebook. Notebook 02's learning-rate sweep is the
-longest at around two minutes. The difficulty is conceptual, not
-computational.
+CPU only, under a minute of compute per notebook (22 September 2026, the light
+notebooks run end to end by `tools/exercises/run_light.py`: 01 8 s, 02 33 s,
+03 12 s, 04 9 s, 05 21 s). The difficulty is conceptual, not computational.
 
 ## Before this is assigned
 
@@ -140,8 +141,8 @@ notes, and `MLP` and `to_tensor` work. The run showed that L-BFGS without a line
 search stalls on the smoke test (loss 0.061 against Adam's 0.010), so notebook 00
 now uses `line_search_fn="strong_wolfe"`, as `pinn_core.py` does in Part 2
 (loss 0.00075). Notebooks 02 and 04 still build L-BFGS without a line search.
-`model_size_bytes` and `time_forward`, and notebooks 01 to 05 with their TODO
-cells completed, have not yet been executed.
+Since 22 September every light notebook, 01 to 05, runs end to end, and the
+report loads what they save.
 
 Run notebooks 01 to 05 once, with the TODO cells completed, before this goes to
 students. See `docs/REPO_NOTES_PART1.md` §9.

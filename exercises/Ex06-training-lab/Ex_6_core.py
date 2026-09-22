@@ -11,12 +11,14 @@ see docs/PROVENANCE.md for what each reference text is cited for.
                                            #     Adam-to-L-BFGS handoff Part 2 uses
     Ex06_03_transfer_and_fine_tuning.ipynb # 3 — a second machine, ten labels per class
     Ex06_04_quantisation.ipynb             # 4 — smaller and faster, and what it costs
-    Ex06_05_report.ipynb                   # 5 — the report
+    Ex06_05_battery_arbitrage.ipynb        # 5 — a battery that learns to trade: RL,
+                                           #     the exact optimum, and imitation of it
+    Ex06_06_report.ipynb                   # 6 — the report
 
 This module is complete. You are not expected to change anything in it. Your
 work is in the ``# TODO:`` cells of the notebooks.
 
-Five datasets, all generated on your own machine — **nothing is downloaded**,
+Six datasets, all generated on your own machine — **nothing is downloaded**,
 because a lecture theatre's network is not to be trusted.
 
 * **a load-cell calibration line** — forty readings against applied load, with
@@ -38,9 +40,13 @@ because a lecture theatre's network is not to be trusted.
   scaled and offset. Notebook 03 transfers the network trained on machine A
   to machine B using ten labelled samples per class, which is the realistic
   amount an engineer gets.
+* **day-ahead electricity prices** — synthetic 24-hour price curves with a
+  morning and an evening peak and a solar dip at noon. Notebook 05 trades a
+  200 kWh battery on them by reinforcement learning, against the exact optimum
+  from a linear program.
 
-Everything uses ``torch``, ``numpy`` and ``matplotlib`` only, on a CPU, in
-minutes.
+Everything uses ``torch``, ``numpy`` and ``matplotlib``, and ``scipy`` for
+notebook 05's one linear program, on a CPU, in minutes.
 """
 
 from __future__ import annotations
@@ -604,3 +610,103 @@ def error_table(rows, headers) -> str:
     for row in rows:
         lines.append("| " + " | ".join(str(c) for c in row) + " |")
     return "\n".join(lines)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Notebook 05 — a battery that trades on the day-ahead price
+# ──────────────────────────────────────────────────────────────────────────
+
+#: The battery: 200 kWh, 50 kW (a four-hour battery), 95 % efficient each way,
+#: 0.02 EUR of ageing for every kWh that passes through it, half full at the
+#: start of the day and to be at least half full again at the end.
+BATTERY = dict(E_MAX=200.0, P_MAX=50.0, ETA=0.95, C_DEG=0.02, SOC0=100.0)
+HOURS = 24
+#: The price of finishing the day below the starting charge, per kWh short.
+#: Without it the cheapest policy is to empty the battery and walk away.
+SHORTFALL_PRICE = 0.30
+
+
+def arbitrage_prices(n_days: int, seed: int) -> np.ndarray:
+    """``n_days`` day-ahead price curves, EUR/kWh, shape ``(n_days, 24)``.
+
+    A morning and an evening peak and a midday dip where solar pushes the
+    price down, scaled day by day between 0.7 and 1.3, shifted by up to two
+    hours, with a little hour-to-hour noise. Synthetic, and shaped like a
+    European day-ahead market; the numbers are not any market's.
+    """
+    rng = np.random.default_rng(seed)
+    h = np.arange(HOURS)
+    base = (0.10 + 0.10 * np.exp(-0.5 * ((h - 8) / 1.5) ** 2)
+            + 0.22 * np.exp(-0.5 * ((h - 19) / 1.8) ** 2)
+            - 0.05 * np.exp(-0.5 * ((h - 13) / 2.0) ** 2))
+    scale = rng.uniform(0.7, 1.3, (n_days, 1))
+    shift = rng.integers(-2, 3, n_days)
+    p = np.stack([np.roll(base, s) for s in shift]) * scale
+    p = p + rng.normal(0.0, 0.015, (n_days, HOURS))
+    return np.clip(p, 0.01, None)
+
+
+def lp_schedule(prices: np.ndarray) -> Tuple[float, np.ndarray]:
+    """The best possible day for this battery, by linear programming.
+
+    Decision variables: the energy bought from the grid, ``c_t``, and sold to
+    it, ``d_t``, in each hour, both between 0 and ``P_MAX``. The charge after
+    hour t is ``SOC0 + ETA * sum(c) - sum(d) / ETA``, kept between 0 and
+    ``E_MAX`` and ending no lower than it started. The objective is the
+    day's revenue minus ageing. Returns ``(profit_eur, grid_power)`` with
+    ``grid_power = d - c`` in kW, positive when selling.
+
+    This is the expert the notebook's network imitates: exact, because the
+    battery's model is known and linear, and given the whole day's prices.
+    """
+    from scipy.optimize import linprog           # Colab and Anaconda both ship it
+    b = BATTERY
+    p = np.asarray(prices, dtype=float)
+    cost = np.concatenate([p + b["C_DEG"], -p + b["C_DEG"]])
+    L = np.tril(np.ones((HOURS, HOURS)))
+    soc = np.hstack([b["ETA"] * L, -L / b["ETA"]])        # charge above SOC0 after hour t
+    A = np.vstack([soc, -soc, -soc[-1:]])
+    rhs = np.concatenate([np.full(HOURS, b["E_MAX"] - b["SOC0"]),
+                          np.full(HOURS, b["SOC0"]), [0.0]])
+    res = linprog(cost, A_ub=A, b_ub=rhs, bounds=[(0, b["P_MAX"])] * (2 * HOURS),
+                  method="highs")
+    return float(-res.fun), res.x[HOURS:] - res.x[:HOURS]
+
+
+def battery_features(soc: torch.Tensor, t: int, prices: torch.Tensor) -> torch.Tensor:
+    """What the policy sees in hour ``t``, for a batch of days: shape (B, 7).
+
+    The charge as a fraction of capacity; the hour as a point on a circle;
+    the price now; how far it sits from the day's mean; how much dearer the
+    dearest hour still to come is; and how much cheaper the cheapest. Scaled
+    to be of order one. The day-ahead market publishes tomorrow's prices
+    today, so looking ahead within the day is not cheating.
+    """
+    B = prices.shape[0]
+    now, ahead = prices[:, t], prices[:, t:]
+    angle = 2 * np.pi * t / HOURS
+    return torch.stack([
+        soc / BATTERY["E_MAX"],
+        torch.full((B,), np.sin(angle), dtype=prices.dtype),
+        torch.full((B,), np.cos(angle), dtype=prices.dtype),
+        now / 0.3,
+        (now - prices.mean(1)) / 0.1,
+        (ahead.max(1).values - now) / 0.1,
+        (now - ahead.min(1).values) / 0.1], 1).float()
+
+
+def plot_battery_day(prices, power, ax=None, title: str = ""):
+    """One day: the price, and the battery's grid power as bars (+ selling)."""
+    ax = _new_axes(ax)
+    h = np.arange(HOURS)
+    ax2 = ax.twinx()
+    ax2.bar(h, power, color=np.where(np.asarray(power) >= 0, "#2e9e5b", "#d9822b"),
+            alpha=0.55, width=0.8)
+    ax2.set_ylabel("grid power, kW (+ sell, - buy)")
+    ax2.set_ylim(-1.3 * BATTERY["P_MAX"], 1.3 * BATTERY["P_MAX"])
+    ax.plot(h, prices, color="#1f77b4", lw=2.0)
+    ax.set_xlabel("hour")
+    ax.set_ylabel("price, EUR/kWh")
+    ax.set_title(title)
+    ax.grid(alpha=0.25)
+    return ax

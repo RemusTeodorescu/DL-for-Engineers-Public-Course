@@ -4,8 +4,7 @@
 
 Where a loss comes from, how you get to the bottom of it, and what happens to a
 trained model afterwards. Notebooks 01 and 02 belong to **L6.1 · Loss Functions
-and Gradients**; 03 and 04 belong to **L6.2 · Post-Training and Reinforcement
-Learning**.
+and Gradients**; 03 belongs to **L6.2 · Training Philosophies**; 04, quantisation, belongs to the deployment section taught in **L11.1**.
 
 ## Goals
 
@@ -20,11 +19,14 @@ By the end of this exercise set you can
 4. transfer a trained classifier to a second machine with ten labels per class,
    and find the learning rate at which fine-tuning destroys what it was given;
 5. quantise a deployed model and report size, latency and accuracy **together**,
-   and say when a narrower float model would have been the better lever.
+   and say when a narrower float model would have been the better lever;
+6. train a battery to trade by reinforcement learning, measure it against the
+   exact optimum of a linear program, and imitate the optimiser with a network
+   that runs a hundred times faster.
 
 ## State
 
-**Built.** Six notebooks, `Ex_6_core.py` complete.
+**Built.** Seven notebooks, `Ex_6_core.py` complete.
 
 Notebook 00 has been run end to end against real PyTorch — see the note at the bottom of this file.
 
@@ -38,7 +40,8 @@ Ex06_01_loss_functions.ipynb           # a loss is a noise assumption written do
 Ex06_02_optimiser_comparison.ipynb     # SGD, momentum, Adam, L-BFGS, and the handoff
 Ex06_03_transfer_and_fine_tuning.ipynb # a second machine and ten labels per class
 Ex06_04_quantisation.ipynb             # making it fit on the device
-Ex06_05_report.ipynb                   # the report
+Ex06_05_battery_arbitrage.ipynb        # a battery that learns to trade
+Ex06_06_report.ipynb                   # the report
 ```
 
 ### What each one is for
@@ -66,14 +69,23 @@ Measures size, latency and accuracy before and after, then asks the question
 that keeps the result honest: would a narrower float model have been smaller
 still at the same accuracy?
 
-**05 · The report.** Six questions, tight word limits, checked before assembly.
+**05 · A battery that learns to trade.** A 200 kWh battery on the day-ahead
+market. REINFORCE learns a policy from the reward alone and reaches about four
+fifths of the optimum that a linear program computes in milliseconds; a network
+trained to imitate the linear program reaches nineteen twentieths and runs
+over a hundred times faster. Paired with L6.2: reinforcement learning, where it
+does not fit, and approximate MPC.
+
+**06 · The report.** Six questions, tight word limits, checked before assembly,
+then every notebook's questions and one question to conclude.
 
 ## Conventions
 
 Same as every exercise set in this course:
 
-- Self-contained folder. Requires `torch`, `numpy`, `matplotlib` — all
-  preinstalled on Google Colab. No GPU needed.
+- Self-contained folder. Requires `torch`, `numpy`, `matplotlib`, and `scipy`
+  for notebook 05's linear program — all preinstalled on Google Colab. No GPU
+  needed.
 - Notebook `00` is a read-only environment check. Run it first.
 - `Ex_6_core.py` is complete and is **not** to be rewritten by students. The
   work is in the `# TODO:` cells, each followed by `raise NotImplementedError`.
@@ -82,7 +94,7 @@ Same as every exercise set in this course:
 - **On Colab nothing needs uploading**: each notebook's first code cell fetches
   `Ex_6_core.py` from the public course repository.
 
-## The five datasets
+## The six datasets
 
 All generated on your machine; nothing is downloaded.
 
@@ -93,6 +105,7 @@ All generated on your machine; nothing is downloaded.
 | damped response | 200 **noiseless** samples of `exp(-0.9x) sin(4x)` |
 | fatigue | 20 training points, 60 held out — generated and plotted in notebook 00 only |
 | machine B | the vibration classes again, through a different sensor |
+| day-ahead prices | 24-hour price curves with two peaks and a solar dip — notebook 05 |
 
 Two of these are deliberately unusual and the notebooks say so aloud. The
 damped response carries **no noise**, because when you compare optimisers,

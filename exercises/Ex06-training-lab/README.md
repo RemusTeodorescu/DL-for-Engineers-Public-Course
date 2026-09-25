@@ -36,7 +36,7 @@ Run in order; later notebooks load results saved by earlier ones.
 ```
 Ex06_00_environment_check.ipynb        # the tools, three datasets, the L-BFGS closure
 Ex06_01_loss_functions.ipynb           # a loss is a noise assumption written down
-Ex06_02_optimiser_comparison.ipynb     # SGD, momentum, Adam, L-BFGS, and the handoff
+Ex06_02_optimiser_comparison.ipynb     # Adam, L-BFGS, and the handoff between them
 Ex06_03_transfer_and_fine_tuning.ipynb # a second machine and ten labels per class
 Ex06_04_battery_arbitrage.ipynb        # a battery that learns to trade
 Ex06_05_report.ipynb                   # the report
@@ -50,11 +50,11 @@ the assumption and watch the fitted line move. Verifies rather than refits:
 least squares by hand is assumed, and the question here is *why that
 objective*.
 
-**02 · Four optimisers, one problem.** The same network and the same noiseless
-target, four update rules. Sweeps the learning rate until both failure
-directions appear, trains plain SGD on random batches of four sizes, then meets
-L-BFGS's closure interface and measures the
-**Adam-then-L-BFGS handoff** that every exercise in Part 2 uses.
+**02 · Adam, then L-BFGS.** The same network and the same noiseless target,
+trained with the two optimisers Part 2 uses: Adam alone, L-BFGS alone with
+its closure interface, and the **Adam-then-L-BFGS handoff** that every
+exercise in Part 2 uses, at two handoff points. Plain gradient descent, random
+batches and momentum are taught in L6.1 and not repeated here.
 
 **03 · A second machine, and ten labels each.** A classifier trained on machine
 A meets machine B, whose sensor has a different gain, mounting and orientation.

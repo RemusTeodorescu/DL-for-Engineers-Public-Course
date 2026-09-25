@@ -561,13 +561,43 @@ def mse(prediction: np.ndarray, target: np.ndarray) -> float:
 
 
 def error_table(rows, headers) -> str:
-    """Format a small table as Markdown, for pasting into the report."""
-    headers = list(headers)
-    lines = ["| " + " | ".join(headers) + " |",
-             "|" + "|".join([" --- "] * len(headers)) + "|"]
-    for row in rows:
-        lines.append("| " + " | ".join(str(c) for c in row) + " |")
-    return "\n".join(lines)
+    """Format a small table as Markdown, for pasting into the report.
+
+    Every column is padded to one width, so the table also reads straight
+    when it is simply printed: a Markdown renderer ignores the padding, a
+    printed cell output does not, and unpadded the numbers started wherever
+    their row's name happened to end. A column whose cells are all numbers
+    (or a placeholder "-") is right-aligned, and its separator says so, so
+    the rendered table agrees with the printed one.
+    """
+    headers = [str(h) for h in headers]
+    body = [[str(c) for c in row] for row in rows]
+    n = len(headers)
+
+    def cell(row, j):
+        return row[j] if j < len(row) else ""
+
+    def is_number(s):
+        s = s.strip()
+        if s in ("", "-", "–", "—"):
+            return True
+        try:
+            float(s.rstrip("%"))
+            return True
+        except ValueError:
+            return False
+
+    width = [max([len(headers[j])] + [len(cell(r, j)) for r in body]) for j in range(n)]
+    right = [bool(body) and all(is_number(cell(r, j)) for r in body) for j in range(n)]
+
+    def line(row):
+        return "| " + " | ".join(cell(row, j).rjust(width[j]) if right[j]
+                                 else cell(row, j).ljust(width[j])
+                                 for j in range(n)) + " |"
+
+    rule = "|" + "|".join("-" * (width[j] + 1) + ":" if right[j] else "-" * (width[j] + 2)
+                          for j in range(n)) + "|"
+    return "\n".join([line(headers), rule] + [line(r) for r in body])
 
 
 # ──────────────────────────────────────────────────────────────────────────

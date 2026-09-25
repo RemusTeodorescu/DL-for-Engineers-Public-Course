@@ -59,8 +59,9 @@ batches and momentum are taught in L6.1 and not repeated here.
 **03 · A second machine, and ten labels each.** A classifier trained on machine
 A meets machine B, whose sensor has a different gain, mounting and orientation.
 Train from scratch, retrain the last layer, or fine-tune everything — on thirty
-labels. Finds the learning rate at which fine-tuning destroys what it was
-given, and the label budget at which transfer stops paying. This is L11's
+labels, and fine-tune once more at the from-scratch learning rate to see
+catastrophic forgetting. Then finds the label budget at which transfer stops
+paying. This is L11's
 pretrained ResNet-18 argument at a size you can see.
 
 **04 · A battery that learns to trade.** A 200 kWh battery on the day-ahead

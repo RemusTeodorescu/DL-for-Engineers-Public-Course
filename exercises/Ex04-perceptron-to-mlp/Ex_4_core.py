@@ -21,7 +21,7 @@ Three datasets live here:
 * the four rows of a logic gate, for the perceptron in notebook 01;
 * a wiggly one-dimensional curve, for the capacity experiments in notebooks 03
   and 04;
-* **the eleven noisy samples from L4.2 slides 11-13**, reproduced exactly —
+* **the eleven noisy samples from L4.2, Underfitting and Overfitting**, reproduced exactly —
   same truth, same eleven noise values — so that the overfitting lab in
   notebook 05 draws the figure the lecture drew.
 
@@ -373,7 +373,7 @@ def wiggly_dataset(n: int = 400, noise: float = 0.06,
 
 
 # ── the lecture's own dataset ─────────────────────────────────────────────
-# L4.2 slides 11-13 fit one dataset three ways: too rigid, about right, too
+# L4.2, Underfitting and Overfitting fits one dataset three ways: too rigid, about right, too
 # flexible. These are its eleven points, copied from the generator
 # (lectures/L04.2-deep-neural-networks/src/L4.2_generator.js) so that notebook
 # 05 draws the same picture on the student's own screen.
@@ -397,7 +397,7 @@ def lecture_truth(x: np.ndarray) -> np.ndarray:
 
 
 def lecture_dataset() -> Tuple[np.ndarray, np.ndarray]:
-    """The eleven points from L4.2 slides 11-13, exactly.
+    """The eleven points from L4.2, Underfitting and Overfitting, exactly.
 
     ``x_i = i / 10`` for i = 0 … 10, and ``y_i = truth(x_i) + noise_i`` with the
     eleven noise values fixed in the lecture generator. No random number
@@ -414,8 +414,8 @@ def lecture_validation(n: int = 40, seed: int = 11,
     """A held-out set from the same process — a second measurement campaign.
 
     Same truth, same instrument, different samples. This is the data the
-    lecture keeps back on slide 14, and it is the only thing that can tell you
-    that the flexible model on slide 13 is worse than the one on slide 12.
+    lecture keeps back (L4.2, Data Splits), and the only thing that can tell you
+    that the third, flexible fit on L4.2, Underfitting and Overfitting is worse than the second.
     """
     rng = np.random.default_rng(seed)
     x = np.sort(rng.uniform(0.0, 1.0, size=n))
@@ -431,8 +431,8 @@ class MLP(nn.Module):
     """A fully connected network with one input and one output.
 
     ``MLP(hidden=(64, 64), activation="tanh")`` is two hidden layers of 64
-    neurons with tanh activations. ``hidden=(D,)`` is the shallow network of L4.1
-    slides 13-15 — one hidden layer of D neurons.
+    neurons with tanh activations. ``hidden=(D,)`` is the shallow network of L4.1,
+    Shallow Neural Network — one hidden layer of D neurons.
 
     ``activation="relu"`` gives a piecewise linear function, which is the right
     choice when you want to see breakpoints. ``activation="tanh"`` gives a smooth one,
@@ -729,7 +729,7 @@ FOUR_QUESTIONS = (
 
 
 def four_questions() -> Tuple[str, ...]:
-    """The four questions from L3.2 slide 2, in order."""
+    """The four questions asked of the model in the report, in order."""
     return FOUR_QUESTIONS
 
 

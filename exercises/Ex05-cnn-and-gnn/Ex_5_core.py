@@ -1528,5 +1528,5 @@ FOUR_QUESTIONS = (
 
 
 def four_questions() -> Tuple[str, ...]:
-    """The four questions from L3.2 slide 2, in order."""
+    """The four questions asked of the model in the report, in order."""
     return FOUR_QUESTIONS

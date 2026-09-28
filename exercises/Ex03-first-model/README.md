@@ -180,13 +180,13 @@ Same as every Part 2 exercise set:
 
 ## Depends on
 
-- **L3.1** slide 17 (the modelling spectrum) and slide 25 (this exercise).
-- **L3.2** slide 2 (the four questions) and slide 24 (this exercise, restated).
+- **L3.1**: The Modelling Spectrum, and Exercise 3.
+- **L3.2**: How to Read a Claim, and Exercise 3.
 
 **Both cross-references need checking against the rewrite.** The slides describe
 three models on a cooling curve; this is four models on an oscillator, and the
-modelling spectrum now has a fourth position on it. Feeds **L4.1 slide 23**,
-which explains the extrapolation figure.
+modelling spectrum now has a fourth position on it. Feeds **L4.1, Linear Regions**,
+whose straight pieces explain the extrapolation figure.
 
 ## Expected runtime
 

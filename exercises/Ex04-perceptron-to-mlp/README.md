@@ -65,8 +65,8 @@ The failure is then made airtight two ways: the four-line algebraic contradictio
 from Minsky and Papert (1969), and a brute-force search over 200,000 random
 lines whose best score is 3 of 4. Only then does the student set the **nine
 parameters** of a 2-2-1 network by hand — OR, NAND, and an AND of the two — and
-see all four rows come out right. The hidden-space plot at the end is L4.1 slide
-9's "bending the plane so a straight line suffices", drawn from the student's own
+see all four rows come out right. The hidden-space plot at the end is L4.1, Hidden Layer's
+"bending the plane so a straight line suffices", drawn from the student's own
 weights.
 
 The nine numbers are set by hand rather than trained because in 1969 nobody knew
@@ -93,11 +93,11 @@ into the marked question rather than pretending depth won.
 
 ## Notebook 05 uses the lecture's own data
 
-`Ex_4_core.lecture_dataset()` reproduces **the eleven points from L4.2 slides 11
-to 13 exactly** — same truth `0.30 + 0.52 sin(2.9x) + 0.10x`, same eleven noise
+`Ex_4_core.lecture_dataset()` reproduces **the eleven points from L4.2, Underfitting and Overfitting,
+exactly** — same truth `0.30 + 0.52 sin(2.9x) + 0.10x`, same eleven noise
 values, copied from `lectures/L04.2-deep-neural-networks/src/L4.2_generator.js`.
 If that generator ever changes, change `LECTURE_NOISE` and `lecture_truth` to
-match. The whole point is that slide 13 appears on the student's own screen.
+match. The whole point is that the lecture's third fit appears on the student's own screen.
 
 The held-out set is forty points from the same truth with the same noise
 standard deviation — a second measurement campaign, and the only thing that can
@@ -141,28 +141,30 @@ Same as every Part 2 exercise set:
   is not evidence by training ten of them.
 - British spelling throughout.
 
-## The two marked questions
+## The marked questions
 
-From the two lecture decks, and the report in notebook 06 is built around them:
+The report in notebook 06 is built around two notebook questions and the
+question that concludes it on both Exercise 4 slides:
 
-> **L4.1 slide 22.** At equal parameter count, which did better — deeper or
+> **Notebook 04.** At equal parameter count, which did better — deeper or
 > wider? And why do you think so?
 
-> **L4.2 slide 22.** Which model would you deploy, and what would have to be true
+> **Notebook 05.** Which model would you deploy, and what would have to be true
 > for that to be right?
 
-Notebook 06 also asks the four questions from L3.2 slide 2 about the model the
+> **To conclude.** Across the notebooks: what decided how well your network fitted —
+> the activation, the width, the depth or the data — and what number shows it?
+
+Notebook 06 also asks the four questions about the model the
 student chose to deploy, and includes a worked example answer so that the
 expected standard is visible rather than guessed.
 
 ## Depends on
 
-- **L4.1** slides 9 (the fix), 12 (why Part 2 uses tanh), 14–15 (breakpoints), 16
-  (universal approximation and its five caveats), 21 (failure modes) and 22
-  (this exercise).
-- **L4.2** slides 3–6 (depth and regions), 10 (capacity as a dial), 11–13 (the
-  eleven points), 14 (train/validation/test), 17–19 (regularisation) and 22
-  (this exercise).
+- **L4.1**: Hidden Layer, Activation Function, Linear Regions, Universal
+  Approximation and Exercise 4.
+- **L4.2**: Composition to Depth Efficiency, Model Capacity, Underfitting and
+  Overfitting, Data Splits, Regularisation, Early Stopping and Exercise 4.
 
 ## Expected runtime
 

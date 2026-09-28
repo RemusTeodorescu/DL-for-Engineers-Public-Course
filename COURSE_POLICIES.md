@@ -114,7 +114,9 @@ run with it.
   > - **the exercise**, where you write the missing lines, or
   > - **the light version**, with every cell written out.
 
-  `tools/exercises/two_forms_handover.py --apply` writes it;
+  A link into the report says the report has one form, so nobody looks for
+  a light version that does not exist.
+  `tools/exercises/two_forms_handover.py --apply` writes both;
   `check_exercise_policy.py` fails a link to one form without the other.
 - Before release a set runs from a fresh Colab runtime (`tools/light/solve_run.py`)
   and is reviewed once by a person other than its author.

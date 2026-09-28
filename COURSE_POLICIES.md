@@ -1,9 +1,9 @@
 # Course Policies
 
-Eight rules for the lectures and exercises of *Deep Learning for Engineering*.
+Nine rules for the lectures and exercises of *Deep Learning for Engineering*.
 They replace the 35 separate slide policies (P1–P12, D1–D18, E1–E9) that grew
 out of the reviews in September 2026; each old policy now sits under one of the
-eight, and its check still runs.
+first eight, and its check still runs. C9 was added the same day.
 
 Agreed 28 September 2026, after the Part 1 student evaluation asked for better
 lecture structure and time management, one consistent notation, and fewer
@@ -19,8 +19,9 @@ errors in the exercises.
 | C6 | Visual consistency | `tools/deck/slide_policies.py`, `tools/deck/figure_policy.py` |
 | C7 | Layout passes the checkers | `tools/deck/slide_policies.py` and the fit/layout checkers |
 | C8 | Exercises: few notebooks, only the essential ones | `tools/exercises/check_exercise_policy.py` |
+| C9 | Notebooks: every deep-learning line carries a comment | `tools/exercises/comment_dl_lines.py` |
 
-`python3 tools/deck/slide_policies.py --list` prints the eight with the old
+`python3 tools/deck/slide_policies.py --list` prints the nine with the old
 policies under each; `--full` adds the review history behind every one.
 
 ## C1 · Lecture structure and time
@@ -110,3 +111,21 @@ run with it.
   and is reviewed once by a person other than its author.
 
 *Replaces D14, E7. The limit, the scope rule and the release check are new.*
+
+## C9 · Notebooks: every deep-learning line carries a comment
+
+- A code line that calls a deep-learning function carries a short comment
+  saying what it does: a layer or activation, a loss, an optimiser, the
+  training-step calls (`zero_grad`, `backward`, `step`), autograd and gradient
+  tracking (`torch.autograd.grad`, `requires_grad`, `no_grad`, `detach`),
+  training and evaluation mode, data loaders, saved weights, seeds, and the
+  course libraries' own deep-learning helpers (`train_two_stage`, `grad`,
+  `MLP`, the collocation samplers).
+- Ordinary code gets no comment: loops, prints, plots, NumPy, tensor arithmetic
+  and tensor creation. The comments are there to point at the lines that matter.
+- The comment sits at the end of the line, or on the line directly above it
+  when the line is long.
+- `python3 tools/exercises/comment_dl_lines.py` lists the lines without one;
+  `--apply` writes a first version, to be read and improved by hand.
+
+*New, 28 September 2026.*

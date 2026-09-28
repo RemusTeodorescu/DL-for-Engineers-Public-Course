@@ -107,10 +107,19 @@ run with it.
   Exercise slide lists that question; the report asks one closing question
   across the notebooks.
 - Every working notebook has a light version, generated from the solved one.
+- Wherever a notebook sends the reader to one that has two forms, it offers
+  both, in the same words in both forms, so a reader in either can choose:
+
+  > **Open notebook 02 as**
+  > - **the exercise**, where you write the missing lines, or
+  > - **the light version**, with every cell written out.
+
+  `tools/exercises/two_forms_handover.py --apply` writes it;
+  `check_exercise_policy.py` fails a link to one form without the other.
 - Before release a set runs from a fresh Colab runtime (`tools/light/solve_run.py`)
   and is reviewed once by a person other than its author.
 
-*Replaces D14, E7. The limit, the scope rule and the release check are new.*
+*Replaces D14, E7. The limit, the scope rule, the release check and the two-form handover (28 September 2026) are new.*
 
 ## C9 · Notebooks: every deep-learning line carries a comment
 

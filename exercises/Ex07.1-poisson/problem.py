@@ -53,7 +53,7 @@ __all__ = [
     "I_RATED", "I_RANGE", "resistivity", "heat_per_wire", "heat_source",
     "heat_coefficients", "runaway_current", "describe_slot",
     "fdm_grid", "fdm_matrix", "fdm_solve", "ground_truth",
-    "hard_bc_factor", "plot_field", "plot_slot_geometry",
+    "hard_bc_factor", "plot_field", "plot_fdm_grid", "plot_slot_geometry",
 ]
 
 # ── geometry and material ─────────────────────────────────────────────────
@@ -258,8 +258,14 @@ def _mm(pts):
 
 
 def plot_field(values, nx: int = 121, ny: int = 121, ax=None,
-               title: str = "", label: str = "θ  [K]", cmap: str = "inferno"):
-    """Filled contours of a field sampled on :func:`pinn_core.grid_points`."""
+               title: str = "", label: str = "θ  [K]", cmap: str = "inferno",
+               wires: bool = False):
+    """Filled contours of a field sampled on :func:`pinn_core.grid_points`.
+
+    ``wires=True`` outlines the 32 wires on top. The field itself does not
+    show them: the winding is averaged into one material, so the heat is
+    spread evenly and the outlines only say where the copper sits.
+    """
     import matplotlib.pyplot as plt
     from course_core import new_axes
     from pinn_core import grid_points
@@ -283,6 +289,15 @@ def plot_field(values, nx: int = 121, ny: int = 121, ax=None,
     if signed and np.nanmin(v) < 0 < np.nanmax(v):
         # the zero line: where the model is exactly right
         ax.contour(_mm(X), _mm(Y), v, levels=[0.0], colors="k", linewidths=1.0)
+    if wires:
+        from matplotlib.patches import Circle
+        a, b, rad = A_HALF * 1e3, B_HALF * 1e3, WIRE_D / 2 * 1e3
+        for i in range(N_COLS):
+            for j in range(N_ROWS):
+                ax.add_patch(Circle((-a + (i + 0.5) * 2 * a / N_COLS,
+                                     -b + (j + 0.5) * 2 * b / N_ROWS), rad,
+                                    facecolor="none", edgecolor="white",
+                                    lw=0.8, alpha=0.75))
     ax.set_aspect("equal")
     ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
     ax.set_title(title)
@@ -292,6 +307,76 @@ def plot_field(values, nx: int = 121, ny: int = 121, ax=None,
         ticks = [t for t in MaxNLocator(7, symmetric=True).tick_values(-m, m)
                  if abs(t) <= m * 1.0001]
     plt.colorbar(c, ax=ax, label=label, shrink=0.85, ticks=ticks)
+    return ax
+
+
+def plot_fdm_grid(nx: int = 7, ax=None, node=(2, 4)):
+    """What finite differences does to the slot, on a grid small enough to count.
+
+    The slot rectangle with the :func:`fdm_grid` nodes on it: the wall nodes are
+    known (theta = 0), every interior node is one unknown, and one node is
+    picked out with the four neighbours its equation uses. ``node`` is that
+    node's (column, row), counted from the bottom-left wall node.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle, Circle
+    from course_core import new_axes
+
+    x, y = (_mm(v) for v in fdm_grid(nx))
+    ny = len(y)
+    X, Y = np.meshgrid(x, y)
+    wall = np.zeros(X.shape, bool)
+    wall[[0, -1], :] = True
+    wall[:, [0, -1]] = True
+    n_unknown = int((~wall).sum())
+
+    WALL, NODE, P, NB, CU = "#1f77b4", "#4a4f57", "#d94f2b", "#e8a33d", "#d94f2b"
+    ax = new_axes(ax, figsize=(4.6, 6.2))
+
+    # the slot, and its wires faintly behind the grid
+    a, b = A_HALF * 1e3, B_HALF * 1e3
+    ax.add_patch(Rectangle((-a, -b), 2 * a, 2 * b, facecolor="#fdf6ee",
+                           edgecolor=WALL, lw=2.4, zorder=0))
+    rad = WIRE_D / 2 * 1e3
+    for i in range(N_COLS):
+        for j in range(N_ROWS):
+            ax.add_patch(Circle((-a + (i + 0.5) * 2 * a / N_COLS,
+                                 -b + (j + 0.5) * 2 * b / N_ROWS), rad,
+                                facecolor=CU, edgecolor="none", alpha=0.13,
+                                zorder=0))
+    for xv in x:
+        ax.plot([xv, xv], [y[0], y[-1]], color="#c9ccd1", lw=0.6, zorder=1)
+    for yv in y:
+        ax.plot([x[0], x[-1]], [yv, yv], color="#c9ccd1", lw=0.6, zorder=1)
+
+    # the nodes: known on the walls, unknown inside
+    ax.scatter(X[wall], Y[wall], s=34, marker="s", facecolor="white",
+               edgecolor=WALL, lw=1.2, zorder=3,
+               label="on the wall: θ = 0, known")
+    ax.scatter(X[~wall], Y[~wall], s=30, color=NODE, zorder=3,
+               label="inside: one unknown θ each (%d)" % n_unknown)
+
+    # one node and the four neighbours its equation uses
+    ci, cj = node
+    for di, dj, name in ((1, 0, "E"), (-1, 0, "W"), (0, 1, "N"), (0, -1, "S")):
+        ax.plot([x[ci], x[ci + di]], [y[cj], y[cj + dj]], color=NB, lw=2.2,
+                zorder=4)
+        ax.scatter([x[ci + di]], [y[cj + dj]], s=70, color=NB, zorder=5,
+                   label="its four neighbours" if name == "E" else None)
+        ax.text(x[ci + di] + 0.35 * di + 0.30 * abs(dj),
+                y[cj + dj] + 0.35 * dj + 0.30 * abs(di), name, color=NB,
+                fontsize=9, fontweight="bold", ha="left" if di >= 0 else "right",
+                va="bottom" if dj >= 0 else "top", zorder=6)
+    ax.scatter([x[ci]], [y[cj]], s=110, color=P, zorder=6,
+               label="one node: its θ is set by them\nand by its own heat")
+
+    ax.set_aspect("equal")
+    ax.set_xlim(-a - 1.2, a + 1.2)
+    ax.set_ylim(-b - 1.2, b + 1.2)
+    ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
+    ax.set_title("a %d × %d grid on the slot: %d unknowns" % (nx, ny, n_unknown))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), fontsize=8,
+              frameon=False, ncol=1)
     return ax
 
 

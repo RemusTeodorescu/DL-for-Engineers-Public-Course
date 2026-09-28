@@ -14,47 +14,33 @@ both follow the standard notation of the field.
 
 ## The problem
 
-A slot in the stator of an electrical machine, filled with an impregnated
-copper winding bundle. Current through the winding dissipates heat; the slot
-walls are held at the temperature of the surrounding iron, which is cooled.
-In steady state the excess temperature θ = T − T_wall satisfies Poisson's
-equation
+A slot in the stator of an electrical machine, 10 mm wide and 20 mm deep,
+holding a winding of 32 round copper wires, 2 mm bare, in 4 columns of 8.
+Each wire carries the same current I, and each makes R I^2 of heat. The slot
+walls are held at the temperature of the surrounding iron, T_WALL = 90 C,
+which is cooled. In steady state the temperature rise theta = T - T_WALL obeys
 
-    k_eff ∇²θ + q(x, y) = 0        on the slot cross-section
-    θ = 0                          on all four walls
+    k_eff lap(theta) + q(theta, I) = 0      in the slot
+    theta = 0                               on all four walls
 
-The bundle is a **poor conductor** — epoxy, enamel and trapped air between
-strands give an effective conductivity below 1 W/m·K, two to three orders
-below solid copper. That is why a realistic current density produces a
-temperature rise you can measure, and it is why slot hot spots are what
-actually limit a machine's rating.
+**The winding is treated as one material.** Modelling every wire would make
+the conductivity jump from about 400 W/m.K in the copper to about 0.2 in the
+enamel and resin around it, at every wire edge. Machine designers average it
+instead: one effective conductivity for the bundle, K_EFF = 0.70 W/m.K, and
+the heat of the 32 wires spread over the slot,
 
-## The manufactured solution
+    q = FILL * rho(T) * J^2,    J = I / A_WIRE,    FILL = 0.503
 
-The source is chosen so the exact answer is known, which is what lets the
-notebooks measure **true error** rather than estimate it:
+**Copper's resistance rises with temperature**, 0.39 % per kelvin, so
+rho(T) = RHO_CU (1 + ALPHA_CU (T - 20)) and the heat depends on theta. That
+makes theta grow faster than I^2 - about 5 % faster at 45 A - but q is still
+affine in theta, so for any one current the problem stays a single linear
+system. :func:`fdm_solve` solves it; :func:`ground_truth` makes it as
+accurate as finite differences can.
 
-    θ(x, y) = ΔT (1 − ξ²)(1 − η²)(1 + s ξ),     ξ = x/a,  η = y/b
-
-Zero on all four walls by construction. Polynomial rather than trigonometric,
-so a network cannot do well by discovering a single Fourier mode. Skewed by
-``s`` toward one side, so there is no symmetry to exploit either. The skew
-is a mathematical choice, not a model of a real slot: it runs across the
-slot, in x, while a slot's closed end is along its depth, in y.
-
-The required source follows by differentiating:
-
-    q = −k_eff ∇²θ
-      = −k_eff ΔT [ (−2 − 6 s ξ)(1 − η²)/a²
-                    + (1 − ξ²)(1 + s ξ)(−2/b²) ]
-
-With ``s ≤ 1/3`` the bracket is negative everywhere, so **q ≥ 0 over the whole
-slot** — the source is heating everywhere, as ohmic dissipation must be. A
-manufactured problem that quietly requires negative heat generation is a
-mathematics exercise wearing an engineering costume; this one does not.
-
-Everything here is polynomial, so :func:`source` and :func:`theta_exact` work
-unchanged on NumPy arrays and on torch tensors. No branching on type.
+**AC at 50 Hz heats like DC at its RMS value.** The slot's thermal time
+constant is about 30 s against a 20 ms period, and copper's skin depth at
+50 Hz is 9.3 mm against a 1 mm wire radius, so I here is the RMS current.
 """
 
 from __future__ import annotations
@@ -62,11 +48,12 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = [
-    "A_HALF", "B_HALF", "K_EFF", "DELTA_T", "SKEW", "T_WALL",
-    "DOMAIN", "RHO_CU", "FILL_FACTOR",
-    "theta_exact", "temperature_exact", "source",
-    "hard_bc_factor", "equivalent_current_density", "describe_problem",
-    "plot_field", "plot_error", "plot_source", "plot_slot_geometry",
+    "A_HALF", "B_HALF", "K_EFF", "T_WALL", "DOMAIN", "RHO_CU",
+    "N_COLS", "N_ROWS", "N_WIRES", "WIRE_D", "A_WIRE", "FILL", "ALPHA_CU",
+    "I_RATED", "I_RANGE", "resistivity", "heat_per_wire", "heat_source",
+    "heat_coefficients", "runaway_current", "describe_slot",
+    "fdm_grid", "fdm_matrix", "fdm_solve", "ground_truth",
+    "hard_bc_factor", "plot_field", "plot_slot_geometry",
 ]
 
 # ── geometry and material ─────────────────────────────────────────────────
@@ -82,12 +69,6 @@ B_HALF = 0.010
 #: is the one that matters for the hot spot.
 K_EFF = 0.70
 
-#: Peak excess temperature of the manufactured solution [K].
-DELTA_T = 20.0
-
-#: Skew of the profile toward +x. Must satisfy ``SKEW <= 1/3`` or the implied
-#: source goes negative near a corner. See the module docstring.
-SKEW = 0.30
 
 #: Slot-wall temperature [°C] — the local iron temperature.
 T_WALL = 90.0
@@ -98,35 +79,8 @@ DOMAIN = ((-A_HALF, A_HALF), (-B_HALF, B_HALF))
 #: Resistivity of copper at 20 °C [Ω·m], for the sanity check in §6.
 RHO_CU = 1.72e-8
 
-#: Slot fill factor — the fraction of the slot area that is copper.
-FILL_FACTOR = 0.5
 
-
-# ── the manufactured solution and the source it implies ───────────────────
-
-def theta_exact(x, y):
-    """Excess temperature above the slot wall [K]. NumPy or torch."""
-    xi, eta = x / A_HALF, y / B_HALF
-    return DELTA_T * (1 - xi ** 2) * (1 - eta ** 2) * (1 + SKEW * xi)
-
-
-def temperature_exact(x, y):
-    """Absolute temperature [°C]."""
-    return T_WALL + theta_exact(x, y)
-
-
-def source(x, y):
-    """Volumetric heat generation q [W/m³] — NumPy or torch.
-
-    Derived by differentiating :func:`theta_exact`, so the pair is consistent
-    by construction rather than by hope. Non-negative everywhere for
-    ``SKEW <= 1/3``.
-    """
-    xi, eta = x / A_HALF, y / B_HALF
-    lap = DELTA_T * ((-2 - 6 * SKEW * xi) * (1 - eta ** 2) / A_HALF ** 2
-                     + (1 - xi ** 2) * (1 + SKEW * xi) * (-2 / B_HALF ** 2))
-    return -K_EFF * lap
-
+# ── the hard-wall mask ───────────────────────────────────────────────────────
 
 def hard_bc_factor(x, y):
     """The factor that vanishes on all four walls, for hard enforcement.
@@ -136,43 +90,165 @@ def hard_bc_factor(x, y):
 
         θ̂(x, y) = (1 − ξ²)(1 − η²) · N(x, y)
 
-    Compare that with adding a penalty to the loss and hoping. Notebook 02 is
-    the measurement of the difference.
+    Compare that with adding a penalty to the loss and hoping. Notebook 02
+    measures the difference.
     """
     xi, eta = x / A_HALF, y / B_HALF
     return (1 - xi ** 2) * (1 - eta ** 2)
 
 
-# ── keeping the physics honest ────────────────────────────────────────────
+# ── the real slot: 32 wires, a current, and copper that heats up ─────────
 
-def equivalent_current_density(q) -> float:
-    """The current density in the copper implied by a source q [A/mm²].
+#: The winding: 4 columns by 8 rows of round copper wire.
+N_COLS, N_ROWS = 4, 8
+N_WIRES = N_COLS * N_ROWS
 
-    q = ρ J² over the copper, and only ``FILL_FACTOR`` of the slot is copper,
-    so a slot-averaged q corresponds to q/FILL in the strands themselves.
+#: Bare diameter of one wire [m], and its copper cross-section [m^2], 3.14 mm^2.
+WIRE_D = 2.0e-3
+A_WIRE = np.pi * (WIRE_D / 2) ** 2
 
-    Print this. A manufactured problem is only worth solving if the numbers it
-    implies are ones a machine designer would recognise, and this is the line
-    that checks.
+#: The copper fraction of the slot: 32 x 3.14 mm^2 over 200 mm^2 = 0.503. The
+#: rest is enamel, the slot liner and impregnating resin.
+FILL = N_WIRES * A_WIRE / ((2 * A_HALF) * (2 * B_HALF))
+
+#: Copper's temperature coefficient of resistance [1/K], referred to 20 C.
+ALPHA_CU = 3.93e-3
+
+#: Rated current per wire [A, RMS]: 10 A/mm^2 in a 2 mm wire, 31.4 A. The
+#: notebooks use I_RANGE, from light load to 1.4 times rated.
+I_RATED = 10e6 * A_WIRE
+I_RANGE = (10.0, 45.0)
+
+
+def resistivity(T):
+    """Copper's resistivity at T [C], rising 0.39 % per kelvin above 20 C."""
+    return RHO_CU * (1 + ALPHA_CU * (T - 20.0))
+
+
+def heat_per_wire(I, T):
+    """R I^2 of one wire at temperature T [C], per metre of slot [W/m]."""
+    return resistivity(T) / A_WIRE * I ** 2
+
+
+def heat_source(theta, I, T_wall=None):
+    """The winding's heat, spread over the slot [W/m^3].
+
+    Each wire makes R I^2 per metre, and the 32 together, spread over the
+    slot's cross-section, make FILL * rho(T) * J^2 with J = I / A_WIRE. The
+    copper sits at T = T_WALL + theta, so the heat rises as the slot warms.
+
+    ``T_wall`` is the iron temperature [C]; T_WALL when left out.
+    Polynomial in theta, so it works unchanged on arrays and tensors.
     """
-    return float(np.sqrt(np.asarray(q) / (RHO_CU * FILL_FACTOR)) / 1e6)
+    T_wall = T_WALL if T_wall is None else T_wall
+    J = I / A_WIRE
+    return FILL * resistivity(T_wall + theta) * J ** 2
 
 
-def describe_problem() -> None:
-    """Print the geometry, the material and the numbers they imply."""
-    from pinn_core import grid_points
-    _, _, pts = grid_points(201, 201, DOMAIN)
-    q = source(pts[:, 0], pts[:, 1])
-    print(f"  slot            : {2*A_HALF*1e3:.0f} x {2*B_HALF*1e3:.0f} mm"
-          f"   (half-width {A_HALF*1e3:.0f} mm, half-depth {B_HALF*1e3:.0f} mm)")
-    print(f"  bundle k_eff    : {K_EFF:.2f} W/m.K")
-    print(f"  wall            : {T_WALL:.0f} C")
-    print(f"  peak rise       : {DELTA_T:.0f} K   -> hot spot {T_WALL+DELTA_T:.0f} C")
-    print(f"  source q        : {q.min()/1e6:.2f} .. {q.max()/1e6:.2f} MW/m^3"
-          f"   (mean {q.mean()/1e6:.2f})")
-    print(f"  non-negative    : {bool(q.min() >= 0)}")
-    print(f"  implied J       : {equivalent_current_density(q.mean()):.1f} A/mm^2"
-          f"   in the copper   (machines run 5-20)")
+def heat_coefficients(I, T_wall=None):
+    """``(c0, c1)`` with q = c0 + c1 theta: the heat at the wall temperature
+    [W/m^3], and how much it grows per kelvin of rise [W/m^3/K]."""
+    T_wall = T_WALL if T_wall is None else T_wall
+    J2 = (I / A_WIRE) ** 2
+    return (FILL * resistivity(T_wall) * J2,
+            FILL * RHO_CU * ALPHA_CU * J2)
+
+
+def runaway_current() -> float:
+    """The current above which the slot has no steady state [A].
+
+    The heat grows by c1 per kelvin; conduction removes it at a rate set by
+    the slowest cooling pattern of the slot, K_EFF * lambda_1, with
+    lambda_1 = pi^2 (1/W^2 + 1/H^2) for a rectangle held at zero on its
+    walls. When c1 reaches it, every extra kelvin makes more heat than it can
+    shed. A property of this model, not a rating - real insulation fails far
+    earlier.
+    """
+    lam1 = np.pi ** 2 * (1 / (2 * A_HALF) ** 2 + 1 / (2 * B_HALF) ** 2)
+    return float(A_WIRE * np.sqrt(K_EFF * lam1 / (FILL * RHO_CU * ALPHA_CU)))
+
+
+def describe_slot(I=None) -> None:
+    """Print the slot, the winding and the heat, at current I (rated if None)."""
+    I = I_RATED if I is None else I
+    c0, c1 = heat_coefficients(I)
+    print(f"  slot            : {2*A_HALF*1e3:.0f} x {2*B_HALF*1e3:.0f} mm, walls held at {T_WALL:.0f} C")
+    print(f"  winding         : {N_COLS} x {N_ROWS} = {N_WIRES} wires of {WIRE_D*1e3:.0f} mm, "
+          f"copper fill {FILL:.3f}")
+    print(f"  bundle k_eff    : {K_EFF:.2f} W/m.K   (copper alone: about 400)")
+    print(f"  current         : {I:.1f} A per wire = {I/A_WIRE/1e6:.1f} A/mm^2   "
+          f"(the notebooks use {I_RANGE[0]:.0f} to {I_RANGE[1]:.0f} A)")
+    print(f"  one wire at {T_WALL:.0f} C: R = {resistivity(T_WALL)/A_WIRE*1e3:.2f} mOhm/m, "
+          f"R I^2 = {heat_per_wire(I, T_WALL):.2f} W/m")
+    print(f"  whole slot      : {N_WIRES*heat_per_wire(I, T_WALL):.0f} W per metre of slot")
+    print(f"  heat source q   : {c0/1e6:.3f} MW/m^3 at the wall temperature, "
+          f"+{c1/c0*100:.2f} % per kelvin of rise")
+    print(f"  runaway current : {runaway_current():.0f} A, "
+          f"{runaway_current()/I_RANGE[1]:.1f} x the largest current used")
+
+
+def fdm_grid(nx: int):
+    """The grid :func:`fdm_solve` uses: nx nodes across the slot and 2 nx - 1
+    down it, walls included, so every cell is square."""
+    return (np.linspace(-A_HALF, A_HALF, nx),
+            np.linspace(-B_HALF, B_HALF, 2 * nx - 1))
+
+
+def fdm_matrix(I, nx: int = 41, T_wall=None):
+    """The finite-difference system for one current: ``(A, rhs)`` with
+    A theta = rhs over the interior nodes, walls left out (they are zero).
+
+    The five-point stencil stands in for the Laplacian at every interior node,
+
+        (east + west - 2 centre) / h^2  +  (north + south - 2 centre) / h^2,
+
+    and because the heat is affine in theta, q = c0 + c1 theta, the equation
+    k_eff lap(theta) + q = 0 becomes (k_eff L + c1) theta = -c0: one sparse
+    matrix with at most five entries in a row.
+    """
+    import warnings
+    import scipy.sparse as sp
+    x, y = fdm_grid(nx)
+    hx, hy = x[1] - x[0], y[1] - y[0]
+    mx, my = nx - 2, len(y) - 2
+    with warnings.catch_warnings():            # scipy's own diags() notice
+        warnings.simplefilter("ignore")
+        Dx = sp.diags([1.0, -2.0, 1.0], [-1, 0, 1], shape=(mx, mx)) / hx ** 2
+        Dy = sp.diags([1.0, -2.0, 1.0], [-1, 0, 1], shape=(my, my)) / hy ** 2
+        L = sp.kronsum(Dx, Dy, format="csc")    # rows of x, stacked down y
+        c0, c1 = heat_coefficients(I, T_wall)
+        A = (K_EFF * L + c1 * sp.identity(mx * my, format="csc")).tocsc()
+    return A, -c0 * np.ones(mx * my)
+
+
+def fdm_solve(I, nx: int = 41, T_wall=None):
+    """The slot's temperature rise by finite differences [K].
+
+    Builds :func:`fdm_matrix` on an nx x (2 nx - 1) grid and solves it.
+    Returns ``(X, Y, theta)``, each of shape (2 nx - 1, nx), walls included,
+    laid out exactly as ``pinn_core.grid_points(nx, 2 nx - 1, DOMAIN)`` lays
+    them, so ``theta.ravel()`` goes straight into :func:`plot_field`.
+    """
+    import scipy.sparse.linalg as spla
+    x, y = fdm_grid(nx)
+    A, rhs = fdm_matrix(I, nx, T_wall)
+    theta = np.zeros((len(y), nx))
+    theta[1:-1, 1:-1] = spla.spsolve(A, rhs).reshape(len(y) - 2, nx - 2)
+    X, Y = np.meshgrid(x, y)
+    return X, Y, theta
+
+
+def ground_truth(I, nx: int = 321, T_wall=None):
+    """theta on the nx grid, as accurate as finite differences can make it [K].
+
+    The stencil's error falls as h^2, so a solve on this grid and one on a
+    grid twice as fine, combined as (4 fine - coarse) / 3, cancel the leading
+    error (Richardson extrapolation). At nx = 321 the fine solve and the
+    extrapolation agree to about 1e-5 K on a 19 K rise. A few seconds.
+    """
+    X, Y, coarse = fdm_solve(I, nx, T_wall)
+    _, _, fine = fdm_solve(I, 2 * nx - 1, T_wall)
+    return X, Y, (4 * fine[::2, ::2] - coarse) / 3
 
 
 # ── pictures ──────────────────────────────────────────────────────────────
@@ -219,25 +295,6 @@ def plot_field(values, nx: int = 121, ny: int = 121, ax=None,
     return ax
 
 
-def plot_error(predicted, nx: int = 121, ny: int = 121, ax=None,
-               title: str = "signed error, θ̂ − θ  [K]"):
-    """Where the model is wrong, and by how much, in kelvin.
-
-    Signed and in physical units on purpose. A relative L2 norm of 1e-3 tells
-    you the fit is good; this tells you whether the residual error sits at the
-    hot spot, which is the only place a machine designer cares about.
-    """
-    from pinn_core import grid_points
-    predicted = np.asarray(predicted).ravel()
-    if predicted.size != nx * ny:         # sampled on another square grid
-        n = int(round(np.sqrt(predicted.size)))
-        if n * n == predicted.size:
-            nx = ny = n
-    X, Y, pts = grid_points(nx, ny, DOMAIN)
-    err = predicted - theta_exact(pts[:, 0], pts[:, 1])
-    return plot_field(err, nx, ny, ax, title, label="error  [K]", cmap="coolwarm")
-
-
 def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
     """Where the problem sits: one stator slot, and half of each neighbour.
 
@@ -245,7 +302,7 @@ def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
     neighbouring slots - the repeating section a machine drawing shows. The
     slot is drawn from A_HALF and B_HALF with *parallel* sides, so it is the
     rectangle the notebooks solve on, put back where it belongs. The strand
-    circles cover FILL_FACTOR of the slot at the radius drawn.
+    circles are the 32 wires of 2 mm, to scale.
 
     ``n_slots`` is the slot count of the machine and sets the tooth width;
     36 over this bore leaves a tooth about as wide as the slot, which is
@@ -298,8 +355,8 @@ def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
             ax.add_patch(pt)
         if not strands:
             return
-        ncol, nrow = 5, 10
-        rad = np.sqrt(FILL_FACTOR * (2 * a) * depth / (np.pi * ncol * nrow))
+        ncol, nrow = N_COLS, N_ROWS               # the real winding, to scale
+        rad = WIRE_D / 2 * 1e3
         for i in range(ncol):
             for j in range(nrow):
                 c = local(phi, [-a + (i + 0.5) * 2 * a / ncol],
@@ -333,7 +390,7 @@ def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
                 color=WALL, fontsize=8.5, ha="right", va="center",
                 arrowprops=dict(arrowstyle="->", color=WALL, lw=1.2,
                                 shrinkB=2))
-    ax.annotate("copper strands in epoxy\nohmic heat:  q(x, y) > 0",
+    ax.annotate("32 copper wires of 2 mm\neach makes R I\u00b2 of heat",
                 xy=local(mid, [0.60 * a], [r1 + 0.22 * depth])[0],
                 xytext=(0.015, 0.22), textcoords="axes fraction",
                 color="#8f2f18", fontsize=8.5, ha="left", va="center",
@@ -361,12 +418,3 @@ def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
     ax.set_xlim(-0.30 * r_out, 0.30 * r_out)
     ax.set_ylim(r_bore - 17.0, r_out + 10.0)
     return ax
-
-
-def plot_source(nx: int = 121, ny: int = 121, ax=None):
-    """The manufactured source, in MW/m³."""
-    from pinn_core import grid_points
-    _, _, pts = grid_points(nx, ny, DOMAIN)
-    q = source(pts[:, 0], pts[:, 1]) / 1e6
-    return plot_field(q, nx, ny, ax, "manufactured source q",
-                      label="q  [MW/m³]", cmap="magma")

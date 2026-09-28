@@ -38,8 +38,9 @@ notebooks measure **true error** rather than estimate it:
 
 Zero on all four walls by construction. Polynomial rather than trigonometric,
 so a network cannot do well by discovering a single Fourier mode. Skewed by
-``s`` toward one side — a real slot is hotter near the closed end — so there is
-no symmetry to exploit either.
+``s`` toward one side, so there is no symmetry to exploit either. The skew
+is a mathematical choice, not a model of a real slot: it runs across the
+slot, in x, while a slot's closed end is along its depth, in y.
 
 The required source follows by differentiating:
 

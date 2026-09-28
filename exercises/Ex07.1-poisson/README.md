@@ -73,7 +73,7 @@ between 5 and 20.
 Run in order; later notebooks load results saved by earlier ones.
 
 ```
-Ex07.1_00_environment_check.ipynb    tools, autograd, samplers, the problem itself
+Ex07.1_00_environment_check.ipynb    tools, autograd, samplers, the slot drawn, the problem itself
 Ex07.1_01_slot_soft_bc.ipynb         the walls as a penalty — and the weight sweep
 Ex07.1_02_slot_hard_bc.ipynb         the walls built into the function space
 Ex07.1_03_compare_and_report.ipynb   both under a sparse sample, and the report

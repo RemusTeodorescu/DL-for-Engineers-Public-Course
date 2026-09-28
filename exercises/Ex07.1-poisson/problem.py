@@ -65,7 +65,7 @@ __all__ = [
     "DOMAIN", "RHO_CU", "FILL_FACTOR",
     "theta_exact", "temperature_exact", "source",
     "hard_bc_factor", "equivalent_current_density", "describe_problem",
-    "plot_field", "plot_error", "plot_source",
+    "plot_field", "plot_error", "plot_source", "plot_slot_geometry",
 ]
 
 # ── geometry and material ─────────────────────────────────────────────────
@@ -219,6 +219,131 @@ def plot_error(predicted, nx: int = 121, ny: int = 121, ax=None,
     X, Y, pts = grid_points(nx, ny, DOMAIN)
     err = predicted - theta_exact(pts[:, 0], pts[:, 1])
     return plot_field(err, nx, ny, ax, title, label="error  [K]", cmap="coolwarm")
+
+
+def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
+    """Where the problem sits: one stator slot, and half of each neighbour.
+
+    A sector of the stator, cut on two radial lines through the middle of the
+    neighbouring slots - the repeating section a machine drawing shows. The
+    slot is drawn from A_HALF and B_HALF with *parallel* sides, so it is the
+    rectangle the notebooks solve on, put back where it belongs. The strand
+    circles cover FILL_FACTOR of the slot at the radius drawn.
+
+    ``n_slots`` is the slot count of the machine and sets the tooth width;
+    36 over this bore leaves a tooth about as wide as the slot, which is
+    normal for a machine of this size.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon, Circle
+    from matplotlib.path import Path
+    from course_core import new_axes
+
+    a, depth = A_HALF * 1e3, 2 * B_HALF * 1e3   # 5 mm half-width, 20 mm deep
+    r_bore, neck, a_neck, yoke = 110.0, 2.0, 2.0, 15.0
+    r1 = r_bore + neck                 # slot starts above the tooth tips
+    r2 = r1 + depth                    # slot bottom
+    r_out = r2 + yoke                  # back of the yoke
+    pitch = 2 * np.pi / n_slots
+    half = pitch                       # the cut: one pitch either side
+    mid = np.pi / 2                    # the centre slot points up
+
+    IRON, EDGE, CU, WALL = "#b9bec6", "#6b7079", "#d94f2b", "#1f77b4"
+    CUT, VOID = "#0f9d58", "#fdf6ee"
+    ax = new_axes(ax, figsize=(6.6, 4.9))
+
+    def local(phi, xs, rs):
+        """Points given as (tangential offset, radius) about angle ``phi``."""
+        ur = np.array([np.cos(phi), np.sin(phi)])
+        ut = np.array([-np.sin(phi), np.cos(phi)])
+        return np.array([r * ur + x * ut for x, r in zip(xs, rs)])
+
+    def arc(r, a0, a1, n=80):
+        th = np.linspace(a0, a1, n)
+        return np.c_[r * np.cos(th), r * np.sin(th)]
+
+    # the sector of iron, and the clip that cuts the half slots at its edges
+    sector = np.vstack([arc(r_out, mid - half, mid + half),
+                        arc(r_bore, mid + half, mid - half)])
+    ax.add_patch(Polygon(sector, closed=True, facecolor=IRON,
+                         edgecolor=EDGE, lw=1.2, zorder=1))
+    clip = Polygon(sector, closed=True, transform=ax.transData)
+
+    def slot(phi, centre):
+        """One slot: the body, its semiclosed neck, and what fills it."""
+        body = local(phi, [-a, a, a, -a], [r1, r1, r2, r2])
+        nk = local(phi, [-a_neck, a_neck, a_neck, -a_neck],
+                   [r_bore, r_bore, r1, r1])
+        for poly, lw in ((nk, 1.0), (body, 2.4 if centre else 1.0)):
+            pt = Polygon(poly, closed=True, facecolor=VOID, zorder=2,
+                         edgecolor=(WALL if centre else EDGE), lw=lw)
+            pt.set_clip_path(clip)
+            ax.add_patch(pt)
+        if not strands:
+            return
+        ncol, nrow = 5, 10
+        rad = np.sqrt(FILL_FACTOR * (2 * a) * depth / (np.pi * ncol * nrow))
+        for i in range(ncol):
+            for j in range(nrow):
+                c = local(phi, [-a + (i + 0.5) * 2 * a / ncol],
+                          [r1 + (j + 0.5) * depth / nrow])[0]
+                ci = Circle(c, rad, facecolor=CU, zorder=3,
+                            edgecolor="#8f2f18", lw=0.4,
+                            alpha=1.0 if centre else 0.45)
+                ci.set_clip_path(clip)
+                ax.add_patch(ci)
+
+    for k in (-1, 0, 1):
+        slot(mid + k * pitch, centre=(k == 0))
+
+    # the two cut lines, and the bore
+    for s in (-1, 1):
+        ph = mid + s * half
+        ax.plot([r_bore * np.cos(ph), r_out * np.cos(ph)],
+                [r_bore * np.sin(ph), r_out * np.sin(ph)],
+                color=CUT, lw=1.6, ls=(0, (6, 2, 1, 2)), zorder=5)
+    ax.text(*(local(mid + half, [0.0], [r_out + 4.5])[0]), "cut",
+            color=CUT, fontsize=8.5, ha="center", va="center")
+    ax.text(*(local(mid - half, [0.0], [r_out + 4.5])[0]), "cut",
+            color=CUT, fontsize=8.5, ha="center", va="center")
+    bore = arc(r_bore, mid - half * 1.06, mid + half * 1.06)
+    ax.plot(bore[:, 0], bore[:, 1], color=EDGE, lw=0.9, ls=(0, (4, 3)))
+
+    # what everything is - text in the corners, leaders into the drawing
+    ax.annotate("slot wall:  \u03b8 = 0\n(iron held at %.0f \u00b0C)" % T_WALL,
+                xy=local(mid, [-a], [r1 + 0.62 * depth])[0],
+                xytext=(0.985, 0.74), textcoords="axes fraction",
+                color=WALL, fontsize=8.5, ha="right", va="center",
+                arrowprops=dict(arrowstyle="->", color=WALL, lw=1.2,
+                                shrinkB=2))
+    ax.annotate("copper strands in epoxy\nohmic heat:  q(x, y) > 0",
+                xy=local(mid, [0.60 * a], [r1 + 0.22 * depth])[0],
+                xytext=(0.015, 0.22), textcoords="axes fraction",
+                color="#8f2f18", fontsize=8.5, ha="left", va="center",
+                arrowprops=dict(arrowstyle="->", color="#8f2f18", lw=1.2,
+                                shrinkB=2))
+    ax.text(*(local(mid, [0.0], [r2 + yoke * 0.55])[0]), "stator yoke",
+            fontsize=8.5, ha="center", va="center", color="#4a4f57")
+    for s in (-1, 1):
+        ax.text(*(local(mid + s * pitch / 2, [0.0], [r1 + 0.52 * depth])[0]),
+                "tooth", fontsize=7.5, ha="center", va="center",
+                color="#4a4f57",
+                rotation=np.degrees(mid + s * pitch / 2) - 90)
+        ax.text(*(local(mid + s * pitch, [0.0], [r_bore - 6.0])[0]),
+                "half of\nthe next", fontsize=7, ha="center", va="top",
+                color="#8a8f97")
+    ax.text(*(local(mid, [0.0], [r_bore - 6.0])[0]),
+            "air gap \u00b7 rotor below", fontsize=8, ha="center",
+            va="top", color=EDGE, style="italic")
+
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title("One stator slot of %d, with half of each neighbour\n"
+                 "the slot is %.0f \u00d7 %.0f mm \u2014 that rectangle is the "
+                 "domain" % (n_slots, 2 * a, depth), fontsize=9.5)
+    ax.set_xlim(-0.30 * r_out, 0.30 * r_out)
+    ax.set_ylim(r_bore - 17.0, r_out + 10.0)
+    return ax
 
 
 def plot_source(nx: int = 121, ny: int = 121, ax=None):

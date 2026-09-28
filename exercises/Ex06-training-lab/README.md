@@ -71,8 +71,9 @@ trained to imitate the linear program reaches nineteen twentieths and runs
 over a hundred times faster. Paired with L6.2: reinforcement learning, where it
 does not fit, and approximate MPC.
 
-**05 · The report.** Six questions, tight word limits, checked before assembly,
-then every notebook's questions and one question to conclude.
+**05 · The report.** One question for each lecture, L6.1 and L6.2, with a word
+limit checked before assembly, then the two questions of every notebook and one
+question to conclude.
 
 ## Conventions
 

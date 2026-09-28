@@ -216,10 +216,10 @@ is built around them.
 > **L5.2.** Three forecasts of the same load. Which would you deploy on a
 > substation controller, and which number or plot decided it?
 
-Notebook 05 also asks the four questions from L3.2 about the model the student
-chose, and includes a worked example answer so that the expected standard is
-visible rather than guessed. It then collects the student's answers to the four
-"Before you move on" questions of each notebook.
+Notebook 05 includes a worked example answer so that the expected standard is
+visible rather than guessed. It then collects the student's answers to the two
+"Before you move on" questions of each notebook, each tagged to its own
+lecture's Questions slide.
 
 ## Depends on
 
@@ -228,7 +228,7 @@ visible rather than guessed. It then collects the student's answers to the four
   permutation equivariance.
 - **L5.2** — sequences and the persistence baseline, the recurrent network and
   its hidden state, and the LSTM's cell state and gates (GBC ch. 10).
-- **L3.2** — the weld-inspection framing of notebook 01, and the four questions.
+- **L3.2** — the weld-inspection framing of notebook 01.
 - **L4.2** — depth against width at an equal parameter budget, the extension
   notebook 05 suggests for the depth sweep.
 

@@ -143,21 +143,21 @@ Same as every Part 2 exercise set:
 
 ## The marked questions
 
-The report in notebook 06 is built around two notebook questions and the
-question that concludes it on both Exercise 4 slides:
+The report in notebook 06 asks one question for each lecture of the block, and
+the question that concludes it on both Exercise 4 slides:
 
-> **Notebook 04.** At equal parameter count, which did better — deeper or
-> wider? And why do you think so?
+> **L4.1, notebooks 01 to 03.** What does a hidden layer add to a single neuron,
+> and how did the error fall as you added neurons?
 
-> **Notebook 05.** Which model would you deploy, and what would have to be true
-> for that to be right?
+> **L4.2, notebooks 04 and 05.** Which model would you deploy, and what would
+> have to be true for that to be right?
 
 > **To conclude.** Across the notebooks: what decided how well your network fitted —
 > the activation, the width, the depth or the data — and what number shows it?
 
-Notebook 06 also asks the four questions about the model the
-student chose to deploy, and includes a worked example answer so that the
-expected standard is visible rather than guessed.
+Notebook 06 includes a worked example answer so that the expected standard is
+visible rather than guessed, and collects the two "Before you move on" questions
+of each notebook, each tagged to its own lecture's Questions slide.
 
 ## Depends on
 

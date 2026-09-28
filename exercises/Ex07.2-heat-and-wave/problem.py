@@ -209,11 +209,27 @@ def plot_slice(values, domain, nx=121, ny=121, ax=None, title="",
     from pinn_core import grid_points
     X, Y, _ = grid_points(nx, ny, domain)
     ax = new_axes(ax, figsize=(5.0, 4.6))
-    c = ax.contourf(X * scale, Y * scale,
-                    np.asarray(values).reshape(X.shape), levels=24, cmap=cmap)
+    v = np.asarray(values).reshape(X.shape)
+    # a diverging map means a signed field: centre it on zero, or zero lands
+    # wherever the data range puts it and is drawn red or blue
+    signed = cmap in ("coolwarm", "RdBu", "RdBu_r", "bwr", "seismic")
+    if signed:
+        m = float(np.nanmax(np.abs(v))) or 1.0
+        levels = np.linspace(-m, m, 25)          # zero is the white midpoint
+    else:
+        levels = 24
+    c = ax.contourf(X * scale, Y * scale, v, levels=levels, cmap=cmap)
+    if signed and np.nanmin(v) < 0 < np.nanmax(v):
+        # the zero line: where the model is exactly right
+        ax.contour(X * scale, Y * scale, v, levels=[0.0], colors="k", linewidths=1.0)
     ax.set_aspect("equal")
     ax.set_title(title)
-    plt.colorbar(c, ax=ax, label=label, shrink=0.85)
+    ticks = None
+    if signed:                       # round labels inside the same range
+        from matplotlib.ticker import MaxNLocator
+        ticks = [t for t in MaxNLocator(7, symmetric=True).tick_values(-m, m)
+                 if abs(t) <= m * 1.0001]
+    plt.colorbar(c, ax=ax, label=label, shrink=0.85, ticks=ticks)
     return ax
 
 

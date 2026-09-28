@@ -10,6 +10,13 @@ the lecture recordings as MP4 where available, and the exercise sets as
 Colab-ready notebooks. It is generated from the course's development repository
 and refreshed after every change, so it is always current.
 
+## Notation and course policies
+
+[`NOTATION.md`](NOTATION.md) lists every symbol used in the slides and the notebooks,
+and where the textbooks write something else.
+[`COURSE_POLICIES.md`](COURSE_POLICIES.md) states the eight rules the lectures and
+exercises are written to.
+
 ## How to work with the exercises
 
 Open any notebook and click the **Open in Colab** badge at its top. The first

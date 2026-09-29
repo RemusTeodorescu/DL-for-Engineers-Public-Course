@@ -199,13 +199,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex091_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · Two fronts that meet** | two fronts that start apart and collide; no exact solution | a PINN for u, v with points that follow the fronts, or training in time order | finite volumes, refined three times, at several Reynolds numbers |
-| **B · What is the viscosity?** | a few velocity probes; the viscosity, and so the Reynolds number, is unknown | an inverse PINN with a trainable ν, fitted to the equations and the probes | the exact solution at a hidden ν, sampled at the probes with noise, and the truth for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP9.1A · Two fronts that meet** | two streams collide into fronts along x = ½ and y = ½ that cross at the centre; Re 100 and 200 | a PINN for u, v with points that follow the fronts, or training in time order | finite differences, 257 × 257, upwind, RK3; worked example: steepest du/dx 4.63 (Re 100) and 10.24 (Re 200) at t = 1 | u, v within 0.02 (Re 100) and 0.05 (Re 200); steepest gradient within 10 % |
+| **MP9.1B · What is the viscosity?** | a few probes record u, v; the viscosity, and so Re, is unknown; three cases | an inverse PINN with a trainable ν, fitted to the equations and the probes | the exact solution at a hidden ν, sampled with noise 1e-03; worked example: case 3's probes see a thousandth of the noise | ν within 5 % (cases 1, 2); case 3 shown unidentifiable |

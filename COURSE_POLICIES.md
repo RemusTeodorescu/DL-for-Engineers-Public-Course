@@ -1,9 +1,10 @@
 # Course Policies
 
-Nine rules for the lectures and exercises of *Deep Learning for Engineering*.
+Ten rules for the lectures and exercises of *Deep Learning for Engineering*.
 They replace the 35 separate slide policies (P1–P12, D1–D18, E1–E9) that grew
 out of the reviews in September 2026; each old policy now sits under one of the
-first eight, and its check still runs. C9 was added the same day.
+first eight, and its check still runs. C9 was added the same day, C10 on
+29 September.
 
 Agreed 28 September 2026, after the Part 1 student evaluation asked for better
 lecture structure and time management, one consistent notation, and fewer
@@ -20,6 +21,7 @@ errors in the exercises.
 | C7 | Layout passes the checkers | `tools/deck/slide_policies.py` and the fit/layout checkers |
 | C8 | Exercises: few notebooks, only the essential ones | `tools/exercises/check_exercise_policy.py` |
 | C9 | Notebooks: every deep-learning line carries a comment | `tools/exercises/comment_dl_lines.py` |
+| C10 | Part 2: every set ends with a mini project proposal | `tools/exercises/check_exercise_policy.py` |
 
 `python3 tools/deck/slide_policies.py --list` prints the nine with the old
 policies under each; `--full` adds the review history behind every one.
@@ -145,3 +147,60 @@ run with it.
   `--apply` writes a first version, to be read and improved by hand.
 
 *New, 28 September 2026.*
+
+## C10 · Part 2: every set ends with a mini project proposal
+
+- Every Part 2 exercise set (Ex07.1 to Ex12.2) ends with a section *Mini
+  project proposal*: the last numbered section of the report notebook, and the
+  same two proposals in the set's README. A set with no report notebook
+  carries it in its README alone.
+- Exactly two proposals per set, each grown out of a problem the set has
+  developed: a harder version of it, or its inverse. Ex07.1's are the slot
+  with every wire and its insulation resolved (a domain-decomposed PINN), and
+  the insulation's aging recovered from a few sensors (an inverse PINN).
+- Each student chooses one mini project from all the Part 2 sets and solves it
+  individually, in one month. The dates and the hand-in are set in L13.
+- Each proposal says, under these headings: **the problem**; why a plain PINN
+  is not enough, where that is the point; **what you build** with deep
+  learning; **the ground truth you get**; **what you hand in**.
+- The ground truth is the course's, never the student's: the month goes into
+  the deep learning. It is built when a student chooses the project, not
+  before, and to the rules below.
+
+### Building a mini project's ground truth
+
+1. **A classical solver, never a network.** Finite differences or volumes,
+   finite elements, or an ODE integrator (`scipy`). Extend the set's own
+   `problem.py` rather than copying it, so the exercise and the project share
+   one set of physics and constants.
+2. **One script per project**, `tools/miniprojects/<set>_<A|B>_truth.py`,
+   seeded and deterministic, that writes the data file and prints the checks
+   below. Say how long it runs; prefer under half an hour on a laptop CPU.
+3. **Shown to have converged.** At least three grids, each twice as fine as
+   the last. Print the quantity the student will be judged on (a hot spot, a
+   flux, a trajectory) on each, show the error falling at the method's order,
+   and use Richardson extrapolation where it applies. The ground truth must be
+   at least ten times - better a hundred times - more accurate than what a
+   good student's network can reach, or the error measured is the reference's.
+4. **Checked against physics.** A conservation balance (heat made = heat
+   leaving through the walls, mass in = mass out), any symmetry the problem
+   has, and a limiting case that reproduces the exercise: the resolved slot
+   with one conductivity everywhere must give Ex07.1's averaged field.
+5. **Every value sourced.** Each material property and dimension is either
+   taken from a named reference or marked *assumed* in the script and in the
+   file. No invented hardware figures.
+6. **One `.npz` file, self-describing.** Coordinates, fields, every physical
+   parameter with its unit, the material or region map, the currents or other
+   inputs, the convergence table, the seed and the git commit of the script,
+   and a `README` string naming every key. Keep it under 50 MB.
+7. **Inverse problems split what is observed from what is hidden.** The
+   student fits the observations (sensor positions, readings, the noise level
+   and its seed) and scores against the truth afterwards, in a separate file.
+   Give cases of rising difficulty: fewer sensors, more noise, a smaller
+   feature to find.
+8. **Generalisation is tested outside the training range.** When the network
+   is meant to work across a parameter (a current, a Reynolds number), keep a
+   held-out range the student does not train on.
+9. **Run by a second person** before the student gets it, like every set (C8).
+
+*New, 29 September 2026.*

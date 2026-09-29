@@ -139,3 +139,16 @@ declines the Drive request, `saved()` downloads each result file when it is
 written and `needed()` asks for the files to be uploaded before they are read.
 Locally the cell does nothing. The report notebook writes its `.md` and `.pdf`
 into the same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 04, section 6). Each student
+chooses one mini project from the Part 2 sets and solves it individually in
+one month. The course provides the ground truth once a project is chosen,
+built by a classical solver under policy C10 (`COURSE_POLICIES.md`), so the month
+goes into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · The slot with its insulation** | the 32 wires resolved: copper, a thin enamel coat, air between them; the conductivity jumps 10³–10⁴-fold at every edge | a domain-decomposed PINN, one network per material, with temperature and heat flow matched across every edge | finite differences with several nodes across the enamel, per-cell conductivity, the currents of this set, with a grid-refinement table |
+| **B · How old is the insulation?** | aged insulation conducts less where it has degraded; only a few sensors in the slot, read at a few currents | an inverse PINN: one network for θ(x, y, I), one for k(x, y), fitted to the physics and the sensors; then the hot spot and the margin to the class limit | slots with a hidden degraded region: sensor readings with positions and noise, and the true fields for scoring; cases of rising difficulty |

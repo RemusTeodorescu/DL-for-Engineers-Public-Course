@@ -156,8 +156,10 @@ run with it.
   project proposal*: the last numbered section of the report notebook, and the
   same two proposals in the set's README. A set with no report notebook
   carries it in its README alone.
-- Exactly two proposals per set, each grown out of a problem the set has
-  developed: a harder version of it, or its inverse. Ex07.1's are the slot
+- Two proposals per set - or one per problem, where a set has more than two
+  (Ex07.2: the die, the panel and the slot's Helmholtz equation) - each grown
+  out of a problem the set has developed: a harder version of it, or its
+  inverse. Ex07.1's are the slot
   with every wire and its insulation resolved (a domain-decomposed PINN), and
   the insulation's aging recovered from a few sensors (an inverse PINN).
 - Each student chooses one mini project from all the Part 2 sets and solves it

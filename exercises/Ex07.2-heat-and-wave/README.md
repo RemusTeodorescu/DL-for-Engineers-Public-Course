@@ -63,13 +63,14 @@ Ex07.2_supplement_helmholtz_light.ipynb   every cell written out
 
 A standalone notebook beside the die and the panel, not part of the report
 (C11 allows one optional supplement per set). It takes L7.2's Helmholtz
-equation to Ex_07.1's stator slot: hot copper turns Poisson into Helmholtz
+equation to the stator slot of an electrical machine: hot copper turns Poisson into Helmholtz
 (q = c0 + c1 θ), the slot's first eigenvalue λ1 sets how far the temperature
 is pushed up and where thermal runaway would be (158 A), a hard-enforced
 network finds λ1 with and without the unit-norm safeguard against u ≡ 0, and
 three design levers move the feedback ratio. Two questions, tagged L7.2 Q3 and
-Q5. About a minute on a CPU. It fetches Ex_07.1's `problem.py` as
-`slot_problem.py`, so the slot has one source. Built by
+Q5. About a minute on a CPU. It stands on its own: `slot_problem.py` and
+`Ex07.2_slot.png` are this folder's copies of Ex_07.1's `problem.py` and slot
+figure, so nothing is needed from Ex_07.1. MP7.2C grows out of it. Built by
 `tools/exercises/ex072/build_ex072_supplement.py`.
 
 ## Files
@@ -124,13 +125,13 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with three mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex072_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · A die with a moving hot spot** | a chip's power moving between blocks over several pulses; silicon's conductivity falling with temperature | a PINN for θ(x, y, t) with the source as input, the initial condition built in, and points that follow the power | implicit finite differences, converged in space and time, with silicon's k(T) and its source |
-| **B · Where was the panel struck?** | a strike nobody saw; a few sensors record the panel's vibration | an inverse PINN: u(x, y, t) and the initial velocity v₀(x, y), fitted to the wave equation and the sensors | the exact modal solution, converged in the number of modes: sensor records with noise, and the true strike for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP7.2A · A die with a moving hot spot** | a 10 × 10 mm die; three 2 × 2 mm blocks of 8 W switching on in turn; silicon's k(T) | a PINN for θ(x, y, t) with the power map as input, the initial condition built in, points that follow the power | finite volumes, backward Euler, 0.05 mm and 0.5 ms; worked example: peak 33.79 K at 180 ms, k(T) adds 1.66 K | peak within 1 K and 2 ms; field within 2 K; 200 ms in under 1 s |
+| **MP7.2B · Where was the panel struck?** | a strike nobody saw; 3 to 6 sensors record the 0.40 m panel's displacement for 20 ms | an inverse PINN: u(x, y, t) and the initial velocity, fitted to the wave equation and the sensors | the exact modal sum, 80 × 80 modes; three cases; worked example: peak 0.23 mm, a mirror strike 2e-19 m apart on the diagonal | strike within 10 mm, velocity within 10 %, motion within 5 % of peak |
+| **MP7.2C · The eigenvalues of a real slot** | a slot tapered from 8 to 12 mm, 20 mm deep; the first three Helmholtz eigenpairs | an eigenvalue PINN with a rebuilt mask, a norm term, a trainable λ and orthogonal higher modes | finite differences to 0.03125 mm, extrapolated; worked example: λ₁ 0.1226 per mm², 0.7 % below the rectangle; runaway 157.9 A | λ₁ within 0.3 %, λ₂ and λ₃ within 1 %, runaway within 0.5 A |

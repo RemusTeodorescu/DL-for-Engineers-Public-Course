@@ -116,6 +116,11 @@ run with it.
 
   A link into the report says the report has one form, so nobody looks for
   a light version that does not exist.
+- The two forms read the same. A light version carries its exercise's
+  exam-question tags, in the same order: when a lecture's Questions slide
+  changes, both forms change. Sections are numbered once, in order; a TODO
+  keeps its label inside the heading (`## 4 · TODO 1 — bad data`), and the
+  light version says "section 4" where the exercise says "TODO 1".
   `tools/exercises/two_forms_handover.py --apply` writes both;
   `check_exercise_policy.py` fails a link to one form without the other.
 - Before release a set runs from a fresh Colab runtime (`tools/light/solve_run.py`)

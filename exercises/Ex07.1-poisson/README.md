@@ -20,8 +20,8 @@ By the end you can
 
 1. compute the heat a winding makes from its current, $RI^2$, with copper's
    resistance rising as it warms;
-2. solve the slot's temperature by finite differences, and show that the
-   answer has converged;
+2. solve the slot's temperature by finite differences, and choose the mesh
+   density that makes it a ground truth;
 3. train a PINN with its walls imposed softly and hard, and score both against
    the finite-difference answer;
 4. compare the methods on accuracy and computing time, and say when a PINN is
@@ -48,7 +48,7 @@ conductivity jump 2000-fold at every wire edge. Copper's resistance rises
 0.39 % per kelvin, so the heat depends on θ: that is a positive feedback, the
 rise grows about 5 % faster than I² at 45 A, and it is what turns the equation
 into a Helmholtz equation in notebook 03. The source is the real one; the
-ground truth is finite differences, made converged in notebook 01.
+ground truth is finite differences on a 161 × 321 grid, chosen in notebook 01.
 
 ## The notebooks
 
@@ -56,7 +56,7 @@ Run in order; later notebooks load results saved by earlier ones.
 
 ```
 Ex07.1_00_environment_check.ipynb    the slot, its winding and heat, the tools
-Ex07.1_01_fdm_ground_truth.ipynb     the ground truth by finite differences, and proof it has converged
+Ex07.1_01_fdm_ground_truth.ipynb     the heat source, the temperature by FDM, and the right mesh density
 Ex07.1_02_pinn_soft_and_hard.ipynb   a PINN with soft and with hard walls, against FDM on accuracy and time
 Ex07.1_03_helmholtz.ipynb            hot copper, the Helmholtz equation, and the slot's eigenvalue
 Ex07.1_04_report.ipynb               the results, the answers, and the report as a PDF

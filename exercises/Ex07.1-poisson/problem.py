@@ -380,6 +380,73 @@ def plot_fdm_grid(nx: int = 7, ax=None, node=(2, 4)):
     return ax
 
 
+def plot_fdm_mesh(nx: int = 161, ax=None, corner: float = 0.5e-3):
+    """The mesh :func:`fdm_solve` really uses, with one corner enlarged.
+
+    Left: the whole slot with its 32 wires and a small box in the bottom-left
+    corner. The mesh itself is too fine to see at this scale, so the box is
+    drawn again, enlarged, in an inset: there the real nodes are visible - the
+    wall nodes (known, theta = 0), the interior nodes (the unknowns), and one
+    node with the four neighbours its equation uses. ``corner`` is the side of
+    the enlarged box [m].
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle, Circle
+    from course_core import new_axes
+
+    x, y = fdm_grid(nx)
+    h = x[1] - x[0]
+    a, b, c = A_HALF * 1e3, B_HALF * 1e3, corner * 1e3
+    WALL, NODE, P, NB, CU = "#1f77b4", "#4a4f57", "#d94f2b", "#e8a33d", "#d94f2b"
+    ax = new_axes(ax, figsize=(4.6, 6.2))
+
+    def slot(axis, faint=True):
+        axis.add_patch(Rectangle((-a, -b), 2 * a, 2 * b, facecolor="#fdf6ee",
+                                 edgecolor=WALL, lw=2.4, zorder=0))
+        rad = WIRE_D / 2 * 1e3
+        for i in range(N_COLS):
+            for j in range(N_ROWS):
+                axis.add_patch(Circle((-a + (i + 0.5) * 2 * a / N_COLS,
+                                       -b + (j + 0.5) * 2 * b / N_ROWS), rad,
+                                      facecolor=CU, edgecolor="none",
+                                      alpha=0.13 if faint else 0.25, zorder=0))
+
+    slot(ax)
+    ax.set_aspect("equal")
+    ax.set_xlim(-a - 0.8, a + 0.8); ax.set_ylim(-b - 0.8, b + 0.8)
+    ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
+    n_unknown = (nx - 2) * (len(y) - 2)
+    ax.set_title(f"the mesh: {nx} x {len(y)} nodes, h = {h * 1e3:.4f} mm\n"
+                 f"{n_unknown:,} unknowns - the boxed corner enlarged", fontsize=10)
+
+    ins = ax.inset_axes([0.30, 0.30, 0.62, 0.40])
+    slot(ins, faint=False)
+    xs, ys = x[x <= -A_HALF + corner + 1e-12] * 1e3, y[y <= -B_HALF + corner + 1e-12] * 1e3
+    for xv in xs:
+        ins.plot([xv, xv], [ys[0], ys[-1]], color="#c9ccd1", lw=0.6, zorder=1)
+    for yv in ys:
+        ins.plot([xs[0], xs[-1]], [yv, yv], color="#c9ccd1", lw=0.6, zorder=1)
+    X, Y = np.meshgrid(xs, ys)
+    wall = np.isclose(X, -a) | np.isclose(Y, -b)
+    ins.scatter(X[wall], Y[wall], s=22, marker="s", facecolor="white", edgecolor=WALL,
+                lw=1.0, zorder=3, label="wall node: θ = 0, known")
+    ins.scatter(X[~wall], Y[~wall], s=16, color=NODE, zorder=3, label="interior node: one unknown")
+    ci = cj = len(xs) // 2
+    for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        ins.plot([xs[ci], xs[ci + di]], [ys[cj], ys[cj + dj]], color=NB, lw=2.0, zorder=4)
+        ins.scatter([xs[ci + di]], [ys[cj + dj]], s=40, color=NB, zorder=5,
+                    label="its four neighbours" if (di, dj) == (1, 0) else None)
+    ins.scatter([xs[ci]], [ys[cj]], s=60, color=P, zorder=6, label="one node's equation")
+    ins.set_xlim(xs[0] - 0.04, xs[-1] + 0.02); ins.set_ylim(ys[0] - 0.04, ys[-1] + 0.02)
+    ins.set_aspect("equal"); ins.set_xticks([]); ins.set_yticks([])
+    ins.set_title(f"the bottom-left corner, {c:g} x {c:g} mm", fontsize=8)
+    ax.indicate_inset_zoom(ins, edgecolor="k", alpha=0.8)
+    for sp in ins.spines.values():
+        sp.set_edgecolor("k"); sp.set_linewidth(1.2)
+    ins.legend(loc="upper center", bbox_to_anchor=(0.5, -0.04), fontsize=7, frameon=False)
+    return ax
+
+
 def plot_slot_geometry(ax=None, strands: bool = True, n_slots: int = 36):
     """Where the problem sits: one stator slot, and half of each neighbour.
 

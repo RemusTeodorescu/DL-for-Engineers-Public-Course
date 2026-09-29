@@ -1,77 +1,43 @@
-# Ex_07.2 — Fundamental PDEs: Heat, Wave and Helmholtz
+# Ex_07.2 — Benchmark PDEs: Parabolic, Elliptic and Hyperbolic
 
 **Paired with L7.2 · Fundamental PDEs · Part 2**
 
-Time enters. A steady problem has one field, two coordinates and no history. Here the network takes $(x, y, t)$ and the question becomes **how many
-conditions a problem needs**, and what happens when it does not get them.
+Three problems, one of each type of second-order equation, each in a notebook of
+its own. Every notebook tells the same story (course policy C13): the problem,
+its data, its physics, the exact solution and finite differences on a mesh
+chosen for an agreed accuracy, one physics-informed network, the comparison on
+accuracy against the exact solution and on computing time against finite
+differences, and what the comparison says. Then a short report, and a mini
+project.
 
-## Goals
-
-By the end you can
-
-1. write first- and second-order-in-time residuals and say which column of the
-   gradient is which;
-2. assemble a three- or four-term loss with every term non-dimensionalised;
-3. enforce an initial condition exactly, by construction, and state precisely
-   what that costs the network;
-4. explain why a diffusion error shrinks with time and a wave error grows;
-5. **recognise an under-determined problem from its symptoms**, and give the
-   counting rule that would have prevented it.
-
-## The two problems, and the equations they solve
-
-**The heat equation, θ_t = α ∇²θ — the die; parabolic, one initial condition.** A 10 × 10 mm silicon die after
-a power pulse, edges clamped to the package. The initial field carries two
-modes decaying at 17.4 and 43.4 s⁻¹, so the sharp feature dies 2.5× faster and
-the field **changes shape** rather than merely shrinking. A model that matches
-the late field can still be badly wrong early.
-
-**The wave equation, u_tt = c² ∇²u — the panel; hyperbolic, two initial conditions.** A 40 × 40 cm tensioned
-panel, 141 Hz fundamental, struck at 0.5 m/s to a peak deflection of 0.56 mm.
-It starts **flat and moving**, which is what makes the second condition
-load-bearing.
+The three are independent: run them in any order, alone. None needs Ex_07.1.
 
 ## The notebooks
 
 ```
-Ex07.2_00_environment_check.ipynb    space-time sampling, derivatives in t
-Ex07.2_01_die_soft_ic.ipynb          three soft terms — and where the error goes
-Ex07.2_02_die_hard_ic.ipynb          θ₀ + t·D·N, and what N pays for it
-Ex07.2_03_panel_both_ics.ipynb       the panel solved properly, over three periods
-Ex07.2_04_missing_condition.ipynb    the panel that never moved
-Ex07.2_05_compare_and_report.ipynb   the report
+Ex07.2_1_die_pulse.ipynb        parabolic   the silicon die after a power pulse
+Ex07.2_2_slot_runaway.ipynb     elliptic    the stator slot and its thermal runaway
+Ex07.2_3_panel_strike.ipynb     hyperbolic  the wave of a struck panel
 ```
 
-**Notebook 04 is the one that matters.** Solve the panel correctly in every
-respect except the velocity condition, and `u ≡ 0` satisfies the PDE, both
-boundaries and the initial displacement — exactly. The loss converges *better*
-than the correct run. Three diagnostics pass magnificently and the fourth, the
-one you left out of the loss, is the only one that knows.
+Each comes in two forms: the exercise, with two TODO cells (the answer in the
+comment directly above the line to write), and `_light`, written out.
 
-> A converged residual tells you the network solves the problem you posed. It
-> says nothing about whether you posed the right problem.
+| | equation | conditions | exact solution | agreed accuracy, and the mesh that meets it | the network |
+|---|---|---|---|---|---|
+| **1 · die** | heat, $\theta_t = \alpha\nabla^2\theta$ | edges at 65 °C, **one** initial field | two decaying modes | 0.02 K: 41 × 41 nodes, 200 Crank-Nicolson steps | 4 × 32; start and edges built in |
+| **2 · slot** | $k\nabla^2\theta + c_0 + c_1\theta = 0$, Helmholtz once hot copper feeds back | walls at 90 °C | a series of the slot's modes | 0.1 K at 10-100 A: 41 × 81 nodes | 4 × 32, every current at once; walls built in |
+| **3 · panel** | wave, $u_{tt} = c^2\nabla^2 u$ | edges clamped, **two** initial conditions | the first mode | 1 % of the 0.56 mm peak: 41 × 41 nodes, leapfrog | 5 × 48; edges and flat start built in, the velocity in the loss |
 
-That is the habit L8 onward depends on, because from there you rarely have an
-exact solution to check against.
+### What the set measures (CPU, seed 88)
 
-## Supplement to PDE Recap (Optional)
+| | finite differences: error, one run | PINN: error, training |
+|---|---|---|
+| 1 · die | 1.58e-02 K, about 30 ms | 1.65e-02 K, about 3 min; then about 300 ms to evaluate the window |
+| 2 · slot | 4.08e-02 K at worst, about 8 ms per current | within 0.1 K to 80 A, 0.28 K at 100 A; about 2 ms per current after about 3 min |
+| 3 · panel | 0.30 % of the peak, about 10 ms | 0.49 %, about 14 min; then about 400 ms to evaluate the window |
 
-```
-Ex07.2_supplement_helmholtz.ipynb         the exercise: one TODO, the loss
-Ex07.2_supplement_helmholtz_light.ipynb   every cell written out
-```
-
-A standalone notebook beside the die and the panel, not part of the report
-(C11 allows one optional supplement per set). It takes L7.2's Helmholtz
-equation to the stator slot of an electrical machine: hot copper turns Poisson into Helmholtz
-(q = c0 + c1 θ), the slot's first eigenvalue λ1 sets how far the temperature
-is pushed up and where thermal runaway would be (158 A), a hard-enforced
-network finds λ1 with and without the unit-norm safeguard against u ≡ 0, and
-three design levers move the feedback ratio. Two questions, tagged L7.2 Q3 and
-Q5. About a minute on a CPU. It stands on its own: `slot_problem.py` and
-`Ex07.2_slot.png` are this folder's copies of Ex_07.1's `problem.py` and slot
-figure, so nothing is needed from Ex_07.1. MP7.2C grows out of it. Built by
-`tools/exercises/ex072/build_ex072_supplement.py`.
+The notebooks print the exact figures for the machine they run on.
 
 ## Files
 
@@ -79,16 +45,21 @@ figure, so nothing is needed from Ex_07.1. MP7.2C grows out of it. Built by
 |---|---|
 | `course_core.py` | shared by the whole course |
 | `pinn_core.py` | the PDE machinery |
-| `problem.py` | both problems — exact solutions, initial fields, plots |
+| `problem.py` | the die and the panel - exact solutions, initial fields |
+| `slot_problem.py` | the stator slot - its heat, the exact series, finite differences; a copy of Ex_07.1's `problem.py`, so notebook 2 stands alone |
+| `Ex07.2_slot.png` | the slot figure notebook 2 shows |
 
 The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each notebook fetches them.
+`python3 tools/pinn/sync_cores.py`. **The notebooks are generated too**, both
+forms of all three, by `tools/exercises/ex072/build_ex072.py`: edit the builder
+and rerun it rather than editing a notebook. **On Colab nothing needs uploading**
+- each notebook fetches its files.
 
 ## Expected runtime
 
-CPU only. The panel is the expensive one — a space–time slab, 6000 collocation
-points and a fifth hidden layer — so budget ten minutes for notebooks 03 and 04
-each. The die notebooks are three to five minutes.
+CPU only. The die and the slot take about five minutes each, most of it
+training; the panel about fifteen - a wave over three periods is the hardest of
+the three for a network.
 
 ## Reference texts
 
@@ -104,28 +75,13 @@ the standard notation of the field.
 
 ## Before this is assigned
 
-The NumPy half is verified: both exact solutions satisfy their PDEs to ~5e-6
-relative under central differences, the die's edges are exactly zero, the
-panel's initial displacement is exactly zero and its initial velocity is
-0.4999 m/s against a nominal 0.5. **Nothing requiring torch has been executed.**
-Run notebook 00 end to end before this goes to students.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex07.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01 to 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex07.2_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+Every light notebook has been run end to end on a local CPU and the exercise
+forms stop at their first TODO. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with three mini projects (notebook 05, the last section). Each student chooses one
+The set ends with three mini projects (one at the end of each notebook, for its own problem). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex072_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
@@ -133,5 +89,5 @@ ground truth is given, built by `tools/miniprojects/ex072_truth.py` under policy
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
 | **MP7.2A · A die with a moving hot spot** | a 10 × 10 mm die; three 2 × 2 mm blocks of 8 W switching on in turn; silicon's k(T) | a PINN for θ(x, y, t) with the power map as input, the initial condition built in, points that follow the power | finite volumes, backward Euler, 0.05 mm and 0.5 ms; worked example: peak 33.79 K at 180 ms, k(T) adds 1.66 K | peak within 1 K and 2 ms; field within 2 K; 200 ms in under 1 s |
-| **MP7.2B · Where was the panel struck?** | a strike nobody saw; 3 to 6 sensors record the 0.40 m panel's displacement for 20 ms | an inverse PINN: u(x, y, t) and the initial velocity, fitted to the wave equation and the sensors | the exact modal sum, 80 × 80 modes; three cases; worked example: peak 0.23 mm, a mirror strike 2e-19 m apart on the diagonal | strike within 10 mm, velocity within 10 %, motion within 5 % of peak |
-| **MP7.2C · The eigenvalues of a real slot** | a slot tapered from 8 to 12 mm, 20 mm deep; the first three Helmholtz eigenpairs | an eigenvalue PINN with a rebuilt mask, a norm term, a trainable λ and orthogonal higher modes | finite differences to 0.03125 mm, extrapolated; worked example: λ₁ 0.1226 per mm², 0.7 % below the rectangle; runaway 157.9 A | λ₁ within 0.3 %, λ₂ and λ₃ within 1 %, runaway within 0.5 A |
+| **MP7.2B · The eigenvalues of a real slot** | a slot tapered from 8 to 12 mm, 20 mm deep; the first three Helmholtz eigenpairs | an eigenvalue PINN with a rebuilt mask, a norm term, a trainable λ and orthogonal higher modes | finite differences to 0.03125 mm, extrapolated; worked example: λ₁ 0.1226 per mm², 0.7 % below the rectangle; runaway 157.9 A | λ₁ within 0.3 %, λ₂ and λ₃ within 1 %, runaway within 0.5 A |
+| **MP7.2C · Where was the panel struck?** | a strike nobody saw; 3 to 6 sensors record the 0.40 m panel's displacement for 20 ms | an inverse PINN: u(x, y, t) and the initial velocity, fitted to the wave equation and the sensors | the exact modal sum, 80 × 80 modes; three cases; worked example: peak 0.23 mm, a mirror strike 2e-19 m apart on the diagonal | strike within 10 mm, velocity within 10 %, motion within 5 % of peak |

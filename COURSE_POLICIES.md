@@ -1,6 +1,6 @@
 # Course Policies
 
-Twelve rules for the lectures and exercises of *Deep Learning for Engineering*.
+Thirteen rules for the lectures and exercises of *Deep Learning for Engineering*.
 They replace the 35 separate slide policies (P1–P12, D1–D18, E1–E9) that grew
 out of the reviews in September 2026; each old policy now sits under one of the
 first eight, and its check still runs. C9 was added the same day, C10 to C12 on
@@ -24,6 +24,7 @@ errors in the exercises.
 | C10 | Part 2: every set ends with a mini project proposal | `tools/exercises/check_exercise_policy.py` |
 | C11 | Part 2: one notebook per set | `tools/exercises/check_exercise_policy.py` |
 | C12 | Numbers with at most two decimals | by review |
+| C13 | Part 2: a forward-problem notebook tells one story | by review |
 
 `python3 tools/deck/slide_policies.py --list` prints the twelve with the old
 policies under each; `--full` adds the review history behind every one.
@@ -241,6 +242,10 @@ run with it.
   is marked *(Optional)* in its title, and is not required for the report.
   Ex07.2's supplement to the PDE recap (Helmholtz in the stator slot) is the
   first.
+- A **benchmark set** - one that works through several equations side by side
+  - is one notebook **per problem**, each standing alone with its own report
+  and its own mini project. Ex07.2, *Benchmark PDEs*, is the one: the die
+  (parabolic), the stator slot (elliptic) and the struck panel (hyperbolic).
 
 *New, 29 September 2026. Ex07.1 is the first set under it; the others follow
 as they are revised.*
@@ -258,3 +263,37 @@ as they are revised.*
   and a learning rate or other hyperparameter.
 
 *New, 29 September 2026.*
+
+## C13 · Part 2: a forward-problem notebook tells one story
+
+A notebook that solves a forward problem with a PINN - the field from the
+equation and its conditions - follows the same seven steps as Ex07.1, in this
+order, and nothing else:
+
+1. **The problem** - what is being computed and why an engineer wants it.
+2. **The data** - geometry, materials, loads, conditions, as numbers in a table.
+3. **The physics** - the equation, its conditions, and what its type
+   (elliptic, parabolic, hyperbolic) means for the answer.
+4. **The reference and the classical solution** - the exact solution where
+   there is one (otherwise a converged ground truth, C11), and finite
+   differences on a mesh chosen for an agreed accuracy.
+5. **The PINN** - one network, one way of meeting the conditions, trained with
+   the course's recipe (Adam, then L-BFGS).
+6. **The comparison** - the PINN and finite differences against the reference
+   on **accuracy**, and the PINN against finite differences on **computing
+   time**: per solve, and training.
+7. **The discussion** - what the numbers say, in a few plain bullets.
+
+Then the report and the mini project (C10). What stays out:
+
+- **No alternatives explored.** One mesh study, one network, one way of
+  enforcing the conditions. Soft against hard, a sweep of widths, a second
+  optimiser, a demonstration that a concept is true - those are for the
+  lecture, a supplement or a mini project, not the forward notebook.
+- **Lean.** About twenty cells; at most two TODO cells, each on the physics or
+  the network (the residual, the trial function), never on plotting; three or
+  four report questions and the one that concludes.
+- Every "What you should see" gives the numbers the notebook actually prints.
+
+*New, 29 September 2026. Ex07.1 was written this way; Ex07.2's three notebooks
+are the first built to it.*

@@ -171,13 +171,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex092_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · The wake starts to shed** | the cylinder's wake at Re ≈ 100 sheds vortices: unsteady flow | a PINN in (x, y, t) with the stream function, over several shedding periods | a finite-volume solver, converged, checked against the published shedding frequency |
-| **B · The eddy viscosity from measurements** | the eddy viscosity is unknown; a few velocity probes in the channel | an inverse PINN: the flow and ν_t(x, y), fitted to the mean-flow equations and the probes | a finite-volume RANS solution with a known ν_t: probes with noise, and the truth for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP9.2A · The wake starts to shed** | the Schäfer & Turek cylinder at Re = 100: an unsteady, shedding wake | a PINN in (x, y, t) with the stream function, over several shedding periods | the published benchmark values (St 0.30, cD max 3.23, cL max 1.00); the course solver's fields, first order, St 0.272 at D/40 | St within 3 %, drag within 5 %, lift within 10 % |
+| **MP9.2B · The eddy viscosity from measurements** | this set's channel; the eddy viscosity hidden; u at 12 probes, noise 0.01 | an inverse PINN: the flow and ν_t(x, y), fitted to the mean-flow equations and the probes | the steady flow by the course solver, 320 × 80; worked example: ν_t adds 8 % to the drag and moves the probes 0.025-0.70 | ν_t peak within 25 % and 0.2 units; probes within 0.02 |

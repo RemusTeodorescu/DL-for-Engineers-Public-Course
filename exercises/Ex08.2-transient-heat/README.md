@@ -164,13 +164,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex082_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · A moving heat source** | a small, intense source moving across the plate: a travelling hot peak | a PINN for T(x, y, t) with points that follow the source | implicit finite differences, fine enough for the source, converged in space and time |
-| **B · Finding a hidden flaw by thermography** | a flaw inside the plate lowers the diffusivity locally; an infrared camera sees the surface after a pulse | an inverse PINN: T(x, y, t) and α(x, y), fitted to the heat equation and the frames | plates with hidden flaws: camera frames with noise, and the true α field for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP8.2A · A moving heat source** | 80 × 40 mm steel plate, edges at 20 °C; a 40 W spot moving at 10 mm/s | a PINN for θ(x, y, t) with points that follow the source | finite volumes, 0.1 mm and 5 ms; worked example: peak 89.81 K at 6.00 s | peak within 2 K, field within 3 K, 8 s in under 5 s |
+| **MP8.2B · Finding a hidden flaw by thermography** | a flash on a 4 mm laminate; a delamination at 1 or 2 mm depth holds heat back; an infrared camera for 10 s | an inverse PINN: θ(x, z, t) and α(x, z), fitted to the heat equation and the camera frames | finite volumes, 0.1 × 0.025 mm; three cases; worked example: 1.14 K warmer over the flaw at 2.86 s | flaw edges within 1 mm, depth within 0.2 mm, surface within 0.05 K |

@@ -1,4 +1,4 @@
-# Ex_07.2 — Benchmark PDEs: Parabolic, Elliptic and Hyperbolic
+# Ex_07.2 (Optional) — Benchmark PDEs: Parabolic, Elliptic and Hyperbolic
 
 **Paired with L7.2 · Fundamental PDEs · Part 2**
 

@@ -263,13 +263,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex122_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · Two lines out, on a bigger grid** | double-line outages on a larger system, most never seen in training | the graph network trained on single outages, tested on unseen double ones | transient simulations of every single and double outage, labelled with the critical clearing time |
-| **B · Which line tripped?** | a disturbance happened; from a few meters' records, find the line that tripped | a graph network from meter records and topology to the tripped line, with a confidence | simulated events for every line at several operating points, with noisy meter records |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP12.2A · A bigger grid, and conditions it never saw** | the 9-bus system; 12 fault-and-trip cases at nine loads from 70 to 130 %; trained on 80-120 % | the graph network predicting the critical clearing time, tested outside its training loads | CCT of all 108 cases by bisection, 1 ms; worked example: 0.279 s at 70 % load down to 0.104 s at 130 % | CCT within 10 ms (training) and 20 ms (held out); all unstable cases flagged |
+| **MP12.2B · Which line tripped?** | a line opened; from 2 s of the three machines' frequencies, which one? 30 events | a graph network from records and topology to the tripped line, with a confidence | simulated line trips at five loads, noise 1 mHz; worked example: lines 4-5 and 4-6 come within 21.50 mHz | all 30 events identified; under 10 ms per event |

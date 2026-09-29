@@ -129,13 +129,12 @@ this term.**
 
 ## Mini project proposal
 
-The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex112_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · The speed profile with the battery** | the pack's voltage sags with current and falls as it discharges | notebook 20's network with state of charge and voltage sag, grip limit built in | direct collocation with scipy, converged; pack values from docs/hardware/jetracer-pro.md, the rest marked assumed |
-| **B · What the model misses** | an energy loss the four-parameter model does not have | a neural ODE: the vehicle model plus a small network for what it misses | runs simulated with a hidden extra loss and noise; simulated because the car has no encoder |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP11.2A · The energy-optimal lap, with the battery** | a fixed 7.20 m lap; grip-limited turns, copper loss, the pack's sag | notebook 20's network with the pack, the grip limit as a layer | direct collocation, 50 to 200 nodes; worked example: the cheapest lap is 3.4 s at 26.16 J; the pack adds under 1 % | energy within 2 %, the cheapest lap within 0.1 s, the curve in under 1 s |
+| **MP11.2B · What the model misses** | an extra low-speed friction the four-parameter model does not have; coast-downs from 1, 2, 3 m/s | a neural ODE: the vehicle model plus a small network for what it misses | simulated coast-downs, noise 0.02 m/s; worked example: the model misses up to 0.081 m/s, at low speed only | extra loss within 20 %, parameters within 10 %, speed within 0.02 m/s |

@@ -256,13 +256,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex121_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · A bigger grid, many machines** | a standard test system with several machines; meters at a few buses | a PINN for every machine's angle and speed, coupled swing equations as the residual | time-domain simulations after several faults, converged, with noisy meter readings |
-| **B · The inertia of every machine** | every machine's inertia and damping unknown; frequency records after a few disturbances | an inverse PINN with every inertia and damping trainable | simulations with hidden parameters, converged: records with noise, and the truth for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP12.1A · A bigger grid, many machines** | the WSCC 9-bus system, 3 machines; a fault at bus 7 cleared after 0.10 s | a PINN for every machine's angle and speed, coupled swing equations as the residual | RK4 at 0.5 ms on the reduced network; worked example: machine 2 swings to 83.04°, CCT 0.183 s | angles within 1°, speeds within 0.01 Hz |
+| **MP12.1B · The inertia of every machine** | the 9-bus system; H and D of all three machines hidden; frequency after three faults | an inverse PINN with every H and D trainable | RK4 records every 10 ms, noise 1 mHz; worked example: inertias move the records 84-437 mHz, dampings 7-31 | inertias within 5 %, dampings within 20 %, total within 2 % |

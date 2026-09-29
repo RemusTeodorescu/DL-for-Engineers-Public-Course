@@ -126,3 +126,16 @@ derived from any publisher's code listings.
 The pack is 2S2P at 8.4 V and no motor count is claimed — earlier drafts quoted
 the plain JetRacer's figures. **Nothing in this set has been executed on a car
 this term.**
+
+## Mini project proposal
+
+The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · The speed profile with the battery** | the pack's voltage sags with current and falls as it discharges | notebook 20's network with state of charge and voltage sag, grip limit built in | direct collocation with scipy, converged; pack values from docs/hardware/jetracer-pro.md, the rest marked assumed |
+| **B · What the model misses** | an energy loss the four-parameter model does not have | a neural ODE: the vehicle model plus a small network for what it misses | runs simulated with a hidden extra loss and noise; simulated because the car has no encoder |

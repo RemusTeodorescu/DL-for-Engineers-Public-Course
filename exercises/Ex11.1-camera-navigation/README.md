@@ -118,3 +118,16 @@ derived from any publisher's code listings.
 The scoring algebra and the blind-distance cap are checked by hand. **Nothing
 in this set has been executed on a car this term** — one JetRacer must complete
 notebook 10 end to end before it goes to students.
+
+## Mini project proposal
+
+The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · Where will the car be?** | predict the car's path over the next second from its commands | a network constrained by the kinematic bicycle model, commands as input | laps simulated with the bicycle model; dimensions from docs/hardware/jetracer-pro.md, the rest marked assumed |
+| **B · How late does the car react?** | the control loop's delay and the servo's lag, from logged commands and heading | an inverse model: kinematics with a trainable delay and lag | simulated laps with hidden delay and lag and noise; simulated because the car has no encoder |

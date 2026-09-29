@@ -161,3 +161,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · A moving heat source** | a small, intense source moving across the plate: a travelling hot peak | a PINN for T(x, y, t) with points that follow the source | implicit finite differences, fine enough for the source, converged in space and time |
+| **B · Finding a hidden flaw by thermography** | a flaw inside the plate lowers the diffusivity locally; an infrared camera sees the surface after a pulse | an inverse PINN: T(x, y, t) and α(x, y), fitted to the heat equation and the frames | plates with hidden flaws: camera frames with noise, and the true α field for scoring |

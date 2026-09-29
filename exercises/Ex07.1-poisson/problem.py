@@ -51,7 +51,7 @@ __all__ = [
     "A_HALF", "B_HALF", "K_EFF", "T_WALL", "DOMAIN", "RHO_CU",
     "N_COLS", "N_ROWS", "N_WIRES", "WIRE_D", "A_WIRE", "FILL", "ALPHA_CU",
     "I_RATED", "I_RANGE", "resistivity", "heat_per_wire", "heat_source",
-    "heat_coefficients", "runaway_current", "describe_slot",
+    "heat_coefficients", "runaway_current", "describe_slot", "exact_solution",
     "fdm_grid", "fdm_matrix", "fdm_solve", "ground_truth",
     "hard_bc_factor", "plot_field", "plot_fdm_grid", "plot_slot_geometry",
 ]
@@ -249,6 +249,33 @@ def ground_truth(I, nx: int = 321, T_wall=None):
     X, Y, coarse = fdm_solve(I, nx, T_wall)
     _, _, fine = fdm_solve(I, 2 * nx - 1, T_wall)
     return X, Y, (4 * fine[::2, ::2] - coarse) / 3
+
+
+def exact_solution(I, x, y, n_terms: int = 399, T_wall=None):
+    """The slot's temperature rise, exactly, as a double sine series [K].
+
+    With q = c0 + c1 theta the equation k_eff lap(theta) + c1 theta = -c0 has
+    constant coefficients, and the slot is a rectangle held at zero on its
+    walls, so theta is a sum of the slot's modes
+    sin(m pi x'/W) sin(n pi y'/H), x' = x + W/2, y' = y + H/2, each with
+    lap = -lambda_mn times itself. The constant source is 16/(pi^2 m n) times
+    each odd mode, so
+
+        theta = sum over odd m, n of 16 c0 / (pi^2 m n (k_eff lambda_mn - c1)) * mode.
+
+    ``x`` and ``y`` are 1-D node coordinates [m]; returns an array of shape
+    (len(y), len(x)), laid out as :func:`fdm_solve` lays its answer. Terms up
+    to ``n_terms`` in each direction: at 399 the sum is within about 1e-5 K.
+    The first term, m = n = 1, is the dome of notebook section 2.
+    """
+    c0, c1 = heat_coefficients(I, T_wall)
+    W, H = 2 * A_HALF, 2 * B_HALF
+    m = np.arange(1, n_terms + 1, 2)
+    lam = (np.pi * m[:, None] / W) ** 2 + (np.pi * m[None, :] / H) ** 2
+    A = 16 * c0 / (np.pi ** 2 * m[:, None] * m[None, :] * (K_EFF * lam - c1))
+    Sx = np.sin(np.outer(np.asarray(x) + A_HALF, np.pi * m / W))     # (nx, M)
+    Sy = np.sin(np.outer(np.asarray(y) + B_HALF, np.pi * m / H))     # (ny, N)
+    return Sy @ A.T @ Sx.T
 
 
 # ── pictures ──────────────────────────────────────────────────────────────

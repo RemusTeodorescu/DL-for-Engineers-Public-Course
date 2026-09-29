@@ -167,3 +167,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · The full model, where the SPMe stops** | beyond the SPMe's C-rate: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for the electrolyte and the particles, and the terminal voltage from them | PyBaMM's DFN model of the LG M50, converged in its meshes |
+| **B · How much has the cell aged?** | an aged cell: lost lithium and slower diffusion, seen only through its voltage | an inverse PINN on the SPMe with trainable diffusivity and lithium inventory | PyBaMM discharges of hidden-aged cells at several C-rates, voltage with noise |

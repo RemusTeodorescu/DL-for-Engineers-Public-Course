@@ -196,3 +196,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 04, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · Two fronts that meet** | two fronts that start apart and collide; no exact solution | a PINN for u, v with points that follow the fronts, or training in time order | finite volumes, refined three times, at several Reynolds numbers |
+| **B · What is the viscosity?** | a few velocity probes; the viscosity, and so the Reynolds number, is unknown | an inverse PINN with a trainable ν, fitted to the equations and the probes | the exact solution at a hidden ν, sampled at the probes with noise, and the truth for scoring |

@@ -196,3 +196,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 04, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · Cooled by a fluid, through several holes** | two or three holes, each cooled by a fluid: the Robin condition −k ∂T/∂n = h (T − T_c) | a PINN with a weighted Robin term on every curved wall, sampled by arc length, checked by the flux balance | finite elements, refined three times, with the heat through each hole |
+| **B · Where should the hole go?** | the hole's position and size are free; find the design with the coolest hottest point | a parametric PINN with the design as input, then optimisation through the network with autograd | finite elements over a grid of designs, each converged, with every design's peak temperature |

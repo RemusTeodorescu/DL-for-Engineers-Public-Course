@@ -253,3 +253,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · A bigger grid, many machines** | a standard test system with several machines; meters at a few buses | a PINN for every machine's angle and speed, coupled swing equations as the residual | time-domain simulations after several faults, converged, with noisy meter readings |
+| **B · The inertia of every machine** | every machine's inertia and damping unknown; frequency records after a few disturbances | an inverse PINN with every inertia and damping trainable | simulations with hidden parameters, converged: records with noise, and the truth for scoring |

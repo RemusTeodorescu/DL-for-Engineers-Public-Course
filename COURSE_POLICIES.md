@@ -22,6 +22,7 @@ errors in the exercises.
 | C8 | Exercises: few notebooks, only the essential ones | `tools/exercises/check_exercise_policy.py` |
 | C9 | Notebooks: every deep-learning line carries a comment | `tools/exercises/comment_dl_lines.py` |
 | C10 | Part 2: every set ends with a mini project proposal | `tools/exercises/check_exercise_policy.py` |
+| C11 | Part 2: one notebook per set | `tools/exercises/check_exercise_policy.py` |
 
 `python3 tools/deck/slide_policies.py --list` prints the nine with the old
 policies under each; `--full` adds the review history behind every one.
@@ -204,3 +205,25 @@ run with it.
 9. **Run by a second person** before the student gets it, like every set (C8).
 
 *New, 29 September 2026.*
+
+## C11 · Part 2: one notebook per set
+
+- Every Part 2 exercise set is **one notebook**, in its two forms: the
+  exercise, with its TODO cells, and `_light`, written out. No environment
+  check notebook, no separate report notebook, no results passed between
+  notebooks.
+- The sections follow the lecture's story, in this order: the problem and its
+  physics; the checks the method relies on (autograd, where the set uses it);
+  the reference the methods are scored against — an exact solution where the
+  problem has one; the classical solution and its mesh; the PINN, with its
+  collocation points and size set against that mesh; the answers compared;
+  the report; the mini project proposal (C10), last.
+- The reference is named for what it is. A finite-difference answer is one of
+  the methods, not a "ground truth", unless nothing better exists — and then
+  the notebook says how its accuracy was shown.
+- Every figure's drawing code is in the cell that shows it, unless it is a
+  plot the whole course shares (`plot_field`).
+- No jargon in the headings or the text: say what a section does.
+
+*New, 29 September 2026. Ex07.1 is the first set under it; the others follow
+as they are revised.*

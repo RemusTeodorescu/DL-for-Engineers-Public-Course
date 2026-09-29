@@ -1,34 +1,17 @@
-# Ex_07.1 — Fundamentals of PINNs: a stator slot
+# Ex_07.1 — Heat in a stator slot, by finite differences and by a PINN
 
-**Paired with L7.1 · Fundamentals of PINNs, and L7.2 · Fundamental PDEs · Part 2**
+**Paired with L7.1 · Fundamentals of PINNs · Part 2**
 
-The first exercise of Part 2. A winding in the slot of an electrical machine
-carries a current and heats up; the question is how hot it gets inside, where
-nobody can put a thermometer everywhere. Students compute the answer three
-ways — by finite differences, and by a physics-informed network whose walls are
-imposed first softly and then hard — and measure which is more accurate and
-which is faster. On the way they find that hot copper turns the slot's Poisson
-equation into a Helmholtz equation.
+The first exercise of Part 2, in **one notebook** (course policy C11). A
+winding in the slot of an electrical machine carries a current and heats up;
+the question is how hot it gets inside. Students compute the answer three ways
+— by finite differences, and by a physics-informed network whose walls are
+imposed by soft and by hard enforcement — and score all three against the
+exact solution, which this rectangular slot has as a double sine series.
 
 It establishes the machinery the rest of Part 2 reuses: a residual built by
-automatic differentiation, a composite loss, hard and soft conditions, and the
-Adam-then-L-BFGS schedule of L6.1.
-
-## Goals
-
-By the end you can
-
-1. compute the heat a winding makes from its current, $RI^2$, with copper's
-   resistance rising as it warms;
-2. solve the slot's temperature by finite differences, and choose the mesh
-   density that makes it a ground truth;
-3. train a PINN with its walls imposed softly and hard, and score both against
-   the finite-difference answer;
-4. compare the methods on accuracy and computing time, and say when a PINN is
-   worth its training;
-5. explain why hot copper turns the slot's Poisson equation into a Helmholtz
-   equation, find its eigenvalue with a PINN, and say how a designer keeps its
-   effect small.
+automatic differentiation, collocation points, a composite loss, soft and hard
+enforcement, and the Adam-then-L-BFGS schedule of L6.1.
 
 ## The problem
 
@@ -43,44 +26,43 @@ q = fill · ρ(T) · J²,   J = I / A_wire,   ρ(T) = ρ20 [1 + α (T − 20)]
 ```
 
 The winding is averaged into one material — k_eff = 0.70 W/m·K, copper fill
-0.503 — as machine designers do; modelling every wire would make the
-conductivity jump 2000-fold at every wire edge. Copper's resistance rises
-0.39 % per kelvin, so the heat depends on θ: that is a positive feedback, the
-rise grows about 5 % faster than I² at 45 A, and it is what turns the equation
-into a Helmholtz equation in notebook 03. The source is the real one; the
-ground truth is finite differences on a 161 × 321 grid, chosen in notebook 01.
+0.503 — as machine designers do. Copper's resistance rises 0.39 % per kelvin,
+so q = c0 + c1 θ: a positive feedback that amplifies the rise by
+1/(1 − c1/(k_eff λ1)), with λ1 the slot's first eigenvalue, and has no steady
+state (thermal runaway) at 158 A. Because c0 and c1 are constants, the equation
+has an exact solution, `problem.exact_solution`.
 
-## The notebooks
-
-Run in order; later notebooks load results saved by earlier ones.
+## The notebook
 
 ```
-Ex07.1_00_environment_check.ipynb    the slot, its winding and heat, the tools
-Ex07.1_01_fdm_ground_truth.ipynb     the heat source, the temperature by FDM, and the right mesh density
-Ex07.1_02_pinn_soft_and_hard.ipynb   a PINN with soft and with hard walls, against FDM on accuracy and time
-Ex07.1_03_helmholtz.ipynb            hot copper, the Helmholtz equation, and the slot's eigenvalue
-Ex07.1_04_report.ipynb               the results, the answers, and the report as a PDF
+Ex07.1_slot.ipynb         the exercise: three TODO cells, the answer in the comment above each
+Ex07.1_slot_light.ipynb   the same notebook with every cell written out
 ```
 
-Notebooks 01 to 03 each come in two forms: the exercise, with a few lines to
-write and the answer in the comment above them, and `_light`, written out.
-
-### What the set measures (CPU, seed 88)
-
-| | |
+| section | what the student does |
 |---|---|
-| hot spot at rated current | 18.74 K above the wall, at the centre |
-| rise at 45 A, against I² scaling | +4.9 % |
-| PINN, soft walls: worst error / on the walls | 1.45 K / 0.17 K |
-| PINN, hard walls: worst error | 0.020 K |
-| smallest good network | 16 × 3, 625 parameters, 0.031 K |
-| the slot's first eigenvalue, network against formula | 3.0842 against 3.0843 (scaled) |
-| thermal runaway / class F reached | 158 A / 56 A |
+| 1 | the slot and the heat its winding makes — TODO 1, the heat source |
+| 2 | autograd checked exact on the grid's 3,081 nodes, with the slot's own mode; λ1 and the amplification |
+| 3 | the exact solution, a sum of the slot's modes |
+| 4 | the temperature by finite differences on 41 × 81, the mesh drawn in the cell |
+| 5 | the right mesh density: 11 to 321 nodes across, against the exact solution — TODO 2 |
+| 6 | the PINN: collocation points, network size against N* and the FDM unknowns, the residual (TODO 3), training with soft and hard enforcement |
+| 7 | the three answers compared against the exact solution at six currents |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
 
-The verdict is finite differences on accuracy and on a single solve; the
-trained network is several times faster per current, but its training only
-pays after about ten thousand currents. Notebook 02 prints the exact
-figures for the machine it runs on.
+### What it measures (CPU, seed 88)
+
+| | worst error, six currents | per current | training |
+|---|---|---|---|
+| finite differences, 41 × 81 | 0.007 K | about 7 ms | — |
+| PINN, soft enforcement | 1.5 K | about 1 ms | about 80 s |
+| PINN, hard enforcement | 0.018 K | about 1 ms | about 60 s |
+
+The exact hot spot at rated current is 18.740 K above the wall. Hard
+enforcement beats soft by almost a hundred times; finite differences are more
+accurate still for one current, and the trained network repays its training
+after about ten thousand currents.
 
 ## Files
 
@@ -94,20 +76,18 @@ figures for the machine it runs on.
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**The notebooks are generated too**, both forms of each from one source in
-`tools/exercises/ex071/` (`build_nb01.py` … `build_nb04.py`, with the shared
-cells in `common.py` and `_cells.py`). Edit the builder and rerun it rather
-than editing a notebook, or the two forms drift apart. Notebook 00 has no
-builder and is edited in place.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex071/build_ex071.py`, with the shared cells in `common.py`
+and `_cells.py`. Edit the builder and rerun it rather than editing a notebook,
+or the two forms drift apart.
 
-**On Colab nothing needs uploading**: each notebook's first code cell fetches
-the three modules from the public course repository, afresh on every run.
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only; a GPU is slower on problems this small. Notebook 00 runs in seconds,
-01 in about half a minute, 03 in about a minute, and 02 in about four — it
-trains four networks.
+CPU only; a GPU is slower on problems this small. About three minutes in all,
+most of it the two trainings of section 6.
 
 ## Reference texts
 
@@ -123,26 +103,13 @@ the standard notation of the field.
 
 ## Before this is assigned
 
-Every notebook has been executed end to end on a local CPU, both forms: the
-light versions run to the end, the exercise versions stop at their first TODO.
-Still to do, as for every set (C8): a run from a fresh Colab runtime, and a
-review by someone other than the author.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` files that earlier ones write into
-`Ex07.1_outputs/`. On Google Colab every notebook runs on its own temporary
-machine, so notebooks 01 to 04 start with an `outputs-cell` that calls
-`keep_outputs()` from `course_core.py`: on Colab it mounts the student's Google
-Drive and keeps the results in `MyDrive/DL4Eng/Ex07.1_outputs`. If the student
-declines the Drive request, `saved()` downloads each result file when it is
-written and `needed()` asks for the files to be uploaded before they are read.
-Locally the cell does nothing. The report notebook writes its `.md` and `.pdf`
-into the same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its first TODO. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, section 6). Each student
+The notebook ends with two mini projects (section 9). Each student
 chooses one mini project from the Part 2 sets and solves it individually in
 one month. The course provides the ground truth once a project is chosen,
 built by a classical solver under policy C10 (`COURSE_POLICIES.md`), so the month

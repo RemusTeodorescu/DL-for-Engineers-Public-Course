@@ -175,3 +175,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · The channel with its temperature** | the channel's temperature, coupled both ways with the reaction and its heat | a PINN for concentrations and temperature along the channel, in both modes | the course's channel solver with the energy balance, converged, with source-tagged parameters |
+| **B · The degradation law from a long record** | the degradation law's parameters are unknown; long voltage records at several temperatures and currents | the cell model with trainable degradation parameters, fitted to the drift | the course's reference model with hidden parameters: records with noise, and the truth for scoring |

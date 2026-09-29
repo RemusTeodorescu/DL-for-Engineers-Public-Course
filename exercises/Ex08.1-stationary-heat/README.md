@@ -199,13 +199,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex081_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · Cooled by a fluid, through several holes** | two or three holes, each cooled by a fluid: the Robin condition −k ∂T/∂n = h (T − T_c) | a PINN with a weighted Robin term on every curved wall, sampled by arc length, checked by the flux balance | finite elements, refined three times, with the heat through each hole |
-| **B · Where should the hole go?** | the hole's position and size are free; find the design with the coolest hottest point | a parametric PINN with the design as input, then optimisation through the network with autograd | finite elements over a grid of designs, each converged, with every design's peak temperature |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP8.1A · Cooled by a fluid, through several bores** | a 100 × 100 mm aluminium section, 1 MW/m³; two water bores and an oil bore, each a Robin wall | a PINN with a weighted Robin term on every curved wall, sampled by arc length, checked by the heat balance | finite elements, 38,033 nodes; worked example: hottest 74.66 °C, 4238.6 / 4238.6 / 894.9 W/m through the bores | hottest point within 0.2 K, field within 0.5 K, each bore's heat within 2 % |
+| **MP8.1B · Where should the bore go?** | one water bore anywhere in the block; a hot 25 × 25 mm component in the corner | a parametric PINN with the bore's position as input, optimised through with autograd | finite elements at 121 positions; worked example: best (57, 50) mm at 117.02 °C, centre 118.77 °C | within 0.5 K at every position; chosen design within 0.3 K of the best; 121 designs in under 0.1 s |

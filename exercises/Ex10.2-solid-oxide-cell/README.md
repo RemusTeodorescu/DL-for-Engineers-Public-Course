@@ -178,13 +178,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex102_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · The channel with its temperature** | the channel's temperature, coupled both ways with the reaction and its heat | a PINN for concentrations and temperature along the channel, in both modes | the course's channel solver with the energy balance, converged, with source-tagged parameters |
-| **B · The degradation law from a long record** | the degradation law's parameters are unknown; long voltage records at several temperatures and currents | the cell model with trainable degradation parameters, fitted to the drift | the course's reference model with hidden parameters: records with noise, and the truth for scoring |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP10.2A · The channel with its temperature** | a 10 × 10 cm electrolyser at 1.20, 1.29 and 1.35 V; its temperature and current along the channel, coupled | a PINN for steam fraction and temperature along x, the local current from the cell model | an ODE march, tolerance 1e-10; worked example: at 1.20 V the cell cools to 761.20 °C and its current nearly halves | outlet within 1 K, profile within 2 K, total current within 1 % |
+| **MP10.2B · The degradation law from long records** | the degradation law's k₀, E, n hidden; 3000 h voltage records at up to four test points | the cell model with trainable degradation parameters, fitted to the drift | the course's model over 3000 h, noise 0.5 mV; worked example: from one temperature, E is exactly unidentifiable | E and n within 10 % (case 1); cases 2, 3 shown unidentifiable |

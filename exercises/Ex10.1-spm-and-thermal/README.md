@@ -170,13 +170,12 @@ same folder.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
-project from the Part 2 sets and solves it individually in one month. The
-course provides the ground truth once a project is chosen, built by a
-classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
-into the deep learning.
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex101_truth.py` under policy C10
+(`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · The full model, where the SPMe stops** | beyond the SPMe's C-rate: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for the electrolyte and the particles, and the terminal voltage from them | PyBaMM's DFN model of the LG M50, converged in its meshes |
-| **B · How much has the cell aged?** | an aged cell: lost lithium and slower diffusion, seen only through its voltage | an inverse PINN on the SPMe with trainable diffusivity and lithium inventory | PyBaMM discharges of hidden-aged cells at several C-rates, voltage with noise |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP10.1A · The full model, where the SPMe stops** | the LG M50 at 1C, 2C, 3C: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for electrolyte and particles, the terminal voltage from them | PyBaMM's DFN, mesh ×4; worked example: at 3C the DFN gives 2.335 Ah, the SPMe 0.247 Ah | voltage within 20 mV (1C, 2C) and 50 mV (3C); 3C capacity within 2 % |
+| **MP10.1B · How much has the cell aged?** | an aged M50: slower diffusion and lost lithium, seen only through discharge voltages | an inverse PINN on the SPMe with the two ageing factors trainable | PyBaMM SPMe discharges of the hidden-aged cell; worked example: 5.015 → 4.455 Ah; the two effects correlate at 0.81-0.87 | both factors within 5 %, capacity within 1 % (case 1) |

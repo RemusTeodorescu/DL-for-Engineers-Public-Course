@@ -103,3 +103,16 @@ has no Google account, `saved()` downloads each result file when it is written
 and `needed()` asks for the files to be uploaded before they are read. Locally
 the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
 same folder.
+
+## Mini project proposal
+
+The set ends with two mini projects (notebook 05, the last section). Each student chooses one mini
+project from the Part 2 sets and solves it individually in one month. The
+course provides the ground truth once a project is chosen, built by a
+classical solver under policy C10 (`COURSE_POLICIES.md`), so the month goes
+into the deep learning.
+
+| | the problem | the deep learning | the ground truth provided |
+|---|---|---|---|
+| **A · A die with a moving hot spot** | a chip's power moving between blocks over several pulses; silicon's conductivity falling with temperature | a PINN for θ(x, y, t) with the source as input, the initial condition built in, and points that follow the power | implicit finite differences, converged in space and time, with silicon's k(T) and its source |
+| **B · Where was the panel struck?** | a strike nobody saw; a few sensors record the panel's vibration | an inverse PINN: u(x, y, t) and the initial velocity v₀(x, y), fitted to the wave equation and the sensors | the exact modal solution, converged in the number of modes: sensor records with noise, and the true strike for scoring |

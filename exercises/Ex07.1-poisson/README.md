@@ -75,7 +75,7 @@ write and the answer in the comment above them, and `_light`, written out.
 | PINN, hard walls: worst error | 0.020 K |
 | smallest good network | 16 × 3, 625 parameters, 0.031 K |
 | the slot's first eigenvalue, network against formula | 3.0842 against 3.0843 (scaled) |
-| where the feedback would run away / class F reached | 158 A / 56 A |
+| thermal runaway / class F reached | 158 A / 56 A |
 
 The verdict is finite differences on accuracy and on a single solve; the
 trained network is several times faster per current, but its training only

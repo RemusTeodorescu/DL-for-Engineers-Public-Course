@@ -183,7 +183,7 @@ def describe_slot(I=None) -> None:
     print(f"  whole slot      : {N_WIRES*heat_per_wire(I, T_WALL):.0f} W per metre of slot")
     print(f"  heat source q   : {c0/1e6:.3f} MW/m^3 at the wall temperature, "
           f"+{c1/c0*100:.2f} % per kelvin of rise")
-    print(f"  runaway current : {runaway_current():.0f} A, "
+    print(f"  thermal runaway : {runaway_current():.0f} A, "
           f"{runaway_current()/I_RANGE[1]:.1f} x the largest current used")
 
 

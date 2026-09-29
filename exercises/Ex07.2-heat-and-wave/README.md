@@ -1,4 +1,4 @@
-# Ex_07.2 — Fundamental PDEs: a die and a panel
+# Ex_07.2 — Fundamental PDEs: Heat, Wave and Helmholtz
 
 **Paired with L7.2 · Fundamental PDEs · Part 2**
 
@@ -18,15 +18,15 @@ By the end you can
 5. **recognise an under-determined problem from its symptoms**, and give the
    counting rule that would have prevented it.
 
-## The two problems
+## The two problems, and the equations they solve
 
-**The die — parabolic, one initial condition.** A 10 × 10 mm silicon die after
+**The heat equation, θ_t = α ∇²θ — the die; parabolic, one initial condition.** A 10 × 10 mm silicon die after
 a power pulse, edges clamped to the package. The initial field carries two
 modes decaying at 17.4 and 43.4 s⁻¹, so the sharp feature dies 2.5× faster and
 the field **changes shape** rather than merely shrinking. A model that matches
 the late field can still be badly wrong early.
 
-**The panel — hyperbolic, two initial conditions.** A 40 × 40 cm tensioned
+**The wave equation, u_tt = c² ∇²u — the panel; hyperbolic, two initial conditions.** A 40 × 40 cm tensioned
 panel, 141 Hz fundamental, struck at 0.5 m/s to a peak deflection of 0.56 mm.
 It starts **flat and moving**, which is what makes the second condition
 load-bearing.

@@ -89,8 +89,12 @@ policies under each; `--full` adds the review history behind every one.
   and the result.
 - A figure takes the idea from a book, never the picture (`docs/FIGURE_POLICY.md`).
 - The title slide: byline under the title, the overview as the figure's caption.
+- Maths in a definition box is set in the equation's font: every symbol and
+  formula goes between dollars, `$u_{xx} + u_{yy} + f = 0$`, and `theme.js`
+  `mathRuns()` sets it in mathematical italic with real subscripts and powers
+  (D19, 29 September 2026).
 
-*Replaces D11, D12, E2, E8.*
+*Replaces D11, D12, D19, E2, E8.*
 
 ## C7 · Layout passes the checkers
 

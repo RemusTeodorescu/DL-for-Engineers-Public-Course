@@ -162,12 +162,20 @@ run with it.
   the insulation's aging recovered from a few sensors (an inverse PINN).
 - Each student chooses one mini project from all the Part 2 sets and solves it
   individually, in one month. The dates and the hand-in are set in L13.
-- Each proposal says, under these headings: **the problem**; why a plain PINN
-  is not enough, where that is the point; **what you build** with deep
-  learning; **the ground truth you get**; **what you hand in**.
+- The two are named after the set, **MP7.1A** and **MP7.1B**, MP8.2A and so on.
+- Each proposal is specific, with numbers, under these headings: **the
+  problem** (every dimension, material value, range and noise level, in a
+  table where there are several); why a plain PINN is not enough, where that is
+  the point; **what you build** with deep learning; **the ground truth you
+  get** (the solver, the grid, the file and its contents, the checks it
+  passes); **a worked example** - the ground truth's first case, computed, with
+  its numbers; **requirements** - how accurate the prediction must be, or how
+  fast, in numbers; **what you hand in**.
 - The ground truth is the course's, never the student's: the month goes into
-  the deep learning. It is built when a student chooses the project, not
-  before, and to the rules below.
+  the deep learning. Its script is written, and its worked example run, when
+  the proposal is written; the full data set is built when a student chooses
+  the project. Both follow the rules below. Ex07.1's is
+  `tools/miniprojects/ex071_truth.py`.
 
 ### Building a mini project's ground truth
 
@@ -175,7 +183,7 @@ run with it.
    finite elements, or an ODE integrator (`scipy`). Extend the set's own
    `problem.py` rather than copying it, so the exercise and the project share
    one set of physics and constants.
-2. **One script per project**, `tools/miniprojects/<set>_<A|B>_truth.py`,
+2. **One script per set**, `tools/miniprojects/<set>_truth.py`, covering both projects,
    seeded and deterministic, that writes the data file and prints the checks
    below. Say how long it runs; prefer under half an hour on a laptop CPU.
 3. **Shown to have converged.** At least three grids, each twice as fine as

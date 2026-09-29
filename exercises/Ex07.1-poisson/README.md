@@ -112,13 +112,12 @@ a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The notebook ends with two mini projects (section 7). Each student
-chooses one mini project from the Part 2 sets and solves it individually in
-one month. The course provides the ground truth once a project is chosen,
-built by a classical solver under policy C10 (`COURSE_POLICIES.md`), so the month
-goes into the deep learning.
+The notebook ends with two mini projects (section 7). Each student chooses one
+mini project from the Part 2 sets and solves it individually in one month. The
+ground truth is given, built by `tools/miniprojects/ex071_truth.py` under
+policy C10 (`COURSE_POLICIES.md`), with a worked example of each.
 
-| | the problem | the deep learning | the ground truth provided |
-|---|---|---|---|
-| **A · The slot with its insulation** | the 32 wires resolved: 2 mm copper, a 0.04 mm grade 2 enamel coat (IEC 60317), impregnating resin between them; the conductivity drops about 2000-fold at every copper edge | a domain-decomposed PINN, one network per material, with temperature and heat flow matched across every edge | finite differences with several nodes across the enamel, per-cell conductivity, the currents of this set, with a grid-refinement table |
-| **B · How old is the insulation?** | aged insulation conducts less where the resin has come away and air has taken its place; only a few sensors in the slot, read at a few currents | an inverse PINN: one network for θ(x, y, I), one for k(x, y), fitted to the physics and the sensors; then the hot spot and the margin to the class limit | slots with a hidden degraded region: sensor readings with positions and noise, and the true fields for scoring; cases of rising difficulty |
+| | the problem | the deep learning | the ground truth given | required |
+|---|---|---|---|---|
+| **MP7.1A · The slot with its insulation** | 32 wires resolved: copper r 1.00 mm, grade 2 enamel to 1.04 mm (IEC 60317), resin between; 400 against 0.2 W/m·K | a domain-decomposed PINN, one network per material, heat flow matched across every edge | finite volumes on the quarter slot, 0.0125 mm cells, 7 currents; worked example: hot spot 21.09 K against the averaged 18.74 K | hot spot within 0.1 K, field within 0.5 K, a new current in under 10 ms |
+| **MP7.1B · How old is the insulation?** | the averaged slot with a hidden disc of halved conductivity; 4 or 6 sensors at 4 currents, noise 0.05–0.1 K | an inverse PINN: θ(x, y, I) and k(x, y), fitted to the physics and the sensors | three cases of rising difficulty; worked example: the disc raises the hot spot 0.88 K at rated current | disc within 0.5 mm, its k within 20 %, hot spot within 0.1 K |

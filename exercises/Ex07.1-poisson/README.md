@@ -42,8 +42,8 @@ Ex07.1_pinn_thermal_prediction_light.ipynb   the same notebook with every cell w
 | section | what the student does |
 |---|---|
 | 1 | the slot and the heat its winding makes — TODO 1, the heat source |
-| 2 | the exact solution and finite differences on 41 × 81, side by side with their difference |
-| 3 | optimising the mesh density for an agreed 0.1 K on the hot spot: error and time against h — TODO 2 |
+| 2 | the exact solution and finite differences on 41 × 81, side by side with their difference, the mesh drawn on all three |
+| 3 | optimising the mesh density for an agreed 0.01 K on the hot spot: error and time against h — TODO 2 |
 | 4 | the PINN: inputs ξ, η, s, the output θ̂ = Θ(I/I_rated)²𝒩, collocation points against N*, the residual (TODO 3), training with soft and hard enforcement |
 | 5 | the three answers compared against the exact solution at six currents |
 | 6 | the report and its PDF |
@@ -58,14 +58,15 @@ supplement of Ex_07.2.
 
 | | hot spot, worst of six currents | anywhere | per current | training |
 |---|---|---|---|---|
-| finite differences, 11 × 21 (the optimum for 0.1 K) | 0.08 K | 0.11 K | about 2 ms | — |
-| PINN, soft enforcement | 0.01 K | 1.5 K | about 20 ms on 161 × 321 points | about 70 s |
-| PINN, hard enforcement | 0.02 K | 0.02 K | about 15 ms on 161 × 321 points | about 60 s |
+| finite differences, 41 × 81 (the optimum for 0.01 K) | 5 × 10⁻³ K | 7 × 10⁻³ K | about 7 ms | — |
+| PINN, soft enforcement | 0.01 K | 1.5 K | about 10 ms on 161 × 321 points | about 70 s |
+| PINN, hard enforcement | 0.02 K | 0.02 K | about 10 ms on 161 × 321 points | about 60 s |
 
 The exact hot spot at rated current is 18.74 K above the wall. The mesh that
-meets 0.1 K is 11 × 21 (h = 1 mm, 171 unknowns); 161 × 321 (51,681 nodes) is
-3 × 10⁻⁴ K accurate and over a hundred times slower. Hard enforcement beats
-soft by almost a hundred times anywhere in the slot.
+meets 0.01 K is 41 × 81 (h = 0.25 mm, 3,081 unknowns); 161 × 321 (51,681 nodes)
+is 3 × 10⁻⁴ K accurate and about thirty times slower. Neither network reaches
+0.01 K with this budget; hard enforcement comes within a factor of two and
+beats soft by almost a hundred times anywhere in the slot.
 
 ## Files
 

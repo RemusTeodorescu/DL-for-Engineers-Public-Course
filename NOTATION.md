@@ -77,6 +77,8 @@ up: $\mathbf{h}_i^{(k)}$.
 | $u(\mathbf{x}, t)$ | the solution field the network approximates |
 | $\Omega$, $\partial\Omega$ | the domain and its boundary |
 | $\mathcal{L}_{\mathrm{PDE}}$, $\mathcal{L}_{\mathrm{BC}}$, $\mathcal{L}_{\mathrm{IC}}$ | loss terms for the equation, boundary and initial conditions |
+| $\mathcal{N}$ | the network written as the solution, $u \approx \mathcal{N}$ (L7.1, Solution Ansatz) |
+| $N^*$ | the least number of collocation points, set by the neurons (L7.1) |
 
 Physical quantities (temperature, velocity, concentration, voltage) are
 defined on the slide where they appear, with their SI unit.
@@ -101,4 +103,5 @@ Three symbols carry two meanings; the context separates them.
 | GBC ch. 8 | $\epsilon$ for the learning rate | $\alpha$ |
 | many texts | $\eta$ for the learning rate | $\alpha$ |
 | many texts | $N_{\mathrm{in}}$, $N_{\mathrm{out}}$ | $D_i$, $D_o$ |
+| Liu ch. 2.5.2 | $P^*$ | $N^*$ ($P$ is the parameter count) |
 | many texts | $\mathbf{h}^{(l)}$ | $\mathbf{h}_k$, or $\mathbf{h}^{(k)}$ with a second index |

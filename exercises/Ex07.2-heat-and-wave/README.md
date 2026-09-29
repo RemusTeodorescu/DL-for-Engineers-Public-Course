@@ -54,6 +54,24 @@ one you left out of the loss, is the only one that knows.
 That is the habit L8 onward depends on, because from there you rarely have an
 exact solution to check against.
 
+## Supplement to PDE Recap (Optional)
+
+```
+Ex07.2_supplement_helmholtz.ipynb         the exercise: one TODO, the loss
+Ex07.2_supplement_helmholtz_light.ipynb   every cell written out
+```
+
+A standalone notebook beside the die and the panel, not part of the report
+(C11 allows one optional supplement per set). It takes L7.2's Helmholtz
+equation to Ex_07.1's stator slot: hot copper turns Poisson into Helmholtz
+(q = c0 + c1 θ), the slot's first eigenvalue λ1 sets how far the temperature
+is pushed up and where thermal runaway would be (158 A), a hard-enforced
+network finds λ1 with and without the unit-norm safeguard against u ≡ 0, and
+three design levers move the feedback ratio. Two questions, tagged L7.2 Q3 and
+Q5. About a minute on a CPU. It fetches Ex_07.1's `problem.py` as
+`slot_problem.py`, so the slot has one source. Built by
+`tools/exercises/ex072/build_ex072_supplement.py`.
+
 ## Files
 
 | | |

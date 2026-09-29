@@ -1,9 +1,9 @@
 # Course Policies
 
-Ten rules for the lectures and exercises of *Deep Learning for Engineering*.
+Twelve rules for the lectures and exercises of *Deep Learning for Engineering*.
 They replace the 35 separate slide policies (P1–P12, D1–D18, E1–E9) that grew
 out of the reviews in September 2026; each old policy now sits under one of the
-first eight, and its check still runs. C9 was added the same day, C10 on
+first eight, and its check still runs. C9 was added the same day, C10 to C12 on
 29 September.
 
 Agreed 28 September 2026, after the Part 1 student evaluation asked for better
@@ -23,8 +23,9 @@ errors in the exercises.
 | C9 | Notebooks: every deep-learning line carries a comment | `tools/exercises/comment_dl_lines.py` |
 | C10 | Part 2: every set ends with a mini project proposal | `tools/exercises/check_exercise_policy.py` |
 | C11 | Part 2: one notebook per set | `tools/exercises/check_exercise_policy.py` |
+| C12 | Numbers with at most two decimals | by review |
 
-`python3 tools/deck/slide_policies.py --list` prints the nine with the old
+`python3 tools/deck/slide_policies.py --list` prints the twelve with the old
 policies under each; `--full` adds the review history behind every one.
 
 ## C1 · Lecture structure and time
@@ -224,6 +225,26 @@ run with it.
 - Every figure's drawing code is in the cell that shows it, unless it is a
   plot the whole course shares (`plot_field`).
 - No jargon in the headings or the text: say what a section does.
+- A set may add **one optional supplement**, a second notebook named
+  `*_supplement_*` with its light version: material from the lecture the main
+  notebook leaves out. It stands alone (its own setup, problem and questions),
+  is marked *(Optional)* in its title, and is not required for the report.
+  Ex07.2's supplement to the PDE recap (Helmholtz in the stator slot) is the
+  first.
 
 *New, 29 September 2026. Ex07.1 is the first set under it; the others follow
 as they are revised.*
+
+## C12 · Numbers with at most two decimals
+
+- A temperature or any other physical value, printed by a notebook or written
+  on a slide, carries at most two decimals: 18.74 K, not 18.7403 K. More
+  decimals are noise to the reader and invite comparing digits that mean
+  nothing.
+- A value smaller than 0.01 is written in powers of ten with a two-decimal
+  mantissa (`3.02e-04 K`, $3\times10^{-4}$ K), not as 0.000302.
+- Exceptions, where the extra digits are the point: a tolerance or a check
+  (`1e-12`), a value quoted from a standard or a datasheet as it is given,
+  and a learning rate or other hyperparameter.
+
+*New, 29 September 2026.*

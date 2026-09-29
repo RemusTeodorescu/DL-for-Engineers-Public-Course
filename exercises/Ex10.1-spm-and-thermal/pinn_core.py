@@ -115,13 +115,13 @@ def describe(model: "MLP", n_collocation: Optional[int] = None) -> int:
     print(f"  network        : {model.n_in} -> "
           f"{model.n_hidden} x {model.n_layers} -> {model.n_out}   (tanh)")
     print(f"  parameters     : {p}")
-    print(f"  P*             : {p_star}   (the capacity measure L7.1 uses)")
+    print(f"  N*             : {p_star}   (the capacity measure L7.1 uses)")
     if n_collocation is not None:
         print(f"  collocation    : {n_collocation}"
-              f"   =  {n_collocation / p_star:.1f} x P*"
+              f"   =  {n_collocation / p_star:.1f} x N*"
               f"   =  {n_collocation / p:.2f} x parameters")
         if n_collocation < p_star:
-            print("                   BELOW P* — undersampled, see L7.1")
+            print("                   BELOW N* — undersampled, see L7.1")
     print(f"  device         : {DEVICE}   dtype: {torch.get_default_dtype()}")
     return p
 
@@ -131,7 +131,7 @@ def pseudo_dimension(model: "MLP") -> int:
 
     Reported alongside the parameter count because the two disagree by more
     than an order of magnitude and the course uses both. The parameter count
-    is what the optimiser must fit; ``P*`` is the sampling target L7.1 sets,
+    is what the optimiser must fit; ``N*`` is the sampling target L7.1 sets,
     and a collocation set below it is undersampled whatever the parameter
     ratio says.
 

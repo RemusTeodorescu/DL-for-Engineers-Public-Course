@@ -174,14 +174,14 @@ def describe_slot(I=None) -> None:
     c0, c1 = heat_coefficients(I)
     print(f"  slot            : {2*A_HALF*1e3:.0f} x {2*B_HALF*1e3:.0f} mm, walls held at {T_WALL:.0f} C")
     print(f"  winding         : {N_COLS} x {N_ROWS} = {N_WIRES} wires of {WIRE_D*1e3:.0f} mm, "
-          f"copper fill {FILL:.3f}")
+          f"copper fill {FILL:.2f}")
     print(f"  bundle k_eff    : {K_EFF:.2f} W/m.K   (copper alone: about 400)")
     print(f"  current         : {I:.1f} A per wire = {I/A_WIRE/1e6:.1f} A/mm^2   "
           f"(the notebooks use {I_RANGE[0]:.0f} to {I_RANGE[1]:.0f} A)")
     print(f"  one wire at {T_WALL:.0f} C: R = {resistivity(T_WALL)/A_WIRE*1e3:.2f} mOhm/m, "
           f"R I^2 = {heat_per_wire(I, T_WALL):.2f} W/m")
     print(f"  whole slot      : {N_WIRES*heat_per_wire(I, T_WALL):.0f} W per metre of slot")
-    print(f"  heat source q   : {c0/1e6:.3f} MW/m^3 at the wall temperature, "
+    print(f"  heat source q   : {c0/1e6:.2f} MW/m^3 at the wall temperature, "
           f"+{c1/c0*100:.2f} % per kelvin of rise")
     print(f"  thermal runaway : {runaway_current():.0f} A, "
           f"{runaway_current()/I_RANGE[1]:.1f} x the largest current used")

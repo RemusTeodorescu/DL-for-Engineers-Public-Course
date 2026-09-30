@@ -92,7 +92,8 @@ policies under each; `--full` adds the review history behind every one.
 - Maths in a definition box is set in the equation's font: every symbol and
   formula goes between dollars, `$u_{xx} + u_{yy} + f = 0$`, and `theme.js`
   `mathRuns()` sets it in mathematical italic with real subscripts and powers
-  (D19, 29 September 2026).
+  (D19, 29 September 2026). A lone variable is maths too: the field $u$, a
+  factor $γ$, the $k$-th derivative (30 September).
 
 *Replaces D11, D12, D19, E2, E8.*
 

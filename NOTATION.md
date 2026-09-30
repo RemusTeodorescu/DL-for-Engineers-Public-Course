@@ -79,6 +79,8 @@ up: $\mathbf{h}_i^{(k)}$.
 | $\mathcal{L}_{\mathrm{PDE}}$, $\mathcal{L}_{\mathrm{BC}}$, $\mathcal{L}_{\mathrm{IC}}$ | loss terms for the equation, boundary and initial conditions |
 | $\mathcal{N}$ | the network written as the solution, $u \approx \mathcal{N}$ (L7.1, Solution Ansatz) |
 | $N^*$ | the least number of collocation points, set by the neurons (L7.1) |
+| $\mathbf{n}$, $\partial u/\partial n$ | the outward unit normal of a wall, and the derivative across it, $\nabla u\cdot\mathbf{n}$ |
+| $\bar{u}$, $\bar{q}$ | the given value (Dirichlet) and the given flux (Neumann) on a wall |
 
 Physical quantities (temperature, velocity, concentration, voltage) are
 defined on the slide where they appear, with their SI unit.
@@ -104,4 +106,5 @@ Three symbols carry two meanings; the context separates them.
 | many texts | $\eta$ for the learning rate | $\alpha$ |
 | many texts | $N_{\mathrm{in}}$, $N_{\mathrm{out}}$ | $D_i$, $D_o$ |
 | Liu ch. 2.5.2 | $P^*$ | $N^*$ ($P$ is the parameter count) |
+| Liu ch. 2.2 | $\bar{t}$, the Neumann value (a traction) | $\bar{q}$, a flux ($t$ is time) |
 | many texts | $\mathbf{h}^{(l)}$ | $\mathbf{h}_k$, or $\mathbf{h}^{(k)}$ with a second index |

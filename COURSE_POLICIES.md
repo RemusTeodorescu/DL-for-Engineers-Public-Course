@@ -94,8 +94,11 @@ policies under each; `--full` adds the review history behind every one.
   `mathRuns()` sets it in mathematical italic with real subscripts and powers
   (D19, 29 September 2026). A lone variable is maths too: the field $u$, a
   factor $γ$, the $k$-th derivative (30 September).
+- One maths font throughout: equations and every symbol in text, a table, a
+  stack or a chain are set in Cambria Math; a symbol goes between dollars,
+  never typed as a maths-italic character (D20, 30 September 2026).
 
-*Replaces D11, D12, D19, E2, E8.*
+*Replaces D11, D12, D19, D20, E2, E8.*
 
 ## C7 · Layout passes the checkers
 

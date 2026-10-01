@@ -65,9 +65,18 @@ policies under each; `--full` adds the review history behind every one.
 - A definition box follows directly under the title, two or three plain
   sentences simplified from UDL or GBC; the explanation follows it.
 - A formula is followed by its PyTorch code.
+- **A formula names its symbols (D22, 1 October 2026).** Under the equation
+  there is a legend: every symbol in it, named in the equation's own typeface,
+  with its unit where it has one ("$h$ the heat transfer coefficient,
+  $T_\infty$ the fluid temperature"). Equations stacked on one slide may share
+  one legend. A quantity that is new in the lecture is also explained in
+  words on the slide where it first appears - on L8.1's boundary conditions
+  that is the Robin condition, the heat transfer coefficient and the Biot
+  number. A slide that names its symbols another way writes
+  `@no-legend — reason` in the generator.
 - An architecture is defined before any metaphor is used for it.
 
-*Replaces D1, D2, D9, D17, E1, E3, E5.*
+*Replaces D1, D2, D9, D17, D22, E1, E3, E5.*
 
 ## C3 · One notation for the whole course
 

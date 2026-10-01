@@ -1,170 +1,107 @@
-# Ex_08.2 — Dynamic Heat: a plate, a hole, and time
+# Ex_08.2 — The Plate Switched On
 
-**Paired with L8.2 · Dynamic Heat · Part 2**
+**Paired with L8.2 · Transient Heat · Part 2**
 
-Transient conduction in a heated plate: soft versus hard initial conditions,
-the plate with a hole in time, and recovering an unknown diffusivity from a
-cooling curve.
-
-The inverse problem at the end is the first time in the course that the network
-is asked to find a **physical constant** rather than a field. It returns
-in L11.2.
-
-## Goals
-
-By the end you can
-
-1. write a first-order-in-time residual on a space–time slab and say which
-   column of the gradient is the time derivative;
-2. assemble a three-term loss and report **which** term the optimiser is
-   actually reducing, rather than only the total;
-3. enforce an initial condition and a boundary condition exactly, by
-   construction, and state precisely what that costs the network;
-4. put the same equation on a domain with a hole, using a level set as both the
-   rejection test and the hard-boundary multiplier;
-5. recover an unknown diffusivity from noisy data, and decide whether the data
-   supports the number you got — **identifiability**;
-6. choose a time window from the diffusion time constant, and report relative
-   *and* absolute error because at late times one of them is meaningless.
+The plate of Ex_08.1 with a clock, in **one notebook** (course policies C11
+and C13). The plate sits at the coolant's temperature and its power is
+switched on; the question is how fast it warms and when it is steady. Students
+compute the answer three ways — a finite-element reference, finite differences
+on a square grid, and a physics-informed network with the start and the
+channel wall built in — and compare them on accuracy and on time. Then the
+same network recovers the plate's diffusivity from four thermocouples.
 
 ## The problem
 
-**The square plate.** The unit square, zero on all four edges, released from a
-single Helmholtz mode:
-
-$$T_t = c\,(T_{xx}+T_{yy}), \qquad T(x,y,0)=\sin(\pi x)\sin(\pi y)$$
-
-with the exact solution $T=e^{-2\pi^2 c t}\sin(\pi x)\sin(\pi y)$ — the fundamental mode, by separation of variables.
-The eigenvalue of the lowest mode, $2\pi^2$, *is* the decay rate: the shape
-never changes, only the amplitude. The time constant the set quotes,
-$\tau = L^2/(\pi^2 c) = 0.1013$, is that of a slab with both faces held; the
-square decays twice as fast, $\tau = L^2/(2\pi^2 c) = 0.0507$, so a window of
-$4\tau$ on the slab figure is conservative. By $t = 1$ the amplitude is about $3\times10^{-9}$, which is why every
-error in this set is reported twice.
-
-**The plate with a hole.** The same unit square, now with an elliptical hole
-at the centre, held at zero, insulated outer edges as in Ex_8.1, and a uniform
-source switched on at $t=0$.
-The hole is a level set, so no multiplier network has to be trained — and there
-is no exact solution to score against, which from here on is the normal
-situation.
-
-**The unknown diffusivity.** Five synthetic sensors, twelve readings each
-through the early transient, with noise. $\alpha$ joins the trainable
-parameters as $\log\alpha$ and the loss gains a data term. Then the notebook
-asks you to move the sensors into the settled part of the curve and watch a
-confident, wrong answer come back.
-
-## The notebooks
+The 100 × 100 mm aluminium plate of Ex_08.1 (k = 167 W/m·K, ρc_p = 2.43
+MJ/m³·K, so α = 6.87 × 10⁻⁵ m²/s), its elliptical cooling channel held at
+40 °C, its outer edges insulated. At t = 0 the plate is at 40 °C and its heat
+generation, 1 MW/m³, is switched on. The window is 80 s.
 
 ```
-Ex08.2_00_transient_check.ipynb    timescales, space-time sampling, the geometry
-Ex08.2_01_soft_ic.ipynb            three soft terms - and where the error goes
-Ex08.2_02_hard_ic.ipynb            (1-t) f_IC + t D N, and what N pays for it
-Ex08.2_03_plate_transient.ipynb    the plate with a hole, in time
-Ex08.2_04_inverse_alpha.ipynb      recovering the diffusivity
-Ex08.2_05_compare_and_report.ipynb the report
+ρc_p T_t = k ∇²T + Q     in the plate, t > 0
+T = 40 °C                on the channel wall, and everywhere at t = 0   (both built into the network)
+∂T/∂n = 0                on the four outer edges                        (a weighted loss term)
 ```
 
-Run them **in order** — notebooks 02 and 05 load results the earlier ones
-saved, into a folder called `Ex08.2_outputs`. Notebook 00 is read-and-run;
-notebooks 01 to 04 have `# TODO` cells that are yours to complete.
+In scaled units — lengths over L, the rise over ΔT = QL²/k = 59.88 K, time
+over the window — it reads θ_τ = C (θ_xx + θ_yy + 1) with C = α·80 s/L² = 0.55.
 
-Your work is in those cells: the residual, the loss and the trial solution.
-They are short by design, so your time goes on the parts that carry the ideas
-rather than on tensor plumbing. You *are* expected to read `problem.py` — it
-contains the reference implementations your work is judged against.
+## The notebook
+
+```
+Ex08.2_pinn_plate_switched_on.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex08.2_pinn_plate_switched_on_light.ipynb   the same notebook with every cell written out
+```
+
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: storage, the diffusivity, the time L²/α, the scaled units |
+| 4 | the reference: finite elements on the fitted mesh with Crank–Nicolson, refined in space and time together; then finite differences on the staircase grid, for an agreed 0.20 K |
+| 5 | the PINN: the trial function S τ φ 𝒩 (TODO 1), the residual (TODO 2), training; the three answers compared over the window |
+| 6 | the inverse problem: the diffusivity as one more trainable number, found from four thermocouples |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+Numbers are printed with at most two decimals (C12). The square-plate
+benchmark, the soft start against the hard start, and the choice of sensor
+window of the earlier six-notebook version are left to the lecture.
+
+### What it measures (CPU, seed 88)
+
+| | hottest point at 80 s | worst error over the window | whole window | training |
+|---|---|---|---|---|
+| reference, fitted mesh L/200, 320 steps | 49.42 °C | within 0.01 K of L/100 | about 2 s | — |
+| finite differences, 321 × 321, 320 steps (the coarsest for 0.20 K) | 49.49 °C | 1.25 × 10⁻¹ K | 5 to 15 s | — |
+| PINN, 4 × 32, start and channel built in | 49.49 °C | 1.13 × 10⁻¹ K | about 0.3 s | about 2 min |
+
+The hottest point reaches 9.42 K above the coolant at 80 s (9.56 K when
+steady) and half of that after about 13 s. The inverse problem returns
+α = 6.92 × 10⁻⁵ m²/s against the true 6.87 × 10⁻⁵, 0.72 % high, in about two
+and a half minutes, from readings with 0.05 K of noise and a start 45 % low.
 
 ## Files
 
 | | |
 |---|---|
-| `course_core.py` | shared by the whole course |
-| `pinn_core.py` | the PDE machinery |
-| `problem.py` | the geometry, the reference solution, the timescales and the plots |
+| `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
+| `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
+| `problem.py` | **this** problem — the data, the level set, the space-time samplers, the finite-element reference in time, the thermocouple readings |
 
-The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each
-notebook fetches the modules itself. Run notebook 00 first.
-Requires `torch`, `numpy` and `matplotlib`, all preinstalled on Colab. **No GPU
-is needed.**
+The first two are generated. Edit `tools/pinn/*.py` and run
+`python3 tools/pinn/sync_cores.py`; never edit a copy.
+
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex082/build_ex082.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
+
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only. Every training run is a space–time slab, so budget three to five
-minutes each for notebooks 01, 02 and 03, and rather less for 04. An hour for
-the full set is a safe estimate, carried over from the previous version of this
-exercise. If a cell seems stuck it probably is not: each L-BFGS step runs up to
-twenty inner iterations and only every fiftieth step is printed, so a long
-silence after the Adam output is normal.
-
-## Things that go wrong, and what they mean
-
-**The recovered diffusivity is confident and wrong.** Check how much of your
-cooling curve actually contains transient behaviour. Once the plate has
-equilibrated the data says nothing about $\alpha$, and the optimiser will still
-return a number. This is identifiability, and it recurs in every later inverse
-problem in the course.
-
-**Early-time error is much worse than late-time error.** Expected with a soft
-IC. That is the comparison the exercise wants.
-
-**The solution is smooth everywhere and matches nothing.** Check the timescale
-printed by notebook 00 against the interval you are solving over. Solving for
-far longer than the diffusion time gives you a steady state, correctly.
-
-**`grad` returns `None`.** The points were not built with
-`to_tensor(..., requires_grad=True)`. The samplers return NumPy arrays now; the
-conversion is yours, at the point of use.
-
-**The loss becomes `nan`.** Almost always a residual that divides by zero or
-takes a log or a square root of a negative. Print the residual on a handful of
-points before training.
-
-## What to hand in
-
-- soft versus hard IC, with the error at early time reported separately
-- the transient plate solution, with the evidence that its last frame is the
-  steady state
-- your recovered diffusivity, with a statement of how much the data supports it
-- what would happen to the inverse fit if the cooling curve were shorter
+CPU only; a GPU is slower on problems this small. About eight minutes in all,
+most of it the two trainings of sections 5 and 6.
 
 ## Reference texts
 
-Liu, G.R., *PINN with Python: An Introduction* (2025), Ch. 2–6.
+Liu, G.R., *PINN with Python: An Introduction* (2025).
 Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
 
-These are the works to read for the theory. **The code, the problems and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
+These are the works to read for the theory. **The code, the problem and the
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-The NumPy half is verified: the samplers reject every point inside the hole,
-the arc-length hole sampler lands on the level set to 1e-15, and the timescale
-table printed by `describe_problem` matches the closed form. **Nothing
-requiring torch has been executed.** Run notebook 00 end to end before this
-goes to students.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex08.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01 to 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex08.2_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its first TODO. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex082_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

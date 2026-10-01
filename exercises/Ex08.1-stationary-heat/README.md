@@ -1,205 +1,107 @@
-# Ex_08.1 — Stationary Heat: a plate with a cooling hole
+# Ex_08.1 — A Heated Plate with a Cooling Channel
 
-**Paired with L8.1 · Stationary Heat Transfer · Part 2**
+**Paired with L8.1 · Stationary Heat · Part 2**
 
-Steady conduction on a plate with a cooling hole: real geometry, a
-hard-enforced curved boundary, and a flux balance as the physical check.
-
-The flux balance is the point. It is a check that must come out right for
-physical reasons, and it is worth more than an error norm that looks small.
-
-## Goals
-
-By the end you can
-
-1. verify a PDE formulation on a manufactured solution before trusting it on
-   real geometry, and say why that ordering saves an afternoon;
-2. hard-enforce a fixed temperature on a **curved** boundary using its
-   level-set function, with no multiplier network to pre-train;
-3. impose a zero-flux condition where the outward normal changes at every
-   point, and get its sign right;
-4. sample a curved boundary by **arc length** rather than by angle, and measure
-   the difference the choice makes;
-5. weight a soft flux term against a PDE residual, and diagnose from the
-   per-term loss history whether it was being ignored;
-6. check a solution by **conservation** — heat out through the hole against
-   heat generated in the plate — rather than by an error norm alone.
+Steady conduction with real units and a real geometry, in **one notebook**
+(course policies C11 and C13). An aluminium plate generates heat and is cooled
+through an elliptical channel at its centre; the question is how hot it gets,
+and where. Students compute the answer three ways — a finite-element reference
+on a mesh fitted to the channel, finite differences on a square grid, and a
+physics-informed network with the channel wall built in — and compare them on
+accuracy and on time.
 
 ## The problem
 
-A square plate with a cooling hole through it, generating heat internally, in
-steady state:
+A 100 × 100 mm plate of aluminium 6061 (k = 167 W/m·K) generating 1 MW/m³
+evenly, with an elliptical cooling channel of 36 × 22 mm at its centre whose
+wall the coolant holds at 40 °C. The outer edges are insulated.
 
 ```
-∇²T + Q/k = 0        in the material
-T = 0                on the hole wall        (hard-enforced)
-∂T/∂n = 0            on the four outer edges (soft, weighted)
+k ∇²T + Q = 0        in the plate
+T = 40 °C            on the channel wall     (built into the network)
+∂T/∂n = 0            on the four outer edges (a weighted loss term)
 ```
 
-The hole is an ellipse at the centre of the unit square, `a = 0.18`,
-`b = 0.11` — 6.22% of the plate's area, with 0.924 of wall through which
-everything generated in the remaining 0.938 of area has to leave.
+It is solved in scaled units: lengths over the side L, the rise above the
+coolant over ΔT = QL²/k = 59.88 K, so that θ_xx + θ_yy + 1 = 0 on the unit
+square. Of L8.1's three mechanisms only conduction is solved; the coolant's
+convection enters as the fixed wall temperature. The problem has no exact
+solution, which is the point of the reference.
 
-The equation is a plain elliptic (Poisson) problem. What is new is
-**geometry**: the domain is not a rectangle, so `pinn_core`'s samplers do not
-describe it; the boundary carrying the interesting condition is curved; and the
-outward normal there is a function of position rather than one of four constant
-vectors. `problem.py` supplies the four things that fixes — a level set, a
-hard-enforcement multiplier, geometry-aware samplers, and the flux balance.
-
-Notebook 01 comes first for a reason. It solves the same operator on the plain
-unit square against a manufactured solution,
+## The notebook
 
 ```
-T(x, y) = sin(πx) sin(πy)   ⇒   Q/k = 2π² sin(πx) sin(πy)
+Ex08.1_pinn_plate_with_channel.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex08.1_pinn_plate_with_channel_light.ipynb   the same notebook with every cell written out
 ```
 
-where the answer is known and the boundary condition can be lifted exactly by
-`x(1-x)y(1-y)`. An implementation error found there costs minutes; the same
-error found on the plate costs an afternoon. Do not skip it.
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics, the scaled units and the level set |
+| 4 | the reference: finite elements on a fitted mesh, refined until it stops moving; then finite differences on a staircase grid, for an agreed 0.10 K |
+| 5 | the PINN: the trial function S φ 𝒩 (TODO 1), the residual (TODO 2), the insulated edges as a weighted term, training; the three answers compared, and the energy balance |
+| 6 | what the comparison says |
+| 7 | the report and its PDF |
+| 8 | mini project proposal |
 
-## The notebooks
+Numbers are printed with at most two decimals (C12). The manufactured
+solution, the sweep of the flux weight and the geometry check of the earlier
+five-notebook version are left to the lecture.
 
-Run in order; later notebooks load results saved by earlier ones.
+### What it measures (CPU, seed 88)
 
-```
-Ex08.1_00_geometry_check.ipynb      tools, geometry, samplers, multiplier, normals — read-only
-Ex08.1_01_manufactured.ipynb        verification on a known solution — has TODOs
-Ex08.1_02_plate_with_hole.ipynb     the real geometry — has TODOs
-Ex08.1_03_weights_and_flux.ipynb    flux weighting and the energy balance — has TODOs
-Ex08.1_04_compare_and_report.ipynb  comparison and the report
-```
+| | hottest point | worst error | one solve | training |
+|---|---|---|---|---|
+| reference, fitted mesh L/200 (38 009 nodes) | 49.56 °C | within 0.004 K of L/400 | about 0.6 s | — |
+| finite differences, 641 × 641 (the coarsest for 0.10 K) | 49.60 °C | 6.43 × 10⁻² K | about 3 s | — |
+| PINN, 4 × 32, channel built in | 49.56 °C | 1.84 × 10⁻² K | about 60 ms | about 2 min |
 
-Everything the notebooks write goes to `Ex08.1_outputs/`.
+The network's energy balance is 99.51 %: the heat it sends through the channel
+wall against the heat generated. On the staircase grid finite differences gain
+at best a factor of two per halving, where the fitted mesh gains more.
 
 ## Files
-
-Every Part 2 exercise has the same three modules beside it. Only the third
-differs between sets.
 
 | | |
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
 | `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
-| `problem.py` | **this** problem — the hole, the level-set multiplier, the normals, the flux balance |
+| `problem.py` | **this** problem — the data, the level set and its samplers, the finite-element reference, the energy balance |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**On Colab nothing needs uploading**: each notebook's first code cell fetches
-the three modules from the public course repository. Uploaded files vanish when the runtime restarts; if
-you get a `FileNotFoundError` partway through a session, re-upload, and the
-first cell of every notebook will prompt you.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex081/build_ex081.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
 
-Requires `torch`, `numpy` and `matplotlib`, all preinstalled on Colab. **No GPU
-is needed.**
-
-## A note on the samplers
-
-Everything that samples points — in `pinn_core` and in `problem.py` alike —
-returns a **NumPy array**, not a tensor. Points can then be plotted, saved and
-checked without a device or a graph. Wrap them at the point of use:
-
-```python
-xy_f = to_tensor(pb.sample_plate_with_hole(1500), requires_grad=True)
-xy_o = to_tensor(pb.sample_outer_edges(30), requires_grad=True)   # flux: also grad
-xy_h = to_tensor(pb.sample_ellipse_boundary(200), requires_grad=True)
-```
-
-`requires_grad=True` wherever the network is differentiated at those points,
-which in this exercise means all three sets. Omitting it on `xy_o` is the
-easiest mistake in notebook 02: the zero-flux condition is a first derivative,
-so those points are differentiated too.
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only, no GPU anywhere. The retired core's run guide quoted a minute or two
-per notebook, with a few minutes for the three-weight sweep in notebook 03.
-Treat that as the order of magnitude rather than a measurement: the two-stage
-schedule here spends more of its budget in L-BFGS than that guide's did, and
-**nothing in this folder has been re-timed.** Time your first run.
-
-If a cell seems stuck, it probably is not — L-BFGS prints sparsely, so a long
-silence after the Adam output is normal.
-
-## What to hand in
-
-- the manufactured-solution verification, before anything else
-- the plate solution, with the flux balance stated as a number
-- the weight study, and what it did to the flux balance
-- whether your solution conserves energy, and what you concluded if not
-
-## Things that go wrong, and what they mean
-
-**You skipped the manufactured solution.** Do not. It is the only place in this
-exercise where you know the answer, and an implementation error found here
-costs minutes rather than an afternoon.
-
-**`grad` returned `None`, or the loss will not move.** A sampler handed you a
-NumPy array and you passed it on without `to_tensor(..., requires_grad=True)`.
-This is the single most common first error.
-
-**The flux balance is off by a few per cent.** Look at the sampling near the
-hole. A curved boundary needs points on it, spaced by arc length, and a uniform
-sample of the rectangle gives you almost none.
-
-**The level-set multiplier makes training unstable.** It goes to zero on the
-boundary, so gradients there are small; that is the price of hard enforcement
-and is usually worth paying. Check the multiplier is not *negative* anywhere
-inside the domain — notebook 00 prints its minimum.
-
-**The temperature field looks plausible but inverted.** The outward normal of
-the material points *into* the hole. Notebook 00 draws the arrows; look at them.
-
-## How this is meant to be used
-
-The three modules are complete and working — you are not asked to rewrite them.
-Your work is in the cells marked `# TODO`, which are the residual, the loss and
-the trial solution. They are short by design, so your time goes on the parts
-that carry the ideas rather than on tensor plumbing.
-
-You *are* expected to read the modules. They contain the reference
-implementations your work is judged against.
+CPU only; a GPU is slower on problems this small. About four minutes in all,
+half of it the training of section 5.
 
 ## Reference texts
 
-Liu, G.R., *PINN with Python: An Introduction* (2025), Ch. 2–6.
+Liu, G.R., *PINN with Python: An Introduction* (2025).
 Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-Migrated to the shared `course_core` / `pinn_core` library in an environment
-where PyTorch could not be installed. The NumPy half is verified: the level set
-is machine-zero on the hole and positive throughout the material, the rejection
-sampler keeps every collocation point clear of the inflated ellipse, the
-arc-length spacing beats the angular spacing by 265×, and the Ramanujan
-perimeter agrees with a two-million-segment numerical integration to 4e-7
-relative. **Nothing that requires torch has been executed.** Run notebooks 00
-to 03 end to end before this goes to students, and re-time them.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex08.1_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01 to 04 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex08.1_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its first TODO. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+The set ends with two mini projects (section 8). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex081_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

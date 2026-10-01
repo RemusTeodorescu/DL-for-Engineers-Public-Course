@@ -1,4 +1,4 @@
-r"""Ex_08.1 — the physics: stationary conduction on a plate with a hole.
+r"""Ex_08.1 — the physics: steady conduction in a plate with a cooling hole.
 
 *Deep Learning for Engineering* — MSc, Aalborg University.
 Remus Teodorescu (ret@et.aau.dk), with support from Research Assistant
@@ -7,75 +7,40 @@ Noman Khan (nomank@energy.aau.dk).
 **Reference texts.** Liu, *PINN with Python: An Introduction* (2025); Raissi,
 Perdikaris & Karniadakis, *Physics-informed neural networks*, J. Comput. Phys.
 **378** (2019) 686–707. These are the works to read for the theory. The code,
-the problem and the exposition here are original to this course, written from
-the 2019 paper and the PyTorch documentation and not derived from any
-publisher's code listings. Where a symbol matches a textbook's it is because
-both follow the standard notation of the field.
+the problem and the exposition here are original to this course.
 
 ## The problem
 
-A square plate with a cooling hole through it, in steady state with uniform
-internal heat generation:
+A square aluminium plate generates heat evenly and is cooled through an
+elliptical channel at its centre. Its outer edges are insulated.
 
-    -k (T_xx + T_yy) = Q        in the material
-    T = 0                       on the hole wall
-    ∂T/∂n = 0                   on the four outer edges
+    k (T_xx + T_yy) + Q = 0     in the plate
+    T = T_coolant               on the wall of the channel
+    dT/dn = 0                   on the four outer edges
 
-Nothing in the *equation* is new — it is a standard Poisson problem.
-What is new is **geometry**. The domain is not a rectangle, so the samplers in
-``pinn_core`` do not describe it; the boundary that carries the interesting
-condition is curved; and the outward normal there is a function of position
-rather than a constant per edge.
+## Scaled units
 
-## What this module adds
+Lengths are divided by the plate's side ``L`` and the temperature rise above
+the coolant by ``DELTA_T = Q L^2 / k``. The scaled rise ``theta`` then obeys
 
-Four things, and they are the four things any non-rectangular PINN needs.
+    theta_xx + theta_yy + 1 = 0,   theta = 0 on the channel,   d(theta)/dn = 0 on the edges
 
-1. **A level set.** :func:`ellipse_phi` is negative inside the hole, zero on it
-   and positive in the material. One formula answers "is this point in the
-   domain?" and "how far in?" at the same time.
-2. **A hard-enforcement multiplier.** :func:`hole_multiplier` is that same
-   level set, used as a factor: a network multiplied by it *cannot* be non-zero
-   on the hole wall, whatever it learns. This is the analytic shortcut in
-   L8.1's slide on a learned boundary multiplier — for a shape with a
-   closed-form level set, no multiplier network needs training.
-3. **Samplers that respect the geometry.** Rejection sampling for the interior;
-   arc-length spacing on the ellipse, because uniform spacing *in the angle*
-   starves the high-curvature ends, which is exactly where the flux
-   concentrates.
-4. **A flux balance.** In steady state the heat leaving through the hole must
-   equal the heat generated in the plate. That is a check which has to come out
-   right for physical reasons, and it is worth more than an error norm that
-   looks small.
+on the unit square, and ``T = T_COOLANT + DELTA_T * theta``. Everything in this
+module works in the scaled units; :func:`kelvin` converts a rise back.
 
-## The manufactured solution
+## What this module gives the notebook
 
-Before any geometry, notebook 01 verifies the formulation on the unit square,
-where the answer is known:
+* the data of the plate, as constants;
+* the geometry: :func:`ellipse_phi` (the level set, also the boundary
+  multiplier), :func:`ellipse_normal`, and the three samplers;
+* :func:`reference` — the reference solution, by linear finite elements on a
+  mesh fitted to the channel, and :func:`reference_at` to read it at any point;
+* :func:`heat_out` — the heat a network sends through the channel wall, for the
+  energy balance.
 
-    T(x, y) = sin(πx) sin(πy)     ⇒     Q/k = 2π² sin(πx) sin(πy)
-
-Zero on all four edges of the unit square, so the polynomial lift
-``x(1-x)y(1-y)`` enforces the boundary condition exactly. An implementation
-error found here costs minutes; the same error found on the plate costs an
-afternoon.
-
-## Conventions
-
-**The samplers here return NumPy, like the ones in ``pinn_core``.** Points can
-then be plotted, saved, diffed and checked without a device or a graph. Call
-:func:`to_tensor` at the point of use — with ``requires_grad=True`` for every
-set the network is differentiated at, which here means the interior points,
-the outer edges (the flux loss differentiates there) and the hole points passed
-to :func:`flux_balance`. Forgetting it is the single most common first error.
-
-:func:`ellipse_phi` and :func:`hole_multiplier` are plain arithmetic and work
-on NumPy arrays and on torch tensors unchanged. :func:`ellipse_normal`,
-:func:`source_manufactured`, :func:`flux_balance` and :func:`eval_grid_masked`
-are torch; :func:`exact_manufactured` is NumPy. The docstrings say which.
-
-Nothing at module level imports torch, so the geometry can be checked in an
-environment that has only NumPy.
+The samplers return NumPy, like the ones in ``pinn_core``: call ``to_tensor``
+at the point of use, with ``requires_grad=True`` where the network is
+differentiated. Nothing at module level imports torch.
 """
 
 from __future__ import annotations
@@ -83,19 +48,30 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = [
-    "HOLE", "DOMAIN",
-    "ellipse_phi", "hole_multiplier", "ellipse_normal",
+    "L_PLATE", "K_PLATE", "Q_PLATE", "T_COOLANT", "DELTA_T", "HOLE", "DOMAIN",
+    "kelvin", "ellipse_phi", "hole_multiplier", "ellipse_normal",
     "sample_plate_with_hole", "sample_ellipse_boundary", "sample_outer_edges",
-    "exact_manufactured", "source_manufactured",
-    "hole_perimeter", "plate_area",
-    "flux_balance", "eval_grid_masked", "describe_problem",
+    "hole_perimeter", "plate_area", "reference", "reference_at", "heat_out",
+    "describe_problem",
 ]
 
-#: The cooling hole — an ellipse, centred, wider than it is tall.
+# ------------------------------------------------------------------ the data
+L_PLATE = 0.100          #: m, the side of the plate
+K_PLATE = 167.0          #: W/(m K), aluminium alloy 6061
+Q_PLATE = 1.0e6          #: W/m^3, the heat generated in the plate
+T_COOLANT = 40.0         #: degC, the wall of the channel
+DELTA_T = Q_PLATE * L_PLATE ** 2 / K_PLATE   #: K, the temperature scale, 59.88
+
+#: The cooling channel in scaled units: an ellipse of 36 x 22 mm at the centre.
 HOLE = dict(xc=0.5, yc=0.5, a=0.18, b=0.11)
 
-#: ``((x_lo, x_hi), (y_lo, y_hi))`` — the plate, before the hole is removed.
+#: ``((x_lo, x_hi), (y_lo, y_hi))`` — the plate in scaled units, before the hole.
 DOMAIN = ((0.0, 1.0), (0.0, 1.0))
+
+
+def kelvin(theta):
+    """A scaled rise as kelvin above the coolant."""
+    return DELTA_T * theta
 
 
 # ------------------------------------------------------------------- geometry
@@ -105,207 +81,170 @@ def _phi_np(xy, xc, yc, a, b):
 
 
 def ellipse_phi(xy, hole=None):
-    """Level-set function: negative inside the hole, zero on it, positive out.
-
-    Returns shape ``(N, 1)``. Plain arithmetic, so NumPy in gives NumPy out and
-    a tensor in gives a tensor out — the trial solution calls it on tensors,
-    notebook 00 calls it on arrays, and it is the same function.
-    """
+    """Level set of the channel: negative inside it, zero on its wall, positive
+    in the plate. Shape ``(N, 1)``. Plain arithmetic, so NumPy in gives NumPy
+    out and a tensor in gives a tensor out."""
     h = hole or HOLE
     return (((xy[:, 0:1] - h["xc"]) / h["a"]) ** 2
             + ((xy[:, 1:2] - h["yc"]) / h["b"]) ** 2 - 1.0)
 
 
 def hole_multiplier(xy, hole=None):
-    """Vanishes on the hole boundary, positive in the material.
-
-    This is the analytic shortcut in L8.1's slide on a learned boundary
-    multiplier: for a shape with a closed-form level set, no multiplier
-    network needs training.
-    """
+    """The boundary multiplier of L8.1: zero on the channel wall, positive in
+    the plate. For a shape with a formula it is the level set itself."""
     return ellipse_phi(xy, hole)
 
 
 def ellipse_normal(xy, hole=None):
-    """Unit normal on the hole, pointing OUT of the material (into the hole).
-
-    Torch — pass ``to_tensor(...)`` points. Returns ``(nx, ny)``, each shaped
-    ``(N, 1)``.
-
-    Sign matters: the material's outward normal is the inward normal of the
-    hole. Getting it backwards produces a plausible but inverted field.
-    """
+    """Unit normal on the channel wall, pointing OUT of the plate (into the
+    channel). Torch. Returns ``(nx, ny)``, each shaped ``(N, 1)``."""
     import torch
     h = hole or HOLE
     gx = 2.0 * (xy[:, 0:1] - h["xc"]) / h["a"] ** 2
     gy = 2.0 * (xy[:, 1:2] - h["yc"]) / h["b"] ** 2
-    n = torch.sqrt(gx ** 2 + gy ** 2) + 1e-12
-    return -gx / n, -gy / n          # minus: out of the material
+    norm = torch.sqrt(gx ** 2 + gy ** 2)
+    return -gx / norm, -gy / norm
 
 
-# ------------------------------------------------------------------- sampling
-def sample_plate_with_hole(n, domain=DOMAIN, hole=None, margin=1.05,
-                           seed=None) -> np.ndarray:
-    """``n`` interior points on the plate, rejecting anything inside the hole.
-
-    Rejection sampling on top of :func:`pinn_core.interior_points`: draw a
-    stratified batch on the whole rectangle, keep what lands in the material,
-    repeat until there are enough. ``margin`` inflates the rejected ellipse
-    slightly, so no collocation point sits on the hole wall where the
-    multiplier — and with it the trial solution — is identically zero.
-
-    Returns ``(n, 2)`` NumPy. Wrap with ``to_tensor(..., requires_grad=True)``
-    before differentiating the network at these points.
-    """
-    from course_core import SEED
-    from pinn_core import interior_points
-
+# ------------------------------------------------------------------- samplers
+def sample_plate_with_hole(n, domain=DOMAIN, hole=None, margin=1.05, seed=0):
+    """``n`` points uniform in the plate, by rejection: drawn over the square,
+    kept where the level set (inflated by ``margin``) is positive."""
     h = hole or HOLE
-    rng = np.random.default_rng(SEED if seed is None else seed)
-    keep = np.empty((0, 2))
-    while len(keep) < n:
-        cand = interior_points(max(2 * n, 512), domain, "lhs",
-                               seed=int(rng.integers(0, 2 ** 31 - 1)))
-        ok = _phi_np(cand, h["xc"], h["yc"], h["a"] * margin, h["b"] * margin) > 0
-        keep = np.vstack([keep, cand[ok]])
-    return keep[:n]
+    rng = np.random.default_rng(seed)
+    (x0, x1), (y0, y1) = domain
+    out = np.empty((0, 2))
+    while len(out) < n:
+        p = np.c_[rng.uniform(x0, x1, 2 * n), rng.uniform(y0, y1, 2 * n)]
+        keep = _phi_np(p, h["xc"], h["yc"], h["a"] * margin, h["b"] * margin) > 0
+        out = np.vstack([out, p[keep]])
+    return out[:n]
 
 
-def sample_ellipse_boundary(n, hole=None) -> np.ndarray:
-    """Points on the hole, spaced by arc length rather than by angle.
-
-    Uniform angular spacing under-samples the high-curvature ends of an
-    ellipse, which is where the flux concentrates. Notebook 00 measures the
-    difference between the two spacings.
-
-    Returns ``(n, 2)`` NumPy, and is deterministic — there is no randomness
-    here to seed.
-    """
+def sample_ellipse_boundary(n, hole=None):
+    """``n`` points on the channel wall at equal steps of ARC LENGTH. Equal
+    steps of angle would crowd the flat sides and starve the ends, where the
+    wall bends most and the flux is largest."""
     h = hole or HOLE
-    t = np.linspace(0, 2 * np.pi, 4000)
-    x, y = h["a"] * np.cos(t), h["b"] * np.sin(t)
-    s = np.concatenate([[0], np.cumsum(np.hypot(np.diff(x), np.diff(y)))])
-    tt = np.interp(np.linspace(0, s[-1], n, endpoint=False), s, t)
-    return np.column_stack([h["xc"] + h["a"] * np.cos(tt),
-                            h["yc"] + h["b"] * np.sin(tt)])
+    t = np.linspace(0.0, 2.0 * np.pi, 20001)
+    arc = np.r_[0.0, np.cumsum(np.hypot(np.diff(h["a"] * np.cos(t)),
+                                        np.diff(h["b"] * np.sin(t))))]
+    th = np.interp(np.linspace(0.0, arc[-1], n, endpoint=False), arc, t)
+    return np.c_[h["xc"] + h["a"] * np.cos(th), h["yc"] + h["b"] * np.sin(th)]
 
 
-def sample_outer_edges(n_per_edge, domain=DOMAIN, seed=None) -> np.ndarray:
-    """Points on the four outer edges of the plate, ``n_per_edge`` on each.
-
-    A thin wrapper on :func:`pinn_core.boundary_points`, so that the three
-    point sets of this problem are named symmetrically in the notebooks. The
-    seed defaults to the course seed rather than to ``None``, so that a plain
-    ``sample_outer_edges(30)`` is reproducible.
-
-    Returns ``(4 * n_per_edge, 2)`` NumPy. The flux condition differentiates
-    the network here, so wrap with ``requires_grad=True``.
-    """
-    from course_core import SEED
-    from pinn_core import boundary_points
-    return boundary_points(n_per_edge, domain,
-                           seed=SEED if seed is None else seed)
+def sample_outer_edges(n_per_edge, domain=DOMAIN):
+    """Points on the four insulated edges, evenly spaced. Returns a list of four
+    ``(points, axis)`` pairs: ``axis`` is 0 where the normal is along x (the
+    left and right edges) and 1 where it is along y."""
+    (x0, x1), (y0, y1) = domain
+    s = np.linspace(0.0, 1.0, n_per_edge)
+    xs, ys = x0 + (x1 - x0) * s, y0 + (y1 - y0) * s
+    return [(np.c_[np.full(n_per_edge, x0), ys], 0), (np.c_[np.full(n_per_edge, x1), ys], 0),
+            (np.c_[xs, np.full(n_per_edge, y0)], 1), (np.c_[xs, np.full(n_per_edge, y1)], 1)]
 
 
-# ------------------------------------------------- manufactured verification
-def exact_manufactured(X, Y):
-    """T = sin(pi x) sin(pi y) — the standard manufactured field of L7.
-
-    NumPy, and meant for a grid: pass the ``X`` and ``Y`` returned by
-    :func:`pinn_core.grid_points`.
-    """
-    return np.sin(np.pi * X) * np.sin(np.pi * Y)
-
-
-def source_manufactured(xy):
-    """Q/k that makes exact_manufactured the solution of T_xx + T_yy + Q/k = 0.
-
-    Torch — it is evaluated inside the residual, on the collocation tensor.
-    Returns shape ``(N, 1)``.
-    """
-    import torch
-    return (2.0 * np.pi ** 2
-            * torch.sin(np.pi * xy[:, 0:1]) * torch.sin(np.pi * xy[:, 1:2]))
-
-
-# -------------------------------------------------------------------- checks
 def hole_perimeter(hole=None) -> float:
-    """Ramanujan's approximation to the perimeter of the elliptical hole.
-
-    Exact enough here — its relative error for an ellipse this round is far
-    below anything a trained network will contribute to the flux balance.
-    """
+    """Ramanujan's approximation to the perimeter of the channel wall."""
     h = hole or HOLE
     return float(np.pi * (3 * (h["a"] + h["b"])
-                          - np.sqrt((3 * h["a"] + h["b"])
-                                    * (h["a"] + 3 * h["b"]))))
+                          - np.sqrt((3 * h["a"] + h["b"]) * (h["a"] + 3 * h["b"]))))
 
 
 def plate_area(hole=None) -> float:
-    """Area of the unit plate with the elliptical hole removed."""
+    """Area of the unit plate with the channel removed: 0.9378."""
     h = hole or HOLE
     return float(1.0 - np.pi * h["a"] * h["b"])
 
 
-def flux_balance(model, xy_hole, q_source, k=1.0, hole=None, trial=None):
-    """Heat leaving through the hole versus heat generated inside the plate.
+# ------------------------------------------------------------- the reference
+def reference(spacing=1 / 200, hole=None):
+    """The reference solution, by linear finite elements.
 
-    In steady state these must match. A mismatch of more than a few percent
-    means the flux condition was never really learned.
+    The mesh is FITTED to the channel: nodes sit on its wall at equal arc
+    length, a regular grid of the same spacing fills the plate, and a Delaunay
+    triangulation joins them, with the triangles inside the channel removed.
+    The wall nodes are held at ``theta = 0``; the insulated edges need nothing
+    (zero flux is the natural condition of the method).
 
-    ``xy_hole`` must be a tensor made with ``requires_grad=True``: the normal
-    flux is a derivative of the network, so the points are differentiated
-    through. Returns ``(out, generated)``.
+    Returns a dict: ``P`` the nodes, ``tri`` the triangles, ``theta`` the
+    scaled rise at the nodes, ``heat_out`` the heat through the channel wall
+    and ``generated`` the heat generated, both in scaled units.
+
+    Its accuracy is shown in the notebook, by refining ``spacing``: 1/200
+    (38 009 nodes) is within 0.002 K of 1/400 everywhere.
     """
+    import scipy.sparse as sp
+    import scipy.sparse.linalg as spla
+    from scipy.spatial import Delaunay
+
+    h = hole or HOLE
+    g = np.linspace(0.0, 1.0, int(round(1.0 / spacing)) + 1)
+    X, Y = np.meshgrid(g, g)
+    P = np.c_[X.ravel(), Y.ravel()]
+    # clear a band of half a spacing round the channel, so wall nodes are not crowded
+    P = P[_phi_np(P, h["xc"], h["yc"], h["a"] + 0.5 * spacing, h["b"] + 0.5 * spacing) > 0]
+    n_in = len(P)
+    P = np.vstack([P, sample_ellipse_boundary(int(np.ceil(hole_perimeter(h) / spacing)), h)])
+    tri = Delaunay(P).simplices
+    tri = tri[_phi_np(P[tri].mean(axis=1), h["xc"], h["yc"], h["a"], h["b"]) > 0]
+    x, y = P[tri, 0], P[tri, 1]
+    area = 0.5 * np.abs((x[:, 1] - x[:, 0]) * (y[:, 2] - y[:, 0])
+                        - (x[:, 2] - x[:, 0]) * (y[:, 1] - y[:, 0]))
+    ok = area > 1e-14
+    tri, x, y, area = tri[ok], x[ok], y[ok], area[ok]
+    # the gradients of the three hat functions on each triangle
+    b = np.stack([y[:, 1] - y[:, 2], y[:, 2] - y[:, 0], y[:, 0] - y[:, 1]], 1) / (2 * area[:, None])
+    c = np.stack([x[:, 2] - x[:, 1], x[:, 0] - x[:, 2], x[:, 1] - x[:, 0]], 1) / (2 * area[:, None])
+    Ke = area[:, None, None] * (b[:, :, None] * b[:, None, :] + c[:, :, None] * c[:, None, :])
+    n = len(P)
+    K = sp.coo_matrix((Ke.ravel(), (np.repeat(tri, 3, axis=1).ravel(),
+                                    np.tile(tri, (1, 3)).ravel())), shape=(n, n)).tocsr()
+    f = np.zeros(n)
+    np.add.at(f, tri.ravel(), np.repeat(area / 3.0, 3))          # the source, 1 per unit area
+    free = np.arange(n_in)
+    theta = np.zeros(n)
+    theta[free] = spla.spsolve(K[free][:, free].tocsc(), f[free])
+    out = float(-(K[n_in:] @ theta - f[n_in:]).sum())            # the reaction at the wall nodes
+    return dict(P=P, tri=tri, theta=theta, heat_out=out, generated=float(area.sum()))
+
+
+def reference_at(ref, x, y):
+    """The reference's scaled rise at the points ``(x, y)``, by linear
+    interpolation on its triangles. NaN inside the channel."""
+    from matplotlib.tri import LinearTriInterpolator, Triangulation
+    P = ref["P"]
+    f = LinearTriInterpolator(Triangulation(P[:, 0], P[:, 1], ref["tri"]), ref["theta"])
+    return f(np.asarray(x), np.asarray(y)).filled(np.nan)
+
+
+# ---------------------------------------------------------- the energy balance
+def heat_out(trial, n=400, hole=None):
+    """The heat a network sends through the channel wall, in scaled units:
+    Fourier's flux along the outward normal, its mean over ``n`` wall points
+    at equal arc length, times the perimeter. ``trial`` maps points to the
+    scaled rise. In steady state it must equal :func:`plate_area`, the heat
+    generated."""
+    from course_core import to_tensor
     from pinn_core import grad
-
     h = hole or HOLE
-    T = model(xy_hole) if trial is None else trial(model, xy_hole)
-    g = grad(T, xy_hole)
-    nx, ny = ellipse_normal(xy_hole, h)
-    q_n = -k * (g[:, 0:1] * nx + g[:, 1:2] * ny)
-    perim = hole_perimeter(h)
-    out = float(q_n.mean().item()) * perim
-    area = plate_area(h)
-    return out, q_source * area
-
-
-def eval_grid_masked(model, k=161, hole=None, trial=None):
-    """Evaluate on a grid, masking points inside the hole with NaN.
-
-    Returns ``(X, Y, T)``, with ``T`` shaped like ``X`` so it can go straight
-    into ``contourf``. The mask uses the *un*-inflated ellipse, so the picture
-    shows the hole at its true size even though the collocation points were
-    kept clear of it by ``margin``.
-    """
-    import torch
-    from course_core import to_numpy, to_tensor
-    from pinn_core import grid_points
-
-    h = hole or HOLE
-    X, Y, pts = grid_points(k, k, DOMAIN)
-    xy = to_tensor(pts)
-    with torch.no_grad():
-        T = to_numpy(model(xy) if trial is None else trial(model, xy))
-    T = T.reshape(X.shape)
-    inside = _phi_np(pts, h["xc"], h["yc"], h["a"], h["b"]).reshape(X.shape) < 0
-    T[inside] = np.nan
-    return X, Y, T
+    xy = to_tensor(sample_ellipse_boundary(n, h), requires_grad=True)
+    g = grad(trial(xy), xy)                      # the temperature gradient on the wall
+    nx, ny = ellipse_normal(xy, h)
+    q_n = -(g[:, 0:1] * nx + g[:, 1:2] * ny)     # Fourier's flux, out of the plate
+    return float(q_n.mean().item()) * hole_perimeter(h)
 
 
 def describe_problem() -> None:
-    """Print the geometry and the numbers it implies. NumPy only."""
+    """Print the plate and the numbers it implies."""
     h = HOLE
-    hole_area = float(np.pi * h["a"] * h["b"])
-    print("  plate           : 1.000 x 1.000   (unit square)")
-    print(f"  hole            : ellipse at ({h['xc']:.2f}, {h['yc']:.2f}),"
-          f"  a = {h['a']:.2f},  b = {h['b']:.2f}")
-    print(f"  hole area       : {hole_area:.5f}"
-          f"   = {100 * hole_area:.2f}% of the plate")
-    print(f"  material area   : {plate_area():.5f}")
-    print(f"  hole perimeter  : {hole_perimeter():.5f}   (Ramanujan)")
-    print(f"  aspect ratio a/b: {h['a'] / h['b']:.3f}"
-          f"   -> the ends are {(h['a'] / h['b']) ** 3:.2f}x as curved"
-          f" as the sides")
-    print(f"  generated heat  : Q/k x {plate_area():.5f}"
-          f"   must leave through {hole_perimeter():.5f} of wall")
+    L = L_PLATE * 1e3
+    print(f"  plate            : {L:.0f} x {L:.0f} mm aluminium, k = {K_PLATE:.0f} W/(m K)")
+    print(f"  heat generated   : Q = {Q_PLATE:.1e} W/m^3, evenly")
+    print(f"  cooling channel  : ellipse {2 * h['a'] * L:.0f} x {2 * h['b'] * L:.0f} mm at the centre, "
+          f"wall at {T_COOLANT:.0f} degC")
+    print("  outer edges      : insulated")
+    print(f"  temperature scale: Q L^2 / k = {DELTA_T:.2f} K")
+    print(f"  plate area       : {plate_area():.4f} L^2  ->  {Q_PLATE * plate_area() * L_PLATE ** 2:.0f} W "
+          f"per metre of depth must leave through the channel")
+    print(f"  channel wall     : {hole_perimeter() * L:.1f} mm round (Ramanujan)")

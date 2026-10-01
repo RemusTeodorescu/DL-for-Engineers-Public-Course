@@ -36,7 +36,7 @@ Ex08.2_pinn_plate_switched_on_light.ipynb   the same notebook with every cell wr
 | section | what the student does |
 |---|---|
 | 1 – 3 | the problem, its data, its physics: storage, the diffusivity, the time L²/α, the scaled units |
-| 4 | the reference: finite elements on the fitted mesh with Crank–Nicolson, refined in space and time together; then finite differences on the staircase grid, for an agreed 0.20 K |
+| 4 | what finite elements and finite differences each ask of the equation, with both meshes drawn; the reference: finite elements on the fitted mesh with Crank–Nicolson, refined in space and time together; then finite differences on the staircase grid, for an agreed 0.20 K |
 | 5 | the PINN: the trial function S τ φ 𝒩 (TODO 1), the residual (TODO 2), training; the three answers compared over the window |
 | 6 | the inverse problem: the diffusivity as one more trainable number, found from four thermocouples |
 | 7 | what the notebook says |
@@ -49,11 +49,17 @@ window of the earlier six-notebook version are left to the lecture.
 
 ### What it measures (CPU, seed 88)
 
-| | hottest point at 80 s | worst error over the window | whole window | training |
+| | unknowns | hottest point at 80 s | worst error over the window | time to the answer |
 |---|---|---|---|---|
-| reference, fitted mesh L/200, 320 steps | 49.42 °C | within 0.01 K of L/100 | about 2 s | — |
-| finite differences, 321 × 321, 320 steps (the coarsest for 0.20 K) | 49.49 °C | 1.25 × 10⁻¹ K | 5 to 15 s | — |
-| PINN, 4 × 32, start and channel built in | 49.49 °C | 1.13 × 10⁻¹ K | about 0.3 s | about 2 min |
+| reference, fitted mesh L/200, 320 steps | 38 009 | 49.42 °C | within 0.01 K of L/100 | 2 to 3 s |
+| finite differences, 321 × 321, 320 steps (the coarsest for 0.20 K) | 96 664 | 49.49 °C | 1.25 × 10⁻¹ K | 5 to 15 s |
+| PINN, 4 × 32, start and channel built in | 3 329 | 49.49 °C | 1.13 × 10⁻¹ K | about 2 min, all of it training; the trained network then gives the 41 instants in about 0.4 s |
+
+"Time to the answer" counts everything from the problem to the field over
+the window, so the network's training is in it. The network is neither more
+exact than finite differences in any way that matters (0.11 against 0.13 K,
+both inside the agreed 0.20 K) nor faster: it takes twenty to fifty times
+longer. The notebook says so in as many words.
 
 The hottest point reaches 9.42 K above the coolant at 80 s (9.56 K when
 steady) and half of that after about 13 s. The inverse problem returns
@@ -108,5 +114,5 @@ ground truth is given, built by `tools/miniprojects/ex082_truth.py` under policy
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP8.2A · A moving heat source** | 80 × 40 mm steel plate, edges at 20 °C; a 40 W spot moving at 10 mm/s | a PINN for θ(x, y, t) with points that follow the source | finite volumes, 0.1 mm and 5 ms; worked example: peak 89.81 K at 6.00 s | peak within 2 K, field within 3 K, 8 s in under 5 s |
+| **MP8.2A · The cold plate in three dimensions, switched on** | the cold plate of MP8.1B, cold at the start, its 150 W chip switched on; 0 to 20 s | a PINN for T(x, y, z, t), the start built in, the flux and Robin walls as weighted loss terms | an exact series in space and time; worked example: half of the chip's rise after 0.48 s, 90 % after 4.51 s | hottest point within 0.5 K at every instant, field within 1 K, time to 90 % within 0.3 s |
 | **MP8.2B · Finding a hidden flaw by thermography** | a flash on a 4 mm laminate; a delamination at 1 or 2 mm depth holds heat back; an infrared camera for 10 s | an inverse PINN: θ(x, z, t) and α(x, z), fitted to the heat equation and the camera frames | finite volumes, 0.1 × 0.025 mm; three cases; worked example: 1.14 K warmer over the flaw at 2.86 s | flaw edges within 1 mm, depth within 0.2 mm, surface within 0.05 K |

@@ -38,7 +38,7 @@ Ex08.1_pinn_plate_with_channel_light.ipynb   the same notebook with every cell w
 | section | what the student does |
 |---|---|
 | 1 – 3 | the problem, its data, its physics, the scaled units and the level set |
-| 4 | the reference: finite elements on a fitted mesh, refined until it stops moving; then finite differences on a staircase grid, for an agreed 0.10 K |
+| 4 | what finite elements and finite differences each ask of the equation, with both meshes drawn; the reference: finite elements on a fitted mesh, refined until it stops moving; then finite differences on a staircase grid, for an agreed 0.10 K |
 | 5 | the PINN: the trial function S φ 𝒩 (TODO 1), the residual (TODO 2), the insulated edges as a weighted term, training; the three answers compared, and the energy balance |
 | 6 | what the comparison says |
 | 7 | the report and its PDF |
@@ -50,11 +50,15 @@ five-notebook version are left to the lecture.
 
 ### What it measures (CPU, seed 88)
 
-| | hottest point | worst error | one solve | training |
+| | unknowns | hottest point | worst error | time to the answer |
 |---|---|---|---|---|
-| reference, fitted mesh L/200 (38 009 nodes) | 49.56 °C | within 0.004 K of L/400 | about 0.6 s | — |
-| finite differences, 641 × 641 (the coarsest for 0.10 K) | 49.60 °C | 6.43 × 10⁻² K | about 3 s | — |
-| PINN, 4 × 32, channel built in | 49.56 °C | 1.84 × 10⁻² K | about 60 ms | about 2 min |
+| reference, fitted mesh L/200 | 38 009 | 49.56 °C | within 0.004 K of L/400 | about 0.5 s |
+| finite differences, 641 × 641 (the coarsest for 0.10 K) | 385 410 | 49.60 °C | 6.43 × 10⁻² K | 2 to 3 s |
+| PINN, 4 × 32, channel built in | 3 297 | 49.56 °C | 1.84 × 10⁻² K | 1 to 2 min, all of it training; the trained network then gives the field in about 60 ms |
+
+"Time to the answer" counts everything from the problem to the field, so the
+network's training is in it. By accuracy the order is reference, network,
+finite differences; by time it is reference, finite differences, network.
 
 The network's energy balance is 99.51 %: the heat it sends through the channel
 wall against the heat generated. On the staircase grid finite differences gain
@@ -109,4 +113,4 @@ ground truth is given, built by `tools/miniprojects/ex081_truth.py` under policy
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
 | **MP8.1A · Cooled by a fluid, through several bores** | a 100 × 100 mm aluminium section, 1 MW/m³; two water bores and an oil bore, each a Robin wall | a PINN with a weighted Robin term on every curved wall, sampled by arc length, checked by the heat balance | finite elements, 38,033 nodes; worked example: hottest 74.66 °C, 4238.6 / 4238.6 / 894.9 W/m through the bores | hottest point within 0.2 K, field within 0.5 K, each bore's heat within 2 % |
-| **MP8.1B · Where should the bore go?** | one water bore anywhere in the block; a hot 25 × 25 mm component in the corner | a parametric PINN with the bore's position as input, optimised through with autograd | finite elements at 121 positions; worked example: best (57, 50) mm at 117.02 °C, centre 118.77 °C | within 0.5 K at every position; chosen design within 0.3 K of the best; 121 designs in under 0.1 s |
+| **MP8.1B · The cold plate in three dimensions** | a 100 × 100 × 10 mm aluminium cold plate; a 150 W chip on 20 × 20 mm of the top; the bottom cooled by a liquid | a PINN for T(x, y, z) with the chip's flux, the Robin bottom and the insulated faces as weighted loss terms | an exact double cosine series, 400 × 400 terms; worked example: the chip at 66.35 °C, 26.35 K above the coolant | hottest point within 0.5 K, field within 1 K, heat out within 2 % |

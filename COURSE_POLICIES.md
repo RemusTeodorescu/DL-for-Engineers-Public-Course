@@ -64,7 +64,34 @@ policies under each; `--full` adds the review history behind every one.
 - The title names the concept in at most six plain words.
 - A definition box follows directly under the title, two or three plain
   sentences simplified from UDL or GBC; the explanation follows it.
-- A formula is followed by its PyTorch code.
+- A formula is followed by its PyTorch code (Part 1).
+- **In Part 2 a formula is followed by a figure of its concept, and by code
+  only where the code is special (D23, 1 October 2026).** When an equation
+  introduces a concept, the lines that compute it are usually the equation
+  retyped: `q = h * (T_s - T_inf)` under Newton's law of cooling. That is
+  ordinary arithmetic, it teaches nothing about deep learning, and it takes
+  the room a picture could have. So in L7.1 to L12.2 (L13 is a special lecture
+  and exempt):
+  - a code box stays only if it calls something specific to deep learning:
+    automatic differentiation (`grad`, `autograd`, `backward`,
+    `requires_grad`, `detach`), an optimiser (`optim`, `Adam`, L-BFGS,
+    `step`), or `torch.nn` (a module, `MLP`, a `Parameter`, an activation).
+    Arithmetic, a mean, a square, a loop and a call of the network are not
+    special;
+  - otherwise the box is replaced by a **figure of the concept**, in the same
+    place and the same footprint, drawn with the deck's own shapes
+    (`D.figure` and the primitives beside it in `tools/deck/diagrams.js`);
+  - the figure answers one question: *if you had to represent this concept by
+    a drawing, what would you draw?* A hot surface with a stream over it for
+    convection; a membrane sagging under a load for Poisson's equation; a
+    factor that is zero on the wall, times any network, for a hard boundary.
+    It is a picture of the idea, usually very abstract, not a plot of data
+    and not a second table;
+  - it carries a few words, at the figure size, and no equation of its own;
+  - the narration says what the drawing shows, where it used to say "in code
+    that is three lines";
+  - a slide that has good reason to keep plain code writes
+    `@keep-code — reason` in the generator.
 - **A formula names its symbols (D22, 1 October 2026).** Under the equation
   there is a legend: every symbol in it, named in the equation's own typeface,
   with its unit where it has one ("$h$ the heat transfer coefficient,
@@ -77,7 +104,7 @@ policies under each; `--full` adds the review history behind every one.
   1 October 2026.
 - An architecture is defined before any metaphor is used for it.
 
-*Replaces D1, D2, D9, D17, D22, E1, E3, E5.*
+*Replaces D1, D2, D9, D17, D22, E1, E3, E5; D23 is new.*
 
 ## C3 · One notation for the whole course
 

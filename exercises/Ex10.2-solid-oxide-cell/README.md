@@ -1,141 +1,95 @@
-# Ex_10.2 — Solid oxide cells: SOFC, SOEC and lifetime-aware operation
+# Ex_10.2 — The Gas Channel of a Solid Oxide Cell
 
-**Paired with L10.2 · Solid oxide cells · Part 2**
+**Paired with L10.2 · Solid Oxide Cells and Optimisation · Part 2**
 
-A reversible solid oxide cell in **both modes** — fuel cell and electrolyser —
-ending in a lifetime-aware optimisation of a 24-hour operating trajectory. The
-same hardware runs both ways, so the sign of the current selects the mode and
-nothing else changes.
-
-**There is no PyBaMM here.** No community implementation, no canonical
-parameter file. The reference solver is a course implementation and every
-parameter carries a source tag; values marked `ESTIMATED` are
-order-of-magnitude placeholders, not measurements. Knowing which of your
-results are defensible is what this set is built around.
-
-## Goals
-
-By the end you can
-
-1. read a polarisation curve continuously through zero current, and say why
-   the three overpotentials subtract in fuel-cell mode and add in electrolysis;
-2. locate the thermoneutral point from $q = i(V - V_{tn})$ and predict the sign
-   of the heat either side of it;
-3. fit a 0-D button-cell model to a noisy polarisation curve and verify it
-   against four independent checks rather than against its own residual;
-4. write a 1-D convection–diffusion channel residual, and quantify the error a
-   0-D model makes as reactant utilisation rises;
-5. produce the temperature trade-off — production rate against lifetime — as a
-   computed result, and test how far it moves with an `ESTIMATED` parameter;
-6. optimise an operating trajectory by differentiating through the cell model,
-   check it against brute force, and state which of your numbers you would
-   defend.
+A solid oxide electrolysis cell at 800 °C, in **one notebook** (course
+policies C11 and C13). Steam enters a gas channel and is split into hydrogen
+along the electrode; the current is not given but follows from the cell
+voltage, and it falls along the channel as the steam runs short. Students
+compute the steam fraction three ways — a boundary-value solver, finite
+volumes, and a physics-informed network trained over a whole range of cell
+voltages — and compare them on accuracy and on time. Then the network's own
+gradient finds the voltage at which an hour of operation is worth most.
 
 ## The problem
 
-    Nernst potential          thermodynamics of H2 + 1/2 O2 <-> H2O
-    three overpotentials      activation, ohmic, concentration
-    thermoneutral voltage     V_tn = dH / 2F  (~1.29 V for steam at 800 C)
-    heat generation           q = i (V - V_tn)   — zero at the thermoneutral point
-    degradation               Arrhenius in T, power law in |i|
-
-Sign convention throughout: **i > 0 is electrolysis (SOEC), i < 0 is fuel cell
-(SOFC)**. One expression covers both, because the losses always oppose the
-useful direction and the signed current already says which that is.
-
-Temperature is the main lever and it pulls both ways at once: higher
-temperature lowers the area-specific resistance **and** raises the degradation
-rate. Notebook 00 shows both in two lines of output; notebook 03 turns it into
-a curve; notebook 04 makes the optimiser choose.
-
-Every function in `problem.py` dispatches on `torch.is_tensor` and works
-unchanged on NumPy arrays and on torch tensors — which is what makes notebook
-04's gradient-based optimisation possible without a second implementation of
-the physics.
-
-## The notebooks
-
-Run in order; later notebooks load results saved by earlier ones.
-
 ```
-Ex10.2_00_cell_lab.ipynb        device behaviour in both directions — read-only
-Ex10.2_01_button_cell.ipynb     0-D fit and the four verification checks
-Ex10.2_02_channel.ipynb         1-D channel and utilisation
-Ex10.2_03_degradation.ipynb     the temperature trade-off
-Ex10.2_04_optimisation.ipynb    lifetime-aware optimisation — the course finale
-Ex10.2_05_report.ipynb          assemble the report for submission
+u y_x = D y_xx − i(y) / (2F h c_tot)       the steam fraction y along the channel
+i(y) = (V − E(y)) / ASR                    the local current density
+E(y) = E_0 + (RT/2F) ln((1−y) √p_O2 / y)   the Nernst potential
+y = 0.90 at the inlet                      (built into the network)
+y_x = 0 at the outlet                      (a loss term)
 ```
 
-Everything the notebooks save goes to `Ex10.2_outputs/`, and notebook 05 reads
-that folder.
+100 × 100 mm of electrode, a channel 1 mm high, gas at 1 m/s, 800 °C. In
+scaled units it reads y_x = y_xx/Pe − K (V − E(y)) with Pe = 125 and
+K = 1.83 per volt.
+
+**Two of the numbers are estimates chosen for the exercise**, not measured on
+any cell: the area-specific resistance, 0.25 Ω cm², which stands for all the
+losses of the polarisation curve at once, and the gas diffusivity,
+8 × 10⁻⁴ m²/s. So are the prices of section 6 (hydrogen 3.00 €/kg,
+electricity 0.065 €/kWh). The thermodynamics is standard. The notebook and
+`problem.py` say this where the numbers appear.
+
+## The notebook
+
+```
+Ex10.2_pinn_steam_channel.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex10.2_pinn_steam_channel_light.ipynb   the same notebook with every cell written out
+```
+
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: the Nernst potential, the local current, the steam balance, Pe and K |
+| 4 | the reference: SciPy's boundary-value solver, checked at two tolerances; then upwind finite volumes with Newton's method, for an agreed 0.005 in steam fraction |
+| 5 | the PINN: the cell voltage as a second input, the trial function y_in + x 𝒩 (TODO 1), the residual (TODO 2), training; the three compared at 1.29 V and the network checked at four other voltages |
+| 6 | the best cell voltage: the worth of an hour as a function of V, its gradient by autograd through the network, checked against 61 runs of the solver |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+The button-cell fit, the degradation sweep and the 24-hour schedule of the
+earlier six-notebook version are left to the lecture and to the mini projects.
+
+### What it measures (CPU, seed 88)
+
+| at 1.29 V | steam at the outlet | hydrogen | power | worst error | one solution | training |
+|---|---|---|---|---|---|---|
+| reference, boundary-value solver | 0.27 (69 % used) | 5.21 g/h | 178 W | 2 × 10⁻¹² between tolerances | 0.3 s | — |
+| finite volumes, 50 cells (the coarsest for 0.005) | 0.28 | 5.20 g/h | 178 W | 0.0042 | 2 ms | — |
+| PINN, 4 × 32, any voltage from 1.10 to 1.40 V | 0.27 | 5.21 g/h | 178 W | 0.0005 | under 1 ms | 20 s |
+
+The same network is within 0.0013 of the reference at 1.10, 1.20, 1.35 and
+1.40 V. The best voltage is 1.30 V by the network's gradient (200 steps, 0.2 s)
+and 1.30 V by 61 runs of the solver (4 s), worth 0.41 cent an hour for this
+one cell; the thermoneutral voltage is 1.29 V.
 
 ## Files
-
-Every Part 2 exercise has the same three modules beside it. Only the third
-differs between sets.
 
 | | |
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
-| `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
-| `problem.py` | **this** problem — cell model, degradation, control panel, plots, report |
+| `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
+| `problem.py` | **this** problem — the data, the Nernst potential (NumPy or torch), the boundary-value reference, the numbers read off a solution, the samplers |
+| `cell_model.py` | the fuller cell model of the earlier set — three overpotentials, heat, a degradation law. The notebook does not use it; the mini projects and `tools/miniprojects/ex102_truth.py` do |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**On Colab nothing needs uploading**: each notebook's first code cell fetches
-the three modules from the public course repository. Requires `torch`, `numpy` and `matplotlib`, all
-preinstalled on Colab; the control panel also wants `ipywidgets`, which Colab
-has and a local install may not (`pip install ipywidgets`).
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex102/build_ex102.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
+
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules the notebook uses from the public course repository, afresh on every
+run.
 
 ## Expected runtime
 
-CPU only; no GPU is needed anywhere. A single training run takes one to three
-minutes. Notebooks 00 and 05 are seconds. The channel PINN in notebook 02 and
-the optimisation in notebook 04 launch several runs each, so budget 30–60
-minutes for the set as a whole. L-BFGS prints only at the end of its stage, so
-a long silence after the Adam output is normal.
-
-## What to hand in
-
-- the button-cell fit and all four verification checks
-- the channel profile and utilisation
-- the optimised 24-hour trajectory, against the constant-current baseline
-- **which of your results depend on a parameter marked `ESTIMATED`**, stated
-  explicitly — this is the question the exercise is built around
-
-## Things that go wrong, and what they mean
-
-**You cannot recover parameters you generated yourself.** Then the fit is not
-trustworthy on anything. Notebook 01 asks you to do this first for exactly that
-reason.
-
-**The optimiser beats the baseline by an implausible margin.** Check the
-end-of-life constraint is actually binding. An unconstrained optimisation will
-happily destroy the cell for profit.
-
-**Heat generation does not cross zero where you expect.** The thermoneutral
-voltage is where it vanishes; if your crossing is elsewhere, check the sign
-convention for current in electrolysis mode.
-
-**A sampler's output will not differentiate.** The samplers return NumPy
-arrays, deliberately, so they can be plotted and checked without a device or a
-graph. Wrap them: `to_tensor(pts, requires_grad=True)` for anything you
-differentiate through, `to_tensor(pts)` otherwise.
-
-**The loss becomes `nan`.** Almost always a residual that divides by zero or
-takes a log or a square root of a negative. Print the residual on a handful of
-points before training.
-
-## How this is meant to be used
-
-The modules are complete and working — you are not asked to rewrite them. Your
-work is in the cells marked `# TODO`, which are the residual, the loss, the fit
-and the objective. They are short by design, so your time goes on the parts
-that carry the ideas rather than on tensor plumbing.
-
-You *are* expected to read the modules. They contain the reference
-implementations your work is judged against.
+CPU only. About half a minute in all, most of it the one training of
+section 5.
 
 ## Reference texts
 
@@ -144,41 +98,18 @@ Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
-
-The cell model itself follows the IEA SOFC Benchmark Test 1 (Achenbach,
-1994/96, public domain) for the single-cell hydrogen case; published
-button-cell polarisation fits give activation energies of order 100 kJ/mol
-(fuel electrode) and 66 kJ/mol (oxygen electrode); SOEC thermoneutral operation
-at 1.29 V is standard practice.
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-Migrated to `course_core` / `pinn_core` in an environment where PyTorch could
-not be installed. Every equation, constant and operating point is carried over
-unchanged from the previous version of this set; only the library calls
-changed. **Nothing has been executed.** Run notebooks 00 to 05 end to end
-before this goes to students.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex10.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01, 04 and 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex10.2_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its TODO cells. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author - in
+particular of the two estimated parameters.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex102_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

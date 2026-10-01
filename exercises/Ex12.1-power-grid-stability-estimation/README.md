@@ -1,262 +1,140 @@
-# Ex_12.1 — Power Grid Stability Estimation
+# Ex_12.1 — The State of a Grid
 
 **Paired with L12.1 · Power Grid Stability Estimation · Part 2**
 
-Recover the state of a small transmission network from too few measurements —
-first as an algebraic problem, then as a dynamic one — and finish by
-identifying the inertia of a machine from a disturbance.
+State estimation on a six-bus transmission grid, in **one notebook** (course
+policies C11 and C13). A control room sees a few meters and has to say what
+the voltage is at every bus. Students do that with the estimator every
+utility runs, weighted least squares, and with a network that proposes the
+state and is judged by the power flow equations, and compare the two on
+accuracy and on time. Then a line faults, the local plant swings, and its
+inertia is found from the frequency it recorded.
 
-This is the first exercise in the course where **most of the system cannot be
-measured at all**, and where the physics is what fills the gap. Everything else
-follows from that.
-
-It is also the first set in Part 2 with no PDE and no rectangle in it. The
-collocation points are buses and instants, not points in a domain, so the
-shared samplers in `pinn_core` are barely used here. `grad`, `to_tensor`,
-`MLP` and `train_two_stage` are used exactly as everywhere else.
-
-## Goals
-
-By the end you can
-
-1. state what observability means as a rank condition on the measurement
-   Jacobian, and say why it is a property of *where* the meters are rather than
-   how many there are;
-2. run weighted least squares as a baseline, read its normalised residuals, and
-   identify a bad measurement from them;
-3. add the power flow equations to the objective as a residual, and sweep the
-   weight λ between measurements and physics — reading the trade-off off a
-   curve, at the **unmetered** buses where it is visible;
-4. represent a trajectory δ(t), ω(t) with a network, impose the swing equation
-   by automatic differentiation, and build the initial condition into the trial
-   solution instead of penalising it;
-5. identify a physical parameter — machine inertia — as a trainable variable,
-   and say from the fit alone whether the window you chose supports the answer;
-6. report an estimate at an unmetered bus as what it is: an inference from the
-   model, not a reading.
-
-## The system you are estimating
-
-A six-bus network. Bus 0 is the connection to the Nordic synchronous area
-through Sweden and behaves as an infinite bus; bus 1 is local generation; buses
-2–4 are load; bus 5 is the HVDC link to Germany, which enters as a fixed
-injection rather than as a synchronous branch — a DC link transfers power but
-not synchronism.
-
-The algebraic half asks for |V| and θ at every bus given readings at a few of
-them:
+## The problem
 
 ```
-P_i = V_i Σ_k V_k ( G_ik cos θ_ik + B_ik sin θ_ik )
-Q_i = V_i Σ_k V_k ( G_ik sin θ_ik − B_ik cos θ_ik )
+P_i = V_i Σ_k V_k (G_ik cos θ_ik + B_ik sin θ_ik)        the power flow equations,
+Q_i = V_i Σ_k V_k (G_ik sin θ_ik − B_ik cos θ_ik)        at every bus
+z_j = h_j(V, θ) + noise                                   every reading is a function of the state
+dδ/dt = ω − ω_s                                           the swing equation of the plant
+(2H/ω_s) dω/dt = P_m − P_e(δ) − D (ω − ω_s)/ω_s
 ```
 
-The dynamic half asks for δ(t) and ω(t) at each machine given a frequency trace
-at one of them:
+Six buses, six lines, per unit on 100 MVA; the state is six voltage
+magnitudes and five angles. **The grid is representative of eastern Denmark,
+not a model of it**: its line impedances are textbook values, because no
+operator publishes measured ones, and the accuracy of a forecast (0.05 p.u.)
+is assumed. Results that depend on the impedances must say so.
+
+## The notebook
 
 ```
-dδ_i/dt = ω_i − ω_s
-dω_i/dt = (ω_s / 2H_i) ( P_m,i − P_e,i − D_i (ω_i − ω_s) / ω_s )
+Ex12.1_pinn_grid_state.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex12.1_pinn_grid_state_light.ipynb   the same notebook with every cell written out
 ```
 
-**The network is DK2-representative, not DK2.** Its structure follows eastern
-Denmark in the ways that matter for this exercise, but the line impedances are
-plausible textbook values, *not* measured ones. No TSO publishes a nodal model
-with impedances — that data is withheld for security. Real Danish injections
-and real Nordic frequency are available and are used; the topology is not.
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: the state, the three sets of readings, the power flow equations |
+| 4 | the reference (Newton's power flow on 300 operating points) and weighted least squares on the full, the thin and the forecast set, for an agreed 0.01 p.u. |
+| 5 | a network from 14 readings to the state, the power flow in torch (TODO 1), the loss with no true state in it (TODO 2); the two compared; then a line out that neither is told of |
+| 6 | the inverse problem: the inertia of the plant from a recorded disturbance, by shooting and by a physics-informed fit, from two starts, after the fault and before it |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
 
-Say this in your report. Results that depend only on structure — which buses
-are observable, how error grows with distance from a meter — are on firmer
-ground than results that depend on a specific reactance.
+It replaces notebooks 00 to 05. Left to the lecture: bad-data detection by
+normalised residuals, the placement of one more meter, the critical clearing
+time, and the rate of change of frequency on the Nordic record.
 
-## The notebooks
+### What it measures (CPU, seed 88)
 
-Run in order; later notebooks load results saved by earlier ones.
+| worst bus, mean over 300 operating points | magnitude | angle | one estimate | training |
+|---|---|---|---|---|
+| weighted least squares, full set (14 readings) | 0.0030 p.u. | 0.07° | 1.1 ms | — |
+| weighted least squares, thin set (6 readings, 5 of 11 unknowns) | 0.0248 p.u. | 1.82° | 0.8 ms | — |
+| weighted least squares, forecast set | 0.0050 p.u. | 0.15° | 1.1 ms | — |
+| network, 9995 weights, forecast set, no true state | 0.0043 p.u. | 0.15° | 0.26 ms; 2 µs each in a batch of 300 | 13 s |
 
-```
-Ex12.1_00_system_check.ipynb        the network, its power flow, tools checked   read-only
-Ex12.1_01_wls_baseline.ipynb        weighted least squares — the utility baseline  has TODOs
-Ex12.1_02_algebraic_pinn.ipynb      the power flow equations as a residual         has TODOs
-Ex12.1_03_dynamic_pinn.ipynb        the swing equation, a fault, a trajectory      has TODOs
-Ex12.1_04_inertia.ipynb             the inverse problem: recover H and D           has TODOs
-Ex12.1_05_compare_and_report.ipynb  tables, curves and the report questions        assemble
-```
+With line 1–2 out and neither told: least squares 0.0512 p.u., the network
+0.0516 p.u. (least squares told of it: 0.0070 p.u.); the network's own check
+rises from 0.28 to 2.35.
 
-**The notebooks now sit beside the modules, not in a `notebooks/` subfolder.**
-This set was the only one in the course arranged the other way; it no longer
-is. If you have an older copy, move the notebooks up one level or the imports
-will not find `problem.py`.
+| inertia (the record was made with 4.00 s) | started at 8 s | started at 2 s |
+|---|---|---|
+| after the fault, shooting and least squares | 7.41 s (misfit 0.451 Hz) | 1.83 s (0.457 Hz) |
+| after the fault, physics-informed | 3.89 s (0.002 Hz) | 3.90 s (0.002 Hz) |
+| before the fault, shooting and least squares | 50.00 s, the bound | 1.94 s |
+| before the fault, physics-informed | 8.35 s | 2.10 s |
 
-Everything each notebook writes goes to `Ex12.1_outputs/` — the saved states
-that cross between notebooks, and the report skeleton notebook 05 generates.
+**Three things worth knowing.**
+
+*The network does not beat least squares on accuracy, and the notebook does
+not say it does.* From the same readings the two agree; the network's gain is
+the time of one estimate. The earlier notebook 02 reported its estimator as
+far better than least squares on the thin set. That estimator had the state
+itself as trainable numbers, and its physics term penalised the injections
+only at the buses where they were metered - the same information the
+measurement term already had. What kept its unmetered buses near 1.0 p.u. was
+the logistic bound and the flat start, not the physics.
+
+*The earlier inertia fit (`pb.identify_inertia`) does not recover the
+inertia.* Run on the old notebook's own window it returns 73 s and 127 s for
+a machine of 4 s: its residual is written as dω/dt = (…)/H, which a very
+large H satisfies, and it applies the post-fault network to the fault itself.
+The fit in section 6 writes the equation with H on the left and uses only the
+record after the fault is cleared. `identify_inertia`, `dynamic_pinn` and
+`algebraic_pinn` are still in `problem.py`, unused by the notebook.
+
+*Shooting has local minima here and the physics-informed fit did not.* That
+is a finding about this record and these two starts, not a general law.
 
 ## Files
-
-Every Part 2 exercise has the same three modules beside it. Only the third
-differs between sets.
 
 | | |
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
-| `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
-| `problem.py` | **this** problem — network, power flow, WLS, dynamics, Danish data, estimators, plots |
+| `pinn_core.py` | the Part 2 helpers — `grad`, `train_two_stage` |
+| `problem.py` | **this** problem — the grid, the power flow, the meters, weighted least squares, the machines and the swing equation; section 9 holds what the one notebook adds: operating points, the three sets of readings, the recorded disturbance and the classical inertia fit |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-`problem.py` is large, because this set carries three things rather than one: a
-six-bus network model with a Newton-Raphson power flow and a classical
-estimator, a two-machine dynamic model with an RK4 reference integration, and a
-loader for real Energinet and Fingrid data with an offline fallback. You are
-not asked to modify it. You **are** asked to read it — it holds the reference
-implementations your estimator is judged against, and it is written to be read.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex121/build_ex121.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
 
-One trap worth knowing about. `problem.py` defines an `error_table` that is not
-`course_core`'s. The shared one formats a Markdown table; this one is the
-per-bus estimation report, split metered from unmetered. Reach it as
-`pb.error_table`, always.
-
-## Getting started on Colab
-
-1. Open a notebook from its Colab link. Nothing needs uploading: each
-   notebook's first code cell fetches `course_core.py`, `pinn_core.py` and
-   `problem.py` from the public course repository.
-2. Run `Ex12.1_00_system_check.ipynb` first. It checks your environment, checks
-   that automatic differentiation works, solves the reference power flow, and
-   tells you if something is missing.
-3. Work through the numbered notebooks in order, and approve the Google Drive
-   request each one makes. Every Colab tab is a separate machine, so results
-   are kept in your Drive between notebooks — see *Results between notebooks
-   on Colab* below. The reference state also repairs itself:
-   `pb.load("00_reference")` rebuilds it if it is missing.
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only, no GPU anywhere. Notebooks 00, 01 and 05 are seconds to a minute —
-they are NumPy. Notebooks 02, 03 and 04 each train, and each training run is a
-few thousand Adam steps followed by L-BFGS; budget a few minutes per run.
-Notebook 02's λ sweep is thirteen runs and is the longest cell in the set, so
-allow ten to twenty minutes for it.
-
-If a single cell runs much longer than about three minutes, stop it and read
-the error rather than waiting.
-
-Note `lbfgs_steps` in `train_two_stage` counts **outer** steps of up to twenty
-inner L-BFGS iterations each, so `lbfgs_steps=15` is roughly three hundred
-L-BFGS iterations. The values in the notebooks are chosen against that
-convention.
-
-## The one habit this exercise is trying to build
-
-> An estimate at an **unmetered** bus is an inference from the model.
-> An estimate at a **metered** bus is supported by a reading.
-> They are not the same thing, and every table you produce must separate them.
-
-The mean error across all buses will look reassuring and will hide the bus that
-matters. Report the worst bus alongside the average, every time.
-
-## What to hand in
-
-Notebook 05 generates a report skeleton. It asks for:
-
-- your WLS baseline numbers, with the measurement set stated
-- the λ sweep from notebook 02, as a curve, with the value you chose and why
-- estimation error split by **metered** and **unmetered** buses, worst and mean
-- your identified inertia, with an honest statement of how much the disturbance
-  window supports it
-- which of your numbers you would show a control-room operator, and which you
-  would not
-
-The last question carries the marks. As in L9.2, credit is for saying precisely
-what would have to be true first.
-
-## Things that go wrong, and what they mean
-
-**The power flow does not converge after an outage.** Some contingencies
-disconnect a bus — removing the branch to the HVDC link islands bus 5, and
-there is then no solution to find. This is a real result, not a bug. Report it
-as an islanding case rather than tuning until it converges.
-
-**WLS returns nonsense with the thin measurement set.** It should. That set is
-deliberately unobservable, and a classical estimator has no way to determine
-part of the state from the data alone. That failure is the motivation for
-everything in notebook 02.
-
-**The λ sweep looks flat.** Check that you are plotting error at *unmetered*
-buses. At metered buses the two terms mostly agree, so the trade-off is
-invisible — which is itself worth understanding.
-
-**The identified inertia is confident and wrong.** Look at your window. Inertia
-enters the swing equation through acceleration, so a quiet interval contains
-almost no information about H, and the optimiser will still return a number —
-one determined by your initialisation rather than by the grid. This is the
-identifiability lesson from L11.2, in a third domain.
-
-**Everything trains but the answer is smoothly wrong everywhere.** Check the
-topology you gave the residual matches the one that generated the
-measurements. A wrong admittance matrix produces a beautifully consistent
-estimate of a network that does not exist, with small residuals throughout. It
-is the most dangerous failure in the exercise because every diagnostic looks
-healthy.
-
-**`grad` returns `None`.** You built the collocation times without
-`requires_grad=True`. The samplers and `np.linspace` both return NumPy; it is
-`to_tensor(..., requires_grad=True)` that makes a coordinate differentiable.
+CPU only. About a minute and a half: 15 s for the estimator, about a minute
+for the eight inertia fits.
 
 ## Reference texts
 
 Liu, G.R., *PINN with Python: An Introduction* (2025).
 Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
+For the power-system side: Schweppe & Wildes (1970); Abur & Expósito,
+*Power System State Estimation* (2004); Kundur, *Power System Stability and
+Control* (1994), ch. 11 – 13.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
+exposition in this exercise set are original to this course.**
 
-For the power-systems half, the three works L12.1 sends you to:
+## Before this is assigned
 
-Schweppe & Wildes, *Power system static-state estimation*, IEEE Trans. Power
-Apparatus and Systems (1970) — the paper that started the field, short and
-readable.
-Abur & Expósito, *Power System State Estimation: Theory and Implementation*
-(2004) — weighted least squares, observability and bad-data detection.
-Kundur, *Power System Stability and Control* (1994) — the swing equation,
-machine models and transient stability; chapter 11 for this exercise.
-
-## Status
-
-The NumPy half is verified in this environment and reproduces every "expected
-output" block in the notebooks: 18 non-zero entries in Y, power flow converged
-in 5 iterations with voltages 0.9706–1.0000 and a mismatch at 3e-15,
-observability rank 10/10 and 4/10, WLS objective J = 12.04 with worst errors
-6.7e-4 / 6.4e-4 and 2.2e-2 / 3.0e-2, an implied base of 742 MVA, equilibrium
-angles [0, 1.99]°, a critical clearing time of 0.330 s, and RoCoF values of
-−0.213, −0.186 and −0.138 Hz/s over the three windows.
-
-**Nothing that requires torch has been executed** — torch could not be
-installed in the environment where this migration was done. That covers the
-three estimators in `problem.py` (`algebraic_pinn`, `dynamic_pinn`,
-`identify_inertia`) and everything in notebooks 02, 03 and 04 that calls them.
-Treat their first run as a debugging session and report anything that breaks.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex12.1_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-00 to 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py` (used by `problem.save` / `problem.load`): on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex12.1_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its TODO cells. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author - in
+particular by someone who runs a state estimator for a living.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex121_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

@@ -128,6 +128,8 @@ import torch.nn as nn
 from pinn_core import MLP, parameter_count, to_numpy, to_tensor
 
 __all__ = [
+    # the one-notebook set
+    "build_cases", "describe_problem",
     # ── inherited from Ex_12.1, verbatim ──
     "BASE_MVA", "FAULT_FACTOR", "BUSES", "BRANCHES", "N_BUS",
     "build_ybus", "injections", "pq_from_state", "solve_power_flow",
@@ -1464,3 +1466,94 @@ def plot_parity(cct_true, cct_pred, threshold=PROTECTION_TIME, title="",
     ax.set_xlabel("true CCT  (ms)"); ax.set_ylabel("predicted CCT  (ms)")
     ax.set_title(title, fontsize=10)
     return ax
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 11 · the one-notebook set (course policies C11, C13)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# What Ex12.2_gnn_contingency_screening.ipynb needs on top of the sections
+# above: the same labels as :func:`build_dataset`, computed for every case at
+# once so that the whole set takes seconds and not minutes, with the time step
+# and the bisection tolerance as arguments. The graph network is written in
+# the notebook.
+
+def _cct_batch(E, H, D, Pm, ws, Y_pre, Y_fault, Y_post, delta0, dt, tol):
+    """The critical clearing time of ``n`` cases at once: the bisection of
+    :func:`critical_clearing_time` and the RK4 of :func:`simulate_swing`, with
+    every array carrying a leading case axis. Same equations, same order of
+    operations; only the loop over cases is gone."""
+    n = len(E)
+    EE = E[:, :, None] * E[:, None, :]
+    nt = int(round(T_END / dt)) + 1
+
+    def rhs(d, w, Y):
+        dd = d[:, :, None] - d[:, None, :]
+        Pe = (EE * (Y.real * np.cos(dd) + Y.imag * np.sin(dd))).sum(axis=2)
+        x = w - ws
+        return x, (ws / (2 * H)) * (Pm - Pe - D * x / ws)
+
+    def stable(tc):
+        d, w = delta0.copy(), np.full((n, 2), ws)
+        worst = np.abs(d[:, 1] - d[:, 0])
+        t_clear = T_FAULT + tc
+        for k in range(1, nt):
+            t = (k - 1) * dt
+            Y = np.where((t < T_FAULT)[..., None, None] if np.ndim(t) else t < T_FAULT, Y_pre,
+                         np.where((t < t_clear)[:, None, None], Y_fault, Y_post))
+            k1d, k1w = rhs(d, w, Y)
+            k2d, k2w = rhs(d + dt / 2 * k1d, w + dt / 2 * k1w, Y)
+            k3d, k3w = rhs(d + dt / 2 * k2d, w + dt / 2 * k2w, Y)
+            k4d, k4w = rhs(d + dt * k3d, w + dt * k3w, Y)
+            d = d + dt / 6 * (k1d + 2 * k2d + 2 * k3d + k4d)
+            w = w + dt / 6 * (k1w + 2 * k2w + 2 * k3w + k4w)
+            worst = np.maximum(worst, np.abs(d[:, 1] - d[:, 0]))
+        return worst < np.pi
+
+    lo, hi = np.zeros(n), np.full(n, CCT_MAX)
+    never, always = ~stable(lo), stable(hi)
+    while hi[0] - lo[0] > tol:
+        mid = 0.5 * (lo + hi)
+        ok = stable(mid)
+        lo, hi = np.where(ok, mid, lo), np.where(ok, hi, mid)
+    return np.where(never, 0.0, np.where(always, CCT_MAX, 0.5 * (lo + hi)))
+
+
+def build_cases(n_ops=180, seed=12, dt=0.002, tol=CCT_TOL, verbose=False):
+    """The labelled screening set of :func:`build_dataset`, every case
+    simulated at once. Returns the same dict (without the cache), with
+    ``"seconds"`` the time the simulations took. ``dt`` is the time step of
+    the integration and ``tol`` the tolerance of the bisection: coarsen both
+    and the labels are cheaper and less exact."""
+    cases = contingencies()
+    ops = operating_points(n_ops, seed=seed)
+    rows = [(i, op, c, case_setup(op, c["outage"], c["fault_bus"])) for i, op in enumerate(ops) for c in cases]
+    stack = lambda key: np.array([r[3][key] for r in rows])
+    mach = [r[3]["machines"] for r in rows]
+    t0 = time.time()
+    cct = _cct_batch(np.array([m.E for m in mach]), np.array([m.H for m in mach]), np.array([m.D for m in mach]),
+                     stack("Pm"), mach[0].ws, stack("Yred_pre"), stack("Yred_fault"), stack("Yred_post"),
+                     stack("delta0"), dt, tol)
+    seconds = time.time() - t0
+    d = {"X": np.array([node_features(op, c, detail=det) for _, op, c, det in rows]),
+         "A": np.array([adjacency(c["outage"]) for _, _, c, _ in rows]),
+         "onehot": np.array([outage_onehot(c) for _, _, c, _ in rows]),
+         "cct": cct, "secure": secure(cct).astype(float),
+         "op_id": np.array([i for i, _, _, _ in rows]), "cont_id": np.array([c["index"] for _, _, c, _ in rows]),
+         "ops": ops, "seconds": np.array(seconds)}
+    if verbose:
+        print(f"  {len(cct)} cases simulated in {seconds:.1f} s ({1000 * seconds / len(cct):.1f} ms each)")
+    return d
+
+
+def describe_problem() -> None:
+    """Print the grid, the contingencies and the numbers that frame the set."""
+    print("  the grid is DK2-representative, not DK2; the machines' inertia, damping and reactance are ESTIMATED")
+    print(f"  grid             : {N_BUS} buses, {len(BRANCHES)} lines; the Nordic system at bus 0 (H = 150 s), the local plant at bus 1 (H = 4 s)")
+    print(f"  operating points : load {LOAD_SCALE[0]:.2f} to {LOAD_SCALE[1]:.2f} of base, HVDC import {HVDC_RANGE[0]:.2f} to {HVDC_RANGE[1]:.2f} p.u.")
+    for c in contingencies():
+        print(f"    contingency {c['index']}: {c['label']}")
+    skipped = islanding_outages()
+    print(f"  not screened     : line {skipped} - losing it cuts a bus off, which is loss of supply and not a stability case")
+    print(f"  protection       : clears a fault in {1000 * PROTECTION_TIME:.0f} ms; a case with a shorter critical clearing time is insecure")
+    print(f"  simulation       : {T_END:.1f} s simulated for each trial, search up to {1000 * CCT_MAX:.0f} ms, to {1000 * CCT_TOL:.0f} ms")

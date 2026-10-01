@@ -108,6 +108,9 @@ __all__ = [
     "EDS_URL", "FINGRID_FREQ_HIST", "TIMEOUT",
     "dk2_load", "nordic_frequency", "from_csv", "find_event",
     "rocof_from_series", "scale_to_network",
+    # the one-notebook set
+    "SIGMA_FORECAST", "scenarios", "meters", "readings", "wls_all",
+    "disturbance", "plant_power", "shoot_inertia", "describe_problem",
     # physics-informed estimators
     "StateVariables", "algebraic_pinn", "TrajectoryNet", "dynamic_pinn",
     "identify_inertia",
@@ -1491,3 +1494,142 @@ def make_report(sections, filename="Ex12.1_report.md", author=""):
         fh.write(text)
     print(f"  wrote {filename} ({len(text)} characters)")
     return filename
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 9 · the one-notebook set (course policies C11, C13)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# What Ex12.1_pinn_grid_state.ipynb needs on top of the sections above: many
+# operating points of the same grid, three sets of meters, and one recorded
+# disturbance with the one-machine model that is fitted to it. The network and
+# its loss are written in the notebook.
+
+#: Accuracy of a forecast entered as if it were a meter (a pseudo-measurement),
+#: in p.u. on 100 MVA: 5 MW or 5 Mvar. An ASSUMED value, of the order a
+#: day-ahead load forecast achieves at a transmission bus.
+SIGMA_FORECAST = 0.05
+
+
+def scenarios(n, seed=0, Y=None):
+    """``n`` operating points of the grid: every injection scaled by its own
+    random factor between 0.6 and 1.2, and the power flow solved for each.
+    Returns ``(V, th)``, arrays of shape ``(n, N_BUS)``: the true states."""
+    Y = build_ybus() if Y is None else Y
+    rng = np.random.default_rng(seed)
+    P0, Q0 = injections()
+    Vs, ths = [], []
+    while len(Vs) < n:
+        f = rng.uniform(0.6, 1.2, N_BUS)
+        V, th, ok, _ = solve_power_flow(Y, P0 * f, Q0 * f)
+        if ok:
+            Vs.append(V.copy()); ths.append(th.copy())
+    return np.array(Vs), np.array(ths)
+
+
+def meters(kind):
+    """One of the three sets of readings the notebook compares.
+
+    ``"full"``      PMUs at two buses, injections metered at five: 14 readings
+    ``"thin"``      one PMU and the injections at two buses: 6 readings
+    ``"forecast"``  the thin set, plus a forecast of the injections at the four
+                    buses with no meter, accurate to :data:`SIGMA_FORECAST`
+    """
+    if kind == "full":
+        return default_measurements()
+    ms = thin_measurements()
+    if kind == "thin":
+        return ms
+    out = MeasurementSet(list(ms.spec) + [(k, i) for i in (1, 2, 4, 5) for k in ("P", "Q")])
+    out.sigma[len(ms.spec):] = SIGMA_FORECAST
+    return out
+
+
+def readings(V, th, ms, seed=0, Y=None):
+    """What the meters of ``ms`` read in each of the states ``(V, th)``, with
+    noise at each meter's accuracy. Shape ``(n, len(ms))``."""
+    Y = build_ybus() if Y is None else Y
+    rng = np.random.default_rng(seed)
+    return np.array([synth_measurements(v, t, Y, ms, rng) for v, t in zip(V, th)])
+
+
+def wls_all(Z, ms, Y=None):
+    """Weighted least squares on every row of readings ``Z``. Returns
+    ``(V, th)`` of shape ``(n, N_BUS)``."""
+    Y = build_ybus() if Y is None else Y
+    est = [wls_estimate(z, ms, Y) for z in Z]
+    return np.array([e[0] for e in est]), np.array([e[1] for e in est])
+
+
+def disturbance(t_fault=0.5, t_clear=0.6, t_end=3.0, rate_hz=50.0, noise_hz=0.002, seed=11):
+    """A recorded disturbance: line 0-1 faults at ``t_fault`` and is switched
+    out at ``t_clear``; a PMU at the local plant (machine 1) reports its
+    frequency ``rate_hz`` times a second with ``noise_hz`` of noise. The truth
+    is the two-machine model of section 5, integrated by RK4.
+
+    Returns a dict: ``t`` and ``f`` (the record), and the constants of the
+    **one-machine model** the notebook fits to it - the plant swinging against
+    a grid taken to be fixed: ``Pm``, ``D``, ``E1E0``, ``E1E1``, ``G11``,
+    ``G10``, ``B10``, ``ws`` - and ``H_true``, the inertia the record was made
+    with. The grid is not fixed in the truth (its inertia is 150 s, not
+    infinite), which is a small error of the model, on purpose."""
+    Y = build_ybus()
+    P, Q = injections()
+    V, th, _, _ = solve_power_flow(Y, P, Q)
+    m = Machines()
+    Yred_pre = reduced_admittance(Y, m, V, th, P, Q)
+    Y_post = build_ybus(outage=0)
+    V2, th2, _, _ = solve_power_flow(Y_post, P, Q)
+    Yred = reduced_admittance(Y_post, m, V2, th2, P, Q)
+    delta0, _ = equilibrium(m, Yred_pre)
+    T, D, W = simulate_swing(m, Yred_pre, Yred, t_end=t_end, t_fault=t_fault, t_clear=t_clear, delta0=delta0)
+    step = max(int(round(1.0 / (rate_hz * (T[1] - T[0])))), 1)
+    idx = np.arange(0, len(T), step)
+    rng = np.random.default_rng(seed)
+    f = W[idx, 1] / (2 * np.pi) + noise_hz * rng.standard_normal(len(idx))
+    return dict(t=T[idx], f=f, t_fault=t_fault, t_clear=t_clear, ws=m.ws, Pm=float(m.Pm[1]), D=float(m.D[1]),
+                E1E1=float(m.E[1] ** 2), E1E0=float(m.E[1] * m.E[0]), G11=float(Yred.real[1, 1]),
+                G10=float(Yred.real[1, 0]), B10=float(Yred.imag[1, 0]), H_true=float(m.H[1]),
+                separation=float(np.degrees(np.abs(D[:, 1] - D[:, 0]).max())))
+
+
+def plant_power(delta, rec):
+    """The electrical power of the plant in the one-machine model, for a rotor
+    angle ``delta`` against the grid (a NumPy array or a torch tensor)."""
+    c, s = (torch.cos, torch.sin) if torch.is_tensor(delta) else (np.cos, np.sin)
+    return rec["E1E1"] * rec["G11"] + rec["E1E0"] * (rec["G10"] * c(delta) + rec["B10"] * s(delta))
+
+
+def shoot_inertia(t, f, h_start, rec):
+    """The classical fit: integrate the one-machine swing equation from the
+    start of the window for a trial inertia, starting angle and starting speed,
+    and adjust the three by least squares until the frequency matches the
+    record. Returns ``(H, rms misfit in Hz)``."""
+    from scipy.integrate import solve_ivp
+    from scipy.optimize import least_squares
+    ws = rec["ws"]
+
+    def run(p):
+        rhs = lambda _, y: [y[1], ws / (2 * p[0]) * (rec["Pm"] - plant_power(y[0], rec) - rec["D"] * y[1] / ws)]
+        y = solve_ivp(rhs, (t[0], t[-1]), [p[1], p[2]], t_eval=t, rtol=1e-9, atol=1e-11).y
+        return 50.0 + y[1] / (2 * np.pi) - f
+
+    fit = least_squares(run, [h_start, 0.1, 0.0], bounds=([0.5, -2.0, -20.0], [50.0, 2.0, 20.0]))
+    return float(fit.x[0]), float(np.sqrt(np.mean(fit.fun ** 2)))
+
+
+def describe_problem() -> None:
+    """Print the grid, its meters and the numbers they imply."""
+    Y = build_ybus()
+    P, Q = injections()
+    V, th, ok, it = solve_power_flow(Y, P, Q)
+    print("  the grid is DK2-representative, not DK2: its impedances are textbook values, not measured")
+    print(f"  grid             : {N_BUS} buses, {len(BRANCHES)} lines, 100 MVA base; bus 0 is the reference")
+    for i, (name, kind, p, q) in enumerate(BUSES):
+        print(f"    bus {i}  {name:16s}{kind:6s} P {p:+.2f}  Q {q:+.2f}   ->  |V| {V[i]:.3f} p.u., angle {np.degrees(th[i]):+.2f} deg")
+    print(f"  state            : {N_BUS} magnitudes and {N_BUS - 1} angles, {2 * N_BUS - 1} unknowns")
+    for kind in ("full", "thin", "forecast"):
+        ms = meters(kind)
+        _, rank, full = observable(ms, Y)
+        print(f"  meters, {kind:9s}: {len(ms):2d} readings, which determine {rank} of the {full} unknowns")
+    print(f"  accuracy         : |V| 0.004, angle 0.002 rad, P and Q 0.010 p.u.; a forecast {SIGMA_FORECAST:.2f} p.u. (assumed)")

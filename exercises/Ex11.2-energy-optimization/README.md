@@ -1,140 +1,131 @@
-# Ex_11.2 — Dynamics and Energy: making the policy efficient
+# Ex_11.2 — The Cheapest Lap
 
-**Paired with L11.2 · Dynamics and Energy · Part 2**
+**Paired with L11.2 · Dynamics, Energy and Efficient Driving · Part 2**
 
-Ex_11.1 asked whether the car could drive the course. This asks what it cost.
-You identify the vehicle's dynamics and electrical parameters from measured
-data — an inverse problem: known model structure, unknown coefficients —
-predict the energy of a lap **before** you run it, then optimise the speed
-profile.
+Ex_11.1 asked whether the car could drive the course. This set asks what a lap
+costs. It has **one study notebook** (course policies C11 and C13), which runs
+on Colab or a laptop, and **one on-car notebook**, which is the hardware
+procedure of the competition and runs only on the JetRacer.
 
-Prerequisite: a working Ex_11.1 policy and its submission file.
-
-## The two notebooks, and why there are two
-
-`Ex11.2_10_energy_optimization.ipynb` runs **on the car**. It identifies the
-parameters with `scipy.optimize.least_squares` and finds the speed profile with
-`scipy.optimize.minimize`. For four parameters and a one-dimensional profile
-those are the right tools, and this is the notebook you are scored on.
-
-`Ex11.2_20_energy_optimization_pinn.ipynb` solves the **same optimisation** as a
-neural network: the profile becomes a function of arc length, the grip limit
-becomes a layer, and autograd supplies the gradient. Run it off the car, after
-notebook 10, using the parameters you identified there.
-
-The comparison is the point. Expect the network to land a few percent worse and
-to take longer, and expect the grip ceiling never to be violated. The report asks
-you to name one change to the problem that would reverse the verdict.
-
-## Goals
-
-By the end you can
-
-1. configure a current sensor deliberately — averaging, conversion time — and
-   justify the configuration against the switching frequency it is measuring;
-2. identify vehicle parameters from a coast-down, and **report as lumped what
-   the data cannot separate**;
-3. state a prediction before the measurement that would confirm or refute it,
-   and be scored on the gap;
-4. find the energy-optimal lap time and explain why the minimum is interior
-   rather than at either extreme;
-5. distinguish traction energy from hotel load, and show which one puts the
-   minimum where it is.
+```
+Ex11.2_pinn_cheapest_lap.ipynb         the study notebook: two TODO cells, the answer in the comment above each
+Ex11.2_pinn_cheapest_lap_light.ipynb   the same notebook with every cell written out
+Ex11.2_on_the_car.ipynb                on the car: the sensor, the coast-down, the identification, the scored laps
+```
 
 ## The problem
 
-Total lap cost is
+Which speed at every point of a closed course makes a lap cost least,
 
 ```
-J = E_lap + w · T_lap,     w = 5 J/s fixed
+J = E + w T,        w = 5 J/s fixed by the competition
+F = c_rr m g + ½ ρ C_d A v² + m v dv/ds        the force the motor supplies
+i = max(F/K, 0)                                no regeneration
+P = i² R_a + K i v + P_hotel                   winding heat, traction, electronics
+v ≤ min(√(μg/κ), v_max)                        the grip limit                 (built into the network)
 ```
 
-and there are two scores: efficiency `η = J₀ / J`, and model fidelity
-`φ = E / (E + |E_pred − E|)` with the prediction **timestamped before** the run.
-The second is the one that rewards understanding rather than tuning.
+Driving slowly pays the electronics for longer; driving fast pays in winding
+heat and in the kinetic energy thrown away before each corner.
 
-Driving slowly wastes energy on the hotel load — Nano, camera, OLED — for
-longer; driving quickly wastes it on drag and on braking. The minimum sits
-between, and it moves when the hotel load changes. That is why the shunt has to
-see the **whole** vehicle rather than the traction branch alone: wire it wrong
-and the interior minimum disappears from your data entirely.
+**Every number of the car in the study notebook is a placeholder of the right
+order, not a measurement**: 1.05 kg, μ = 0.65, c_rr = 0.02, K = 1.0 N/A,
+R_a = 1.5 Ω, C_d A = 0.02 m², 7 W of electronics, a top speed of 3.0 m/s, and an 18 m course of
+three corners. They are in `problem.py`, marked as placeholders, and the
+notebook says so where it prints them. The on-car notebook measures your own;
+no result of the study notebook is your car's until you have put them in.
 
-## The notebook
+## The study notebook
 
-```
-Ex11.2_10_energy_optimization.ipynb   the whole exercise, run on the car
-```
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: the force, the power, no regeneration, the grip limit |
+| 4 | the reference and the classical optimiser: one unknown per step, L-BFGS-B with bounds, the step halved four times, for an agreed 1 % of the cost |
+| 5 | the network: the speed as a function of arc length, the grip limit as its last layer (TODO 1), the lap cost in torch (TODO 2); the two compared |
+| 6 | the inverse problem: the rolling coefficient from a coast-down, by least squares and by a physics-informed fit with one more trainable number |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
 
-Sections: the pack you actually have, the INA219 configured deliberately, the
-instrumented loop, the coast-down, parameter identification, the energy-optimal
-speed profile, the committed prediction, and the scored run.
+It replaces the earlier `Ex11.2_20_energy_optimization_pinn.ipynb`.
+
+### What it measures (CPU, seed 88, the placeholder car)
+
+| | energy | lap time | cost J | against the reference | computed in |
+|---|---|---|---|---|---|
+| reference, step 0.0625 m (288 unknowns) | 55.99 J | 6.50 s | 88.50 J | — | about 10 s |
+| classical optimiser, step 0.25 m (the coarsest for 1 %) | 55.60 J | 6.49 s | 88.03 J | −0.53 % | under 1 s |
+| network, 3 × 32, six harmonics, grip limit built in | 55.66 J | 6.48 s | 88.08 J | −0.48 % | about 3 s |
+
+The network is 0.05 % above the classical optimiser on the same step and is
+never above the ceiling. The coast-down returns c_rr = 0.0200 by least squares
+and 0.0199 by the physics-informed fit, against the 0.0200 the synthetic log
+was made with.
+
+**Two things worth knowing.** With 7 W of electronics and 5 J for every
+second, time dominates the cost, so the best lap is close to the fastest the
+tyres allow: the interior minimum the lecture describes needs a smaller hotel
+load or a smaller w to show clearly. And the earlier notebook 20 told
+students to expect the network a few per cent worse than SciPy, because a
+sigmoid only approaches its ceiling; with six harmonics as inputs and L-BFGS
+it is 0.05 % worse. The earlier notebook also wrote the traction power as
+F·v with F allowed to be negative, which credits braking as regeneration; the
+power here is K·i·v with the current clamped at zero.
+
+## The on-car notebook
+
+`Ex11.2_on_the_car.ipynb` is unchanged in what it does: it configures the
+INA219, measures the hotel load, logs a coast-down, identifies the
+parameters with `scipy.optimize.least_squares`, commits an energy prediction
+before the run, and scores three clean laps on two boards. It needs the car,
+the Waveshare image and a working Ex_11.1 policy; it has no light form.
+**The car has no encoder**, so its speed comes from lap timing or from the
+camera, which bounds every identified parameter.
 
 ## Files
 
 | | |
 |---|---|
-| `course_core.py` | shared by the whole course |
+| `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
+| `pinn_core.py` | the training helpers — `grad`, `train_two_stage` |
+| `problem.py` | **this** problem — the placeholder car, the course, the lap cost (NumPy or torch), the classical optimiser, the synthetic coast-down |
 
-Self-contained otherwise: the INA219 and JetRacer libraries live on the car.
-`course_core.py` is generated — edit `tools/pinn/course_core.py` and run
-`python3 tools/pinn/sync_cores.py`.
+The first two are generated. Edit `tools/pinn/*.py` and run
+`python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-## What to hand in
-
-- both indices, with the prediction's timestamp
-- your identified parameters, stated as lumped quantities where the data cannot
-  separate them
-- how you measured speed, given there is no encoder
-- the energy-versus-lap-time curve with your chosen operating point marked
-
-## Things that go wrong, and what they mean
-
-**Your energy trace is noise.** The drive is switched at kilohertz and you
-sampled at 20 Hz with a short conversion window, so each sample landed wherever
-it liked in the PWM cycle. Set on-chip averaging so each reading integrates over
-many switching periods, and record the configuration.
-
-**You cannot separate the torque constant from the gearing.** You cannot. The
-data does not distinguish them — fit the lumped constant, report it as lumped,
-and say which physical parameters it contains.
-
-**The hotel load is invisible to your shunt.** Then the shunt is in the wrong
-place, and the interior minimum in the energy-versus-lap-time curve disappears
-with it.
-
-**There is no encoder and you assumed one.** The Pro has none. Speed comes from
-segment timing, optical flow, or a sensor you add — state which, because it
-bounds everything downstream.
+**The study notebook is generated too**, both forms from one source,
+`tools/exercises/ex112/build_ex112.py`. Edit the builder and rerun it rather
+than editing a notebook. The on-car notebook is edited by hand.
 
 ## Expected runtime
 
-An afternoon on the car. The coast-down is ten minutes of measurement and the
-identification fits in seconds; the scored runs take the rest.
+The study notebook: about twenty seconds on a CPU, half of it the reference on
+its finest step. The on-car notebook: one lab session.
 
 ## Reference texts
 
+Liu, G.R., *PINN with Python: An Introduction* (2025).
 Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
-J. Comput. Phys. **378** (2019) 686–707 — for the inverse-problem formulation.
-Prince, S.J.D., *Understanding Deep Learning* (MIT Press, 2023), Ch. 6.
+J. Comput. Phys. **378** (2019) 686–707.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** and are not
-derived from any publisher's code listings.
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-The pack is 2S2P at 8.4 V and no motor count is claimed — earlier drafts quoted
-the plain JetRacer's figures. **Nothing in this set has been executed on a car
-this term.**
+The light version of the study notebook has been executed end to end on a
+local CPU; the exercise version stops at its TODO cells. Still to do: a run
+from a fresh Colab runtime, a review by someone other than the author, and -
+as before - a first run of the on-car notebook on a car.
 
 ## Mini project proposal
 
-The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex112_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP11.2A · The energy-optimal lap, with the battery** | a fixed 7.20 m lap; grip-limited turns, copper loss, the pack's sag | notebook 20's network with the pack, the grip limit as a layer | direct collocation, 50 to 200 nodes; worked example: the cheapest lap is 3.4 s at 26.16 J; the pack adds under 1 % | energy within 2 %, the cheapest lap within 0.1 s, the curve in under 1 s |
+| **MP11.2A · The energy-optimal lap, with the battery** | a fixed 7.20 m lap; grip-limited turns, copper loss, the pack's sag | section 5's network with the pack, the grip limit as a layer | direct collocation, 50 to 200 nodes; worked example: the cheapest lap is 3.4 s at 26.16 J; the pack adds under 1 % | energy within 2 %, the cheapest lap within 0.1 s, the curve in under 1 s |
 | **MP11.2B · What the model misses** | an extra low-speed friction the four-parameter model does not have; coast-downs from 1, 2, 3 m/s | a neural ODE: the vehicle model plus a small network for what it misses | simulated coast-downs, noise 0.02 m/s; worked example: the model misses up to 0.081 m/s, at low speed only | extra loss within 20 %, parameters within 10 %, speed within 0.02 m/s |

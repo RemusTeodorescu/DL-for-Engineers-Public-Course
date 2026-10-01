@@ -1,33 +1,76 @@
-# Ex_11.1 — Vision-Based Navigation: driving a course from pixels
+# Ex_11.1 — Steering from a Frame
 
 **Paired with L11.1 · Vision-Based Navigation · Part 2**
 
-The first exercise in the course where the model has to act. Everything up to
-here was judged against a stored answer; here it is judged against a car that
-either makes the corner or does not. You collect your own dataset, train a
-regression from image to steering target, and drive a scored lap.
+The first exercise in the course where the model has to act. The set has
+**one study notebook** (course policies C11 and C13), which runs on Colab or a
+laptop, and **one on-car notebook**, which is the hardware procedure of the
+competition and runs only on the JetRacer.
 
-**This runs on the car, not on Colab.** Before you open the notebook the
-Waveshare image must be flashed, the Nano must be in 5 W mode, and the stock
-motion notebook must turn the wheels. Debugging a network on a car that has
-never driven is a wasted afternoon — do `SETUP.md` first.
-
-## Goals
-
-By the end you can
-
-1. collect a labelled dataset from a physical sensor and say honestly what it
-   does and does not cover;
-2. train an image-to-steering regression and evaluate it on **held-out** data
-   rather than on the frames it was fitted to;
-3. instrument a control loop — measure its rate, and convert that rate into
-   the blind distance `d = v/f` the car travels between decisions;
-4. design and demonstrate a failsafe, and treat it as a gate rather than a
-   nicety;
-5. report a scored result with its uncertainty, from the median of repeated
-   clean laps rather than the best one.
+```
+Ex11.1_cnn_steering_from_a_frame.ipynb         the study notebook: two TODO cells, the answer in the comment above each
+Ex11.1_cnn_steering_from_a_frame_light.ipynb   the same notebook with every cell written out
+Ex11.1_on_the_car.ipynb                        on the car: hardware check, collection, training, the loop, the scored laps
+SETUP.md                                       flash, configure and verify the car - do this before the on-car notebook
+```
 
 ## The problem
+
+A car follows a line of tape. Its camera gives a frame; the policy returns
+where the line is a little way ahead, one number between −1 and +1, and the
+steering follows from it. Between two decisions the car is blind for
+
+```
+d = v / f          speed over decisions a second
+```
+
+**The study notebook's frames are synthetic**: 48 × 64 grey pixels drawn by
+`problem.py` from the car's offset, its heading and the curve of the road,
+with a brightness slope, pixel noise and, on some frames, a patch of glare.
+That is what makes the true target known. **The car in its section 6 is
+assumed too**: a bicycle model with a wheelbase of 0.20 m and a steering limit
+of 30° on a stadium track of 7.20 m, none of it measured. The on-car notebook
+is where real frames and a real loop rate come from.
+
+## The study notebook
+
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, the geometry of the loop: the target, the steering it implies, the blind distance |
+| 4 | the reference (the true target) and the classical detector - bright pixels in a band of rows - at four resolutions, for an agreed mean error of 0.03, one pixel |
+| 5 | a convolutional network (TODO 1) and its training step (TODO 2), trained on frames collected along the line and on frames collected deliberately; the three compared |
+| 6 | the loop rate: a simulated lap at eight combinations of speed and decisions a second; then the network's weights stored in 8 to 2 bits |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+It replaces `Ex11.1_01_quantisation.ipynb`, the quantisation notebook that
+came from Ex06 on 22 September 2026. Of that notebook, the rounding of a
+regression's weights is kept (section 6); PyTorch's dynamic quantisation of a
+classifier, its comparison with a narrower float model, and the
+signal-to-noise line are not.
+
+### What it measures (CPU, seed 88)
+
+| mean error on 1000 held-out frames | along the line | beside the line | with glare | one frame | training |
+|---|---|---|---|---|---|
+| classical detector, 12 × 16 pixels (the coarsest for 0.03) | 0.024 | 0.026 | 0.369 | 0.04 ms | — |
+| network, 55 233 weights, trained along the line | 0.002 | 0.136 | 0.149 | 0.19 ms | 3 s |
+| the same network, trained deliberately | 0.006 | 0.008 | 0.009 | 0.19 ms | 3 s |
+
+The simulated car holds the line within about 2 cm for a blind distance up to
+10 cm, is 3 cm off at 13 cm and leaves the course at 17 cm; 1 m/s at 10 Hz and
+2 m/s at 20 Hz give the same result. Weights stored in 8, 6, 5, 4, 3 and 2
+bits give errors of 0.009, 0.008, 0.013, 0.021, 0.149 and 0.234. The timings
+are a laptop's, not the Nano's.
+
+## The on-car notebook
+
+**This runs on the car, not on Colab.** Before you open it the Waveshare image
+must be flashed, the Nano must be in 5 W mode, and the stock motion notebook
+must turn the wheels - do `SETUP.md` first. Its stages are the hardware check,
+data collection, training with a held-out split, the instrumented control
+loop, the failsafe gate, and the scored run. It has no light form.
 
 The car is a Waveshare JetRacer Pro: a Jetson Nano, a wide-angle camera, a
 steering servo and a 2S2P 18650 pack at 8.4 V. There is **no encoder**, which
@@ -42,48 +85,15 @@ N = T₀ / (T̄ + 2c)
 with `T̄` the median of three clean laps and `c` the penalty per contact. The
 blind distance enters as a hard cap: if `d = v/f` exceeds half the narrowest
 clearance on the course you are capped at `N = 1.00` however fast you drove.
-Raise the loop rate or slow down — those are the only two levers the algebra
-allows.
 
-## The notebooks
+### What to hand in from the car
 
-```
-Ex11.1_01_quantisation.ipynb         making it fit on the device, on Colab or a laptop
-Ex11.1_10_camera_navigation.ipynb    the whole exercise, run on the car
-```
-
-**01 · Making it fit on the device.** Before the car: post-training dynamic
-quantisation of a small classifier, measured on size, latency and accuracy
-together, against simply using a narrower float model; then weights rounded by
-hand from 8 bits to 2 on a classifier and a regression, to show which of the two
-the rounding hurts. The steering network is a regression. Moved here from Ex06
-on 22 September 2026, when deployment moved from L6.2 to L11.1. It has a light
-version, and its data and helpers are in `quantisation_core.py`.
-
-**10 · Camera navigation** is one notebook rather than six because the car is
-the bottleneck: the sections are hardware check, data collection, training with
-a held-out split, the instrumented control loop, the failsafe gate, and the
-scored run.
-
-## Files
-
-| | |
-|---|---|
-| `SETUP.md` | flash, configure and verify the car — **do this first** |
-| `course_core.py` | shared by the whole course |
-| `quantisation_core.py` | notebook 01's datasets, network, and size and timing helpers |
-
-`course_core.py` is generated: edit `tools/pinn/course_core.py` and run
-`python3 tools/pinn/sync_cores.py`.
-
-## What to hand in
-
-- your Navigation Index, median of three clean laps
-- your measured loop rate and the blind distance that follows from it
-- evidence the failsafe works
+- `SUBMISSION_Ex11.1_<team>_car<NN>.json`, `logs/latency.json`, `logs/training.json`, `model_best.pth`
+- two paragraphs: what limited you - data, latency, or grip - and how you know
+- the measured loop rate and the blind distance at your speed
 - held-out validation error, not training error
 
-## Things that go wrong, and what they mean
+### Things that go wrong, and what they mean
 
 **`jetracer` imports but the wheels do not turn.** You have NVIDIA's motor code
 rather than Waveshare's. Remove the `jetracer` folder and reinstall the
@@ -93,16 +103,33 @@ Waveshare version.
 survive a reboot. Re-run the hardware check after *every* restart.
 
 **The car follows the racing line and cannot recover.** Your dataset contains
-only the racing line. Drive off-line deliberately and label the correction —
-that is where the useful gradient lives.
+only the racing line. Drive off-line deliberately and label the correction -
+section 5 of the study notebook shows what that is worth.
 
 **Your validation error is suspiciously low.** Consecutive frames are nearly
 identical, so a random split leaks. Hold out whole runs, not whole frames.
 
+## Files
+
+| | |
+|---|---|
+| `SETUP.md` | flash, configure and verify the car |
+| `course_core.py` | shared by the whole course — `set_seed`, `to_tensor`, `parameter_count` |
+| `pinn_core.py` | the Part 2 helpers; the study notebook uses only its imports |
+| `problem.py` | **this** problem — the frame generator, the classical detector, the simulated lap, the rounding of weights |
+
+The two cores are generated. Edit `tools/pinn/*.py` and run
+`python3 tools/pinn/sync_cores.py`; never edit a copy.
+
+**The study notebook is generated too**, both forms from one source,
+`tools/exercises/ex111/build_ex111.py`. Edit the builder and rerun it rather
+than editing a notebook. The on-car notebook is edited by hand.
+
 ## Expected runtime
 
-An afternoon on the car. Data collection is twenty minutes, training two to
-five minutes on the Nano, and the rest is driving.
+The study notebook: about fifteen seconds on a CPU. The on-car notebook: an
+afternoon - data collection twenty minutes, training two to five minutes on
+the Nano, and the rest is driving.
 
 ## Reference texts
 
@@ -115,13 +142,16 @@ derived from any publisher's code listings.
 
 ## Before this is assigned
 
-The scoring algebra and the blind-distance cap are checked by hand. **Nothing
-in this set has been executed on a car this term** — one JetRacer must complete
-notebook 10 end to end before it goes to students.
+The light version of the study notebook has been executed end to end on a
+local CPU; the exercise version stops at its TODO cells. Still to do: a run
+from a fresh Colab runtime and a review by someone other than the author.
+The scoring algebra and the blind-distance cap of the on-car notebook are
+checked by hand, but **nothing in it has been executed on a car this term** -
+one JetRacer must complete it end to end before it goes to students.
 
 ## Mini project proposal
 
-The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex111_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

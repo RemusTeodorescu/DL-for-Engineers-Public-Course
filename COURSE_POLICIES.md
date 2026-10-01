@@ -312,12 +312,19 @@ run with it.
   - is one notebook **per problem**, each standing alone with its own report
   and its own mini project. Ex07.2, *Benchmark PDEs*, is the one: the die
   (parabolic), the stator slot (elliptic) and the struck panel (hyperbolic).
+- A supplement with nothing to fill in needs no light version (Ex12.2's
+  comparison with ANDES).
+- A **hardware set** keeps one hardware notebook beside its study notebook,
+  named `*_on_the_car` (Ex11.1, Ex11.2: the JetRacer) or `*_on_the_board`
+  (Ex12.2: the latency notebook L13 runs on the Thor). It is the procedure
+  that needs the hardware, it has no light form, and it is not counted. The
+  study notebook runs on Colab and says where its numbers are placeholders
+  for ones the hardware notebook measures.
 
 *New, 29 September 2026. It is the rule for **every** Part 2 set. Ex07.1 was
 the first under it; Ex07.2 (three notebooks, a benchmark set), Ex08.1,
-Ex08.2, Ex09.1 and Ex09.2 (1 October) follow. Ex10.1 to Ex12.2 are still
-several notebooks each and `check_exercise_policy.py` reports them until they
-are rewritten.*
+Ex08.2, Ex09.1 and Ex09.2 (1 October) follow, and Ex10.1 to Ex12.2 since
+1 October: every Part 2 set holds under `check_exercise_policy.py`.*
 
 ## C12 · Numbers with at most two decimals
 

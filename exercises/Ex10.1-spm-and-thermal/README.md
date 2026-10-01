@@ -1,176 +1,124 @@
-# Ex_10.1 — Battery models: SPM, SPMe and thermal coupling
+# Ex_10.1 — A Particle in a Battery Cell
 
-**Paired with L10.1 · Battery models · Part 2**
+**Paired with L10.1 · Ionic Diffusion and Charge Conservation · Part 2**
 
-SPM → SPMe → thermal coupling on the LG M50 21700, with **PyBaMM as the
-reference** and a control panel for C-rate, ambient temperature, initial SOC
-and cooling.
+The single particle model in **one notebook** (course policies C11 and C13).
+An LG M50 cell is discharged at 1C; in its negative electrode the lithium has
+to diffuse to the surface of a graphite particle before it can leave. Students
+compute the concentration in the particle three ways — an exact series, finite
+volumes, and a physics-informed network with the start built in — and compare
+them on accuracy and on time. Then the same network recovers the diffusivity
+from the surface concentration, which is what a battery management system
+could see.
 
-Having a community reference implementation to compare against is a luxury.
-Most models have none, so notice how much of your confidence here comes from
-the reference rather than from the network.
-
-## Goals
-
-By the end you can
-
-1. write a **radial** diffusion residual, including the $2/r$ curvature term,
-   and say what you did about the singularity at the centre;
-2. impose a **flux** condition on both ends of a domain where no value is
-   prescribed anywhere, and explain why that is still a well-posed problem;
-3. score a trained field against a series solution and report the **surface**
-   error separately from the bulk, because the surface is what the reaction
-   sees;
-4. locate the operating point at which a reduced model — the SPM — measurably
-   stops matching a fuller one, and name the physics it dropped;
-5. decompose a coupled heat source into its irreversible, reversible and ohmic
-   parts, and say which changes sign with the current;
-6. judge from the Biot number whether a lumped thermal model is honest, and say
-   what you would need to do if it is not.
-
-## The problems
-
-**One particle — parabolic, radial, singular at the centre.** The
-single-particle model reduces an electrode to one representative sphere:
-$c_t = c_{rr} + (2/r)c_r$, with zero flux at the centre, unit flux at the
-surface and $c=0$ initially. Two things separate it from the Cartesian
-problems of L7: the Laplacian carries a curvature term that blows up at $r=0$,
-and **both** boundary conditions are on the flux — nothing fixes the
-concentration anywhere.
-`analytic_sphere` in `problem.py` is the classical series solution (Crank,
-*Mathematics of Diffusion*), so the error is measurable without PyBaMM and
-without training anything.
-
-**The whole cell — where the SPM stops being honest.** The SPM assumes a
-uniform reaction rate and a uniform electrolyte. Both fail as C-rate rises, and
-the SPMe differs from the SPM by exactly the electrolyte physics that was
-dropped. PyBaMM supplies both, so the failure is measured in millivolts rather
-than argued about.
-
-**The cell heats up — Gu & Wang's three sources.** Irreversible, reversible and
-ohmic heating, computed separately, with the entropic term the 2000 paper had
-to neglect for want of data and ORegan2022 measured.
-
-## The notebooks
+## The problem
 
 ```
-Ex10.1_00_reference.ipynb        analytic sphere + PyBaMM references — read-only
-Ex10.1_01_spm.ipynb              the single particle — has TODOs
-Ex10.1_02_spme.ipynb             where the SPM fails — has TODOs
-Ex10.1_03_thermal.ipynb          Gu & Wang heat source and the r–z field — has TODOs
-Ex10.1_04_control_panel.ipynb    interactive parameter study
-Ex10.1_05_report.ipynb           assemble the report for submission
+c_t = D_s (c_rr + (2/r) c_r)     in the particle, 0 < t < 3600 s
+−D_s c_r = j                     on the surface            (a weighted loss term)
+c_r = 0                          at the centre             (follows from the residual, multiplied by r)
+c = c_0                          at t = 0                  (built into the network)
 ```
 
-Run them in order — later ones load results the earlier ones saved into
-`Ex10.1_outputs/`.
+Graphite particle of radius 5.86 µm, D_s = 3.3 × 10⁻¹⁴ m²/s, starting at
+29 866 mol/m³; 5 A for an hour gives a surface flux of 1.54 × 10⁻⁵ mol/(m² s).
+In scaled units — radius over R, time over the hour, the concentration lost
+over c_ref = j t_end/R = 9476 mol/m³ — it reads u_τ = C (u_rr + (2/r) u_r),
+C u_r = 1 on the surface, with C = D_s t_end/R² = 3.46. The mean of u over the
+sphere is exactly 3τ: the mass balance, which does not contain the diffusivity.
+
+**The parameter values are those of Chen et al. (2020) as distributed with
+PyBaMM, typed in from memory.** PyBaMM is not needed to run the notebook.
+Check them against `pybamm.ParameterValues("Chen2020")` before the set is
+assigned.
+
+## The notebook
+
+```
+Ex10.1_pinn_particle_diffusion.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex10.1_pinn_particle_diffusion_light.ipynb   the same notebook with every cell written out
+```
+
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: diffusion in a sphere, a flux at the surface, the scales, the mass balance |
+| 4 | the exact series as the reference; finite volumes on shells (Crank–Nicolson), for an agreed 30 mol/m³ |
+| 5 | the PINN: the trial function S τ 𝒩 (TODO 1), the residual multiplied by r (TODO 2), the surface flux and the mass balance as loss terms; the three compared |
+| 6 | the inverse problem: the diffusivity as one more trainable number, found from 37 readings of the surface concentration |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+The SPMe, the thermal model and the control panel of the earlier six-notebook
+version, which needed PyBaMM, are left to the lecture and to mini project
+MP10.1A.
+
+### What it measures (CPU, seed 88)
+
+| | surface at 3600 s | worst error over the hour | the hour | training |
+|---|---|---|---|---|
+| exact series | 891 mol/m³ (centre 2260) | — | — | — |
+| finite volumes, 40 shells, 144 steps (the coarsest for 30 mol/m³) | 890 mol/m³ | 29 mol/m³ | a few ms | — |
+| PINN, 4 × 32, start built in | 899 mol/m³ | 21 mol/m³ | under 1 ms | about 45 s |
+
+The inverse problem returns D_s = 3.29 × 10⁻¹⁴ m²/s against the true
+3.30 × 10⁻¹⁴, 0.38 % low, in under a minute, from readings with 50 mol/m³ of
+noise and a start at half the true value.
+
+**Three things that cost time and are not obvious.** The surface points must
+not include τ = 0: there the trial function has no gradient, the flux
+condition cannot be met, and one point in two hundred holds the loss at 0.05.
+The **mass balance has to be a loss term**: without it the network is late
+with the flux in the first instants, loses 0.007 of a unit and carries that to
+the end (78 mol/m³). And the residual is **not** divided by the trainable C
+here, unlike Ex_08.2: divided, C runs to infinity, where a uniform particle
+fits the surface readings; with the mass balance in the loss the undivided
+form gave −1.2 to −1.9 % from starts at half and at twice the true value.
 
 ## Files
 
 | | |
 |---|---|
-| `course_core.py` | shared by the whole course |
-| `pinn_core.py` | the PDE machinery |
-| `problem.py` | the cell — parameters, the analytic sphere, OCPs, heat sources, the PyBaMM reference, the control panel and the report |
+| `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
+| `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
+| `problem.py` | **this** problem — the data, the series solution, the samplers, the quadrature of the mass balance, the surface readings |
 
-The first two are generated: edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`. **On Colab nothing needs uploading** — each notebook fetches them.
+The first two are generated. Edit `tools/pinn/*.py` and run
+`python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-The samplers in `pinn_core.py` know about rectangles. The (r, t) slab is one,
-so `pb.particle_points` is a thin wrapper — but its four edges are the centre
-of a sphere, a reacting surface and an instant in time, each carrying a
-different kind of condition. Those samplers, and the series solution for the
-sphere, live in `problem.py` because they are geometry, not machinery.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex101/build_ex101.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
 
-## What to hand in
-
-- the SPM solution against the analytic sphere solution
-- the operating point where the SPM measurably fails, and the SPMe result there
-- the thermal r–z field, with the heat source stated
-- the control-panel study, and which parameter dominated
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only; no GPU is needed. A single particle run is one to three minutes. The
-control panel launches one run per click, so budget 30–60 minutes for a
-worthwhile study. Notebooks 00 (section 3) and 02 additionally need
-**`pybamm`** — `pip install -q pybamm`; notebook 01 works without it, using the
-analytic sphere solution.
-
-If a cell seems stuck, it probably is not: L-BFGS reports rarely, so a long
-silence after the Adam output is normal.
-
-## Things that go wrong, and what they mean
-
-**PyBaMM will not install.** Notebook 01 does not need it — use the analytic
-sphere solution and say in your report which reference you used.
-
-**The loss becomes `nan` on the first step.** Almost always the $2/r$ term at a
-collocation point sitting on, or extremely close to, the centre. Clamp it or
-sample away from it.
-
-**The SPM matches PyBaMM everywhere you look.** Then you have not yet found the
-regime where it fails. Push the C-rate: the SPM neglects electrolyte transport,
-so the discrepancy appears where that matters.
-
-**The thermal solution has a hot spot in the wrong place.** Check the sign of
-each heat-source term separately. Reversible heating changes sign with current
-direction and is easy to get backwards.
-
-## How this is meant to be used
-
-The modules are complete and working — you are not asked to rewrite them. Your
-work is in the cells marked `# TODO`, which are the residual, the loss and the
-trial solution. They are short by design, so your time goes on the parts that
-carry the ideas rather than on tensor plumbing.
-
-You *are* expected to read `problem.py`. It contains the reference
-implementations your work is judged against.
+CPU only; a GPU is slower on problems this small. About two minutes in all,
+nearly all of it the two trainings of sections 5 and 6.
 
 ## Reference texts
 
 Liu, G.R., *PINN with Python: An Introduction* (2025).
-Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
-J. Comput. Phys. **378** (2019) 686–707.
+Chen et al., *Development of experimental techniques for parameterization of
+multi-scale lithium-ion battery models*, J. Electrochem. Soc. **167** (2020) 080534.
+Crank, J., *The Mathematics of Diffusion* (1975).
 
-These are the works to read for the theory. **The code, the problems and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
-
-The physics follows the Doyle-Fuller-Newman framework; the thermal coupling and
-the heat-source decomposition follow Gu & Wang (2000). Parameters and reference
-solutions come from PyBaMM (LG M50 21700: Chen2020 isothermal, ORegan2022
-thermal).
+These are the works to read for the theory. **The code, the problem and the
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-The NumPy half of `problem.py` is verified: `analytic_sphere` satisfies its PDE
-to between 5e-8 and 1.5e-6 under central differences — finite-difference error,
-not a flaw in the solution — and its surface flux is 0.99991 against a nominal
-1 by a one-sided difference. `CellParams`, the three heat-source terms, the
-lumped thermal response, the Arrhenius factor and the particle samplers all
-run. **Nothing requiring torch has been executed** — this set was migrated onto
-`course_core`/`pinn_core` without a torch runtime available. Run notebooks 00
-and 01 end to end before this goes to students.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex10.1_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01, 04 and 05 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex10.1_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its TODO cells. Still to do, as for every set (C8): the
+parameter check against PyBaMM named above, a run from a fresh Colab runtime,
+and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 05, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex101_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

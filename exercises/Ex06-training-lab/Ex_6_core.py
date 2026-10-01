@@ -14,8 +14,8 @@ see docs/PROVENANCE.md for what each reference text is cited for.
                                            #     the exact optimum, and imitation of it
     Ex06_05_report.ipynb                   # 5 — the report
 
-The quantisation notebook moved to Ex11.1 on 22 September 2026, with the
-size and timing helpers it used (``quantisation_core.py`` there).
+The quantisation notebook left this set on 22 September 2026; rounding a
+network's weights to fewer bits is now section 6 of Ex11.1's study notebook.
 
 This module is complete. You are not expected to change anything in it. Your
 work is in the ``# TODO:`` cells of the notebooks.

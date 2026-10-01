@@ -92,6 +92,12 @@ policies under each; `--full` adds the review history behind every one.
     that is three lines";
   - a slide that has good reason to keep plain code writes
     `@keep-code — reason` in the generator.
+  - a deck that had no code at all (L10.1 to L12.2) gets the figure all the
+    same: every slide whose equation introduces a concept carries one. Where
+    a slide had no room, the figure takes the place of a secondary block of
+    text and that text moves to the narration;
+  - a figure drawn by hand from literal shapes is declared in the generator,
+    `/* @figure — what it draws */`, so that the check can see it.
 - **A formula names its symbols (D22, 1 October 2026).** Under the equation
   there is a legend: every symbol in it, named in the equation's own typeface,
   with its unit where it has one ("$h$ the heat transfer coefficient,

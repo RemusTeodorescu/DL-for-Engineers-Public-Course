@@ -39,18 +39,25 @@ policies under each; `--full` adds the review history behind every one.
   four questions with their answers, verbatim.
 - Two talk stops per lecture, each on a slide that defines a new concept: a
   general question first, then a question about a figure on the same slide.
-- The Questions slide has **four** exam questions - two for each of the
-  lecture's two main topics, headed `1 – 2 · TOPIC` and `3 – 4 · TOPIC` - each
-  with its **answer** in two or three sentences and the **reference** to read.
-  They are the most general questions the lecture can be asked: about a
-  concept, not a detail. It was ten until 1 October 2026; students found 24
-  lectures of ten too many to prepare, and a question with no answer beside it
-  is a second learning objective. A deck still on ten is reported by
-  `slide_policies.py` (D8, D13) until it is converted, and the notebooks'
-  question tags (`-> L7.2 Q3`) are renumbered with it.
+- **The Questions slide (D21, 1 October 2026).** Four exam questions, two
+  for each of the lecture's two main topics, headed `1 – 2 · TOPIC` and
+  `3 – 4 · TOPIC`. Each is a `[question, answer, reference]` triple:
+  - the **question** in bold, at most 125 characters, the most general one the
+    topic can be asked - about a concept, not a detail;
+  - the **answer** beside it in two or three plain sentences (60 to 320
+    characters), written as it should be said at the oral examination;
+  - the **reference** to read, in italics after the answer: the book chapter
+    and, where there is one, the notebook that works through it.
+  It was ten questions with references and no answers. Students found 24
+  lectures of ten too many to prepare, and a question with nothing beside it
+  read as a second learning objective. Every deck from L1.1 to L12.2 is on
+  the format; the next block's Recap copies the four verbatim (D16), and the
+  notebooks' question tags (`→ L8.1 Q3`) run from Q1 to Q4.
+  `slide_policies.py` checks the count, the halves, the lengths, the
+  references, that the answers are drawn, and that each box holds its text.
 - Every Key Takeaway answers an objective and is reproduced in a notebook.
 
-*Replaces D3, D4, D6, D7, D8, D10, D13, D15, D16, P7, E4, E6.*
+*Replaces D3, D4, D6, D7, D8, D10, D13, D15, D16, D21, P7, E4, E6.*
 
 ## C2 · One concept per slide, stated first
 

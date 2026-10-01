@@ -73,7 +73,8 @@ policies under each; `--full` adds the review history behind every one.
   words on the slide where it first appears - on L8.1's boundary conditions
   that is the Robin condition, the heat transfer coefficient and the Biot
   number. A slide that names its symbols another way writes
-  `@no-legend — reason` in the generator.
+  `@no-legend — reason` in the generator. Every deck is under it since
+  2 October 2026.
 - An architecture is defined before any metaphor is used for it.
 
 *Replaces D1, D2, D9, D17, D22, E1, E3, E5.*

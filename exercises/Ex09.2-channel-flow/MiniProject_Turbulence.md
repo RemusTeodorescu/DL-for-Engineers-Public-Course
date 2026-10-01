@@ -16,8 +16,10 @@ failure.
 
 ## Prerequisites
 
-Ex_9.2 completed. You will reuse `Ex_9_2_pipe.py` and the control
-panel; the geometry, the sampling and the reporting are already built.
+Ex_09.2 completed. You will reuse its `problem.py` - the reference solver,
+the samplers, the drag and the pressure drop - and the network of its
+section 5. Mini project MP9.2B (section 9 of the notebook) is Track A below
+with a ground truth supplied.
 
 ## Tracks
 

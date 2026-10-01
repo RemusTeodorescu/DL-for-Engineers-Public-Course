@@ -74,7 +74,7 @@ policies under each; `--full` adds the review history behind every one.
   that is the Robin condition, the heat transfer coefficient and the Biot
   number. A slide that names its symbols another way writes
   `@no-legend — reason` in the generator. Every deck is under it since
-  2 October 2026.
+  1 October 2026.
 - An architecture is defined before any metaphor is used for it.
 
 *Replaces D1, D2, D9, D17, D22, E1, E3, E5.*
@@ -281,9 +281,10 @@ run with it.
   (parabolic), the stator slot (elliptic) and the struck panel (hyperbolic).
 
 *New, 29 September 2026. It is the rule for **every** Part 2 set. Ex07.1 was
-the first under it; Ex07.2 (three notebooks, a benchmark set), Ex08.1 and
-Ex08.2 (2 October) follow. Ex09.1 to Ex12.2 are still several notebooks each
-and `check_exercise_policy.py` reports them until they are rewritten.*
+the first under it; Ex07.2 (three notebooks, a benchmark set), Ex08.1,
+Ex08.2, Ex09.1 and Ex09.2 (1 October) follow. Ex10.1 to Ex12.2 are still
+several notebooks each and `check_exercise_policy.py` reports them until they
+are rewritten.*
 
 ## C12 · Numbers with at most two decimals
 
@@ -333,15 +334,31 @@ Then the report and the mini project (C10). What stays out:
 - **A lecture that teaches an inverse problem gets one section for it**, after
   the comparison and before the discussion: the same network and residual with
   one more trainable number and one more loss term, written out, with no TODO.
-  Ex08.2 recovers the diffusivity that way. It is the lecture's second topic,
-  not an alternative, so it does not break the rule above.
+  Ex08.2 recovers the diffusivity that way, and Ex09.2 the eddy viscosity.
+  It is the lecture's second topic, not an alternative, so it does not break
+  the rule above. Where the lecture's second topic is not an inverse problem
+  the section takes that topic instead: Ex09.1 raises the Reynolds number.
+- **An inverse problem divides its residual by the number it identifies.**
+  Left undivided, the optimiser can shrink the trainable number and the
+  residual with it: Ex08.2's diffusivity and Ex09.2's viscosity both ran to
+  zero that way, with a loss that looked healthy.
 - **Where the problem has no exact solution**, section 4 builds a converged
   reference first - a different and better-suited method than the classical
   one it is compared with (Ex08.1: finite elements on a mesh fitted to the
-  hole, against finite differences on a staircase grid) - and shows its
-  accuracy by refinement, at least ten times better than the agreed accuracy.
+  hole, against finite differences on a staircase grid; Ex09.2: quadratic
+  finite elements fitted to the tube, against finite volumes on a staircase
+  grid) - and shows its accuracy by refinement, at least ten times better
+  than the agreed accuracy. A solver too long for a cell lives in the set's
+  `problem.py` and the notebook calls it.
+- **A model problem stays in scaled units.** Real units and a real object are
+  the rule; a problem that is an equation and not a device (Ex09.1's coupled
+  Burgers equations) says so and is not dressed as one.
+- **A result that contradicts the lecture is reported, not hidden.** Ex09.1's
+  network does not meet a Reynolds ceiling on its problem; the notebook says
+  so and says why, and the slide was corrected to match.
 
 *New, 29 September 2026. Ex07.1 was written this way; Ex07.2's three notebooks
-were the first built to it, then Ex08.1 and Ex08.2 (2 October), whose builders
-share `tools/exercises/part2_notebook.py`. Start a new set's builder from
-`tools/exercises/ex081/build_ex081.py`.*
+were the first built to it, then Ex08.1, Ex08.2, Ex09.1 and Ex09.2
+(1 October), whose builders share `tools/exercises/part2_notebook.py`. Start a
+new set's builder from `tools/exercises/ex081/build_ex081.py`, or from
+`ex092/build_ex092.py` for a set with an inverse section.*

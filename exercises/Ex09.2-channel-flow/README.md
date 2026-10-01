@@ -1,177 +1,125 @@
-# Ex_09.2 — Turbulent flow: an obstacle in a channel
+# Ex_09.2 — The Mean Flow Past a Tube
 
 **Paired with L9.2 · Turbulent Flow · Part 2**
 
-Flow past an obstacle in a channel, with **your choice of shape** — circle,
-square, ellipse, diamond or aerofoil — and a control panel for geometry,
-Reynolds number, inlet speed, closure and sampling.
-
-This is the exercise where the right answer may be *refusing to answer*.
-The marks are for saying precisely what would have to be true first.
-
-## Goals
-
-By the end you can
-
-1. write the steady RANS momentum residual with automatic differentiation, and
-   say why there is no continuity term in the loss;
-2. hard-enforce incompressibility through a **stream function**, and explain
-   what that buys compared with penalising $\nabla\cdot\mathbf{u}$;
-3. sample a domain that is **not a rectangle** — reject the obstacle, grade the
-   points towards its surface, and say what the grading is for;
-4. turn a trained field into the two numbers an engineer asks for, drag
-   coefficient and pressure drop, and name what makes each of them unreliable;
-5. compare shapes **at matched blockage**, and recognise an unmatched
-   comparison as a measurement of area rather than of shape;
-6. state the Reynolds number beyond which you would not report your own result,
-   and what validation would be needed to change that.
+A turbulent mean flow with an eddy-viscosity closure, in **one notebook**
+(course policies C11 and C13). Water runs through a duct and past a tube that
+crosses it; the pressure drop and the drag on the tube are wanted. Students
+compute them three ways — a finite-element reference on a mesh fitted to the
+tube, finite volumes on a staircase grid, and a physics-informed network with
+the stream function — and compare them on accuracy and on time. Then the same
+network finds the eddy viscosity from twelve velocity probes.
 
 ## The problem
 
-Steady mean flow through a channel of length 4 and height 1, non-dimensional,
-containing one obstacle:
+A duct 100 mm high and 400 mm long carries water at a mean speed of 0.25 m/s
+past a 40 mm tube on its centreline, 120 mm from the inlet. The Reynolds number
+is 25 000, so the flow is turbulent and its **mean** is solved for:
 
 ```
-(u·∇)u = −∇p + ν_eff ∇²u      in the channel, outside the obstacle
-∇·u    = 0
-u = v  = 0                     on the channel walls and the obstacle surface
-u = prescribed profile, v = 0  at the inlet
-p = 0                          at the outlet, which also fixes the pressure gauge
+(u·∇)u = −∇p/ρ + ν_eff ∇²u,   ∇·u = 0,   ν_eff = ν + ν_t
+u = v = 0 on the walls, u = 6y(1−y) at the inlet      (built into the network)
+u = v = 0 on the tube; p = 0, v = 0 at the outlet     (weighted loss terms)
 ```
 
-`ν_eff = ν + ν_t` is the effective viscosity of L9.2. Prescribing `ν_t` — here
-either nothing at all (`closure="none"`, laminar) or a crude constant
-(`closure="uniform"`) — turns an unsolvable turbulent problem into the laminar
-one of L9.1. That substitution is the whole of the exercise's power and the
-whole of its weakness.
+**The closure is one number**, ν_t = 0.02 UH = 5.0 × 10⁻⁴ m²/s, five hundred
+times the viscosity of water. It is a choice, made so that the modelled mean
+flow is steady and smooth; it is not a measured or a calibrated value, and a
+real eddy viscosity varies in space. The notebook says so, and its last
+bullet and mini project MP9.2B take it up. In scaled units — lengths over H,
+speeds over U, pressure over ρU² = 62.38 Pa — the duct is 4 × 1, the tube a
+circle of radius 0.2 at (1.2, 0.5), and ν_eff/(UH) = 0.02.
 
-Incompressibility is **hard-enforced**: the network outputs a stream function
-and a pressure, and the velocity is taken as `u = ψ_y`, `v = −ψ_x`. So
-`∇·u = 0` holds identically and there is no continuity term in the loss at all.
-
-The geometry is a **signed level set** — negative inside, zero on the surface,
-positive outside — so the solver never asks which shape it was given. Adding a
-sixth shape means writing one function and touching nothing else. The domain is
-therefore a rectangle with a moving hole in it, which is why `problem.py`
-carries its own samplers: `pinn_core` samples rectangles, and a set with real
-geometry supplies the rest itself.
-
-There is **no exact solution here**. Nothing in this set measures true error;
-it measures drag, pressure drop and your own judgement.
-
-## The notebooks
-
-Run in order; later notebooks load results saved by earlier ones.
+## The notebook
 
 ```
-Ex09.2_00_geometry_lab.ipynb       shapes, level sets and sampling — read-only
-Ex09.2_01_channel_flow.ipynb       write the residual and the loss — has TODOs
-Ex09.2_02_control_panel.ipynb      interactive parameter study
-Ex09.2_03_shape_comparison.ipynb   compare shapes at matched blockage
-Ex09.2_04_report.ipynb             assemble the report for submission
+Ex09.2_pinn_flow_past_tube.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex09.2_pinn_flow_past_tube_light.ipynb   the same notebook with every cell written out
 ```
 
-Everything they write goes to `Ex09.2_outputs/`.
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: why the mean, the closure problem, the eddy viscosity, the scaled units |
+| 4 | the reference: quadratic finite elements on the fitted mesh, Newton's method, refined twice; then finite volumes on the staircase grid, for an agreed 5 % on the pressure drop and the drag |
+| 5 | the PINN: the trial stream function with the walls and the inflow built in (TODO 1), the two momentum residuals (TODO 2), training; the three answers compared |
+| 6 | the inverse problem: the eddy viscosity as one more trainable number, found from twelve probes |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+Numbers are printed with at most two decimals (C12). The five obstacle
+shapes, the control panel and the shape comparison of the earlier
+five-notebook version are gone; the tube is the only obstacle.
+
+### What it measures (CPU, seed 88)
+
+| | pressure drop | drag on the tube | worst velocity error | one solution | training |
+|---|---|---|---|---|---|
+| reference, fitted mesh H/40, 58 772 unknowns | 218.25 Pa | 11.40 N/m (coefficient 9.14) | within 0.004 U of H/80 | about 6 s | — |
+| finite volumes, 320 × 80 cells (the coarsest for 5 %) | 212.01 Pa (−2.86 %) | 10.94 N/m (−4.03 %) | 0.26 U, beside the staircase | about 16 s | — |
+| PINN, 4 × 32, stream function, 2000 points | 217.22 Pa (−0.48 %) | 11.28 N/m (−1.00 %) | 0.02 U | 0.01 s | about 2.5 min |
+
+The inverse problem returns ν_eff = 5.14 × 10⁻⁴ m²/s against the true
+5.00 × 10⁻⁴, 2.70 % high, in about two minutes, from twelve readings of u with
+noise of 1 % of the mean speed and a start twice too high; with it the
+pressure drop is 2.11 % and the drag 0.76 % from the reference.
+
+**Two things that cost time and are not obvious.** The inverse problem's
+residuals are **divided by the trainable viscosity**: without that, on some
+starts ν_eff runs to zero (it did, to 6.5 × 10⁻⁸ m²/s, with a loss that looked
+healthy), because an almost inviscid flow fits twelve probes as well. With the
+division three seeds gave +2.1 to +3.3 %. And the reference's velocity must be
+evaluated with its own quadratic shape functions: linear interpolation between
+its nodes is wrong by 0.02 U beside the walls, which is as large as the
+network's error.
 
 ## Files
-
-Every Part 2 exercise has the same three modules beside it. Only the third
-differs between sets.
 
 | | |
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
-| `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
-| `problem.py` | **this** problem — shapes, level sets, the channel samplers, the control panel, drag and pressure drop |
+| `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
+| `problem.py` | **this** problem — the data, the samplers, the finite-element reference (`reference`, `reference_at`), the finite-volume solver (`finite_volumes`), the drag and pressure drop of a network, the probe readings |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**On Colab nothing needs uploading**: each notebook's first code cell fetches
-the three modules from the public course repository.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex092/build_ex092.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
 
-Requires `torch`, `numpy`, `matplotlib` and — for notebook 02 — **`ipywidgets`**,
-which is preinstalled on Colab and is `pip install ipywidgets` locally.
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
-See also `MiniProject_Turbulence.md`, which defines the L13 project building on
-this exercise.
+See also `MiniProject_Turbulence.md`, the earlier outline of an L13 project
+on learned closures; mini project MP9.2B below is its first track, with a
+ground truth.
 
 ## Expected runtime
 
-CPU only; no GPU is needed anywhere in Part 2. A single case is one to three
-minutes. Notebook 03 runs five of them back to back, and the control panel in
-notebook 02 runs as many as you press the button for, so budget 30–60 minutes
-for the two of them together.
-
-If a cell seems stuck it probably is not: L-BFGS reports rarely, so a long
-silence after the Adam output is normal.
-
-## What to hand in
-
-- your residual and loss, and the flow field for at least two shapes
-- the shape comparison **at matched blockage** — an unmatched comparison
-  measures blockage, not shape
-- the Reynolds number beyond which you would not report your result
-- an explicit refusal: name a quantity your model produces that you would
-  not hand to anyone, and say what would have to change first
-
-## Things that go wrong, and what they mean
-
-**Shapes rank differently than you expected.** Check the blockage ratio is
-actually matched. Most surprising rankings are a comparison of areas.
-
-**Drag comes out negative or absurd.** The integration path around the
-obstacle is probably wrong or too coarse. Check it on the circle first,
-where you have something to compare against.
-
-**The closure makes little difference.** At the Reynolds numbers this
-exercise can reach, it may genuinely not. Reporting that honestly is
-better than tuning until it does.
-
-**An autograd error inside `model.velocity`.** The points were wrapped without
-`requires_grad=True`. The samplers return NumPy; the velocity is a derivative
-of the stream function, so *every* point set the network sees needs the flag —
-boundary sets included.
-
-## How this is meant to be used
-
-The modules are complete and working — you are not asked to rewrite them. Your
-work is in the cells marked `# TODO`, which are the residual and the loss. They
-are short by design, so your time goes on the parts that carry the ideas rather
-than on tensor plumbing.
-
-You *are* expected to read the modules. They contain the reference
-implementations your work is judged against.
+CPU only; a GPU is slower on problems this small. About six minutes in all,
+most of it the two trainings of sections 5 and 6.
 
 ## Reference texts
 
-Liu, G.R., *PINN with Python: An Introduction* (2025), Ch. 2–6.
+Pope, S.B., *Turbulent Flows* (2000), ch. 4, 7, 10.
+Liu, G.R., *PINN with Python: An Introduction* (2025).
 Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
-Pope, *Turbulent Flows*, Cambridge (2000) — for the closure problem itself.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
+exposition in this exercise set are original to this course.**
 
-## Results between notebooks on Colab
+## Before this is assigned
 
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex09.2_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01 to 04 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex09.2_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its TODO cells. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex092_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

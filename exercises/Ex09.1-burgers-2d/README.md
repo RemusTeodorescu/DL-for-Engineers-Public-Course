@@ -1,166 +1,98 @@
-# Ex_09.1 — Laminar Flow: 2-D coupled Burgers
+# Ex_09.1 — A Front Carried by a Flow
 
 **Paired with L9.1 · Laminar Flow · Part 2**
 
-The first nonlinear, **vector-valued** problem of the course, and the last stop
-before Navier–Stokes. Two coupled equations, two outputs from one network, and
-a single dimensionless number — the Reynolds number — that decides whether the
-method works at all.
-
-Everything before this was solved once and reported. This set is built the
-other way round: an **interactive control panel** exposes the collocation
-count, the Reynolds number, the architecture and the optimiser budget as
-sliders, and a report is assembled from every run you record. The question is
-not "can you solve it" but **"where does it stop working, and how would you
-know?"**
-
-## Goals
-
-By the end you can
-
-1. write the residual of a **coupled, nonlinear system** — two equations
-   sharing two unknowns — from a single gradient call per component;
-2. build a network with several outputs and say what a shared trunk assumes
-   about the physics, then test that assumption against two separate networks
-   at matched parameter count;
-3. run a parameter study as a study rather than as a sequence of edits, and
-   report each run with its loss curve and its error against time;
-4. connect a dimensionless group to a length scale the network must resolve —
-   here, a front of e-folding width `8 nu` — and predict from it where the
-   collocation set will become too coarse;
-5. **recognise the characteristic PINN failure at high Re**: not a divergence,
-   but a smooth, plausible and wrong field whose loss looks perfectly healthy.
+The coupled Burgers equations in **one notebook** (course policies C11 and
+C13): the momentum equations of a flow with the pressure and the
+incompressibility constraint left out. A flow carries a front across a square;
+the front's width is set by the Reynolds number. Students compute the answer
+two ways — finite differences on a grid, and a physics-informed network with
+two outputs — score both against an exact solution, and compare them on
+accuracy and on time. Then they raise the Reynolds number from 20 to 500 and do
+it again.
 
 ## The problem
 
 ```
-u_t + u u_x + v u_y = nu (u_xx + u_yy)
-v_t + u v_x + v v_y = nu (v_xx + v_yy)      on the unit square, 0 <= t <= 1
+u_t + u u_x + v u_y = ν (u_xx + u_yy)
+v_t + u v_x + v v_y = ν (v_xx + v_yy)        on the unit square, 0 ≤ t ≤ 1
+u, v given on the four edges and at t = 0     (a weighted loss term)
 ```
 
-The vector-valued, nonlinear, coupled stepping stone to Navier–Stokes: it keeps
-convection and the coupling between the components, and drops the pressure and
-the incompressibility constraint. Everything that makes a flow solver hard
-except the constraint that makes it slow.
+Lengths are in units of the side L and speeds in units of a reference speed U,
+so the one number left is Re = UL/ν = 1/ν. The exact solution is a single
+front along y = x + t/4, of width 8ν = 8/Re: 0.40 at Re = 20 and 0.016 at
+Re = 500. It also satisfies u + v = 3/2 everywhere, a check that needs no
+exact solution. It is a model problem, not a device: the units stay scaled.
 
-The exact solution is known, so the notebooks measure **true error** rather
-than estimating it:
-
-```
-u = 3/4 - 1/(4 (1 + exp((-4x + 4y - t)/(32 nu))))
-v = 3/4 + 1/(4 (1 + exp((-4x + 4y - t)/(32 nu))))
-```
-
-Both components are one tanh-like front. Rewriting the exponent as
-`((y - x) - t/4) / (8 nu)` says everything about the difficulty: the front lies
-on **y = x + t/4**, it translates across the square as time runs, and its
-e-folding width in `y - x` is **8 nu**. With U = L = 1 the Reynolds number is
-simply 1/nu, so raising Re thins the front in exact proportion — a width of
-0.4 at Re = 20, against a neuron side, and 0.016 at Re = 500.
-
-Boundary and initial data are both taken from the exact solution, which makes
-this a **pure verification problem**: every error reported is the model's,
-never the data's. And `u + v = 3/2` identically, for all x, y and t — a free
-diagnostic nothing in the loss asks for.
-
-## The notebooks
-
-Run them in order; later ones load results the earlier ones saved into
-`Ex09.1_outputs/`.
+## The notebook
 
 ```
-Ex09.1_00_setup_check.ipynb      the environment, the samplers, the reference solution
-Ex09.1_01_burgers2d.ipynb        write the residual and the loss — the only TODOs
-Ex09.1_02_control_panel.ipynb    the interactive parameter study
-Ex09.1_03_reynolds_sweep.ipynb   find the Reynolds limit yourself
-Ex09.1_04_report.ipynb           assemble the report for submission
+Ex09.1_pinn_burgers_front.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex09.1_pinn_burgers_front_light.ipynb   the same notebook with every cell written out
 ```
 
-**Notebooks 02 and 03 ask you to paste your `residual_fn` and
-`loss_fn_factory` from notebook 01.** They are the physics, and they stay
-yours; everything else in the set is scaffolding that calls them.
+| section | what the student does |
+|---|---|
+| 1 – 3 | the problem, its data, its physics: convection, viscosity, the coupling, the front's width 8/Re |
+| 4 | the exact solution as the reference; finite differences (central, Heun in time) on finer grids, for an agreed 1e-03 |
+| 5 | the PINN: one network, two outputs; the two residuals (TODO 1), the loss (TODO 2), training; the two methods compared |
+| 6 | the Reynolds number raised to 500: both methods again, nothing changed but ν |
+| 7 | what the notebook says |
+| 8 | the report and its PDF |
+| 9 | mini project proposal |
+
+Speeds are printed with at most two decimals and errors as powers of ten (C12).
+The control panel, the shared-against-separate network comparison and the
+seven-point Reynolds sweep of the earlier five-notebook version are gone.
+
+### What it measures (CPU, seed 88)
+
+| Re | method | worst error | one solution | training |
+|---|---|---|---|---|
+| 20 | finite differences, 6 × 6 nodes (the coarsest for 1e-03) | 5.46 × 10⁻⁴ | milliseconds | — |
+| 20 | PINN, 4 × 32, two outputs, 4000 points | 6.72 × 10⁻⁴ | 0.02 s | 40 s |
+| 500 | finite differences, 321 × 321 nodes (the coarsest for 1e-03) | 3.08 × 10⁻⁴ | about 10 s | — |
+| 500 | PINN, the same network and the same 4000 points | 9.68 × 10⁻⁴ | 0.02 s | about 1 min |
+
+The network keeps u + v within 7 × 10⁻⁴ of 3/2 at Re = 20 and 9 × 10⁻⁴ at
+Re = 500 without being told to.
+
+**The network shows no Reynolds ceiling on this problem**, and the notebook
+says why: the exact solution is a tanh of a straight line in (x, y, t), which
+one tanh neuron represents exactly, so the network does not have to resolve
+the front with points. Outside the notebook the same network and points gave
+2.4 × 10⁻³ at Re = 2000, where central differences need more than 321 nodes a
+side. The grid's cost is what grows with the Reynolds number here: about five
+nodes across the front, 6 a side at Re = 20 and 321 at Re = 500. The earlier
+notebooks told students to expect the network to fail quietly at high Re; that
+was never measured, and on this problem it does not happen. A flow whose thin
+feature is not a single tanh is Ex_09.2 and mini project MP9.1A.
 
 ## Files
-
-Every Part 2 exercise has the same three modules beside it. Only the third
-differs between sets.
 
 | | |
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
-| `pinn_core.py` | the PDE machinery — `grad`, `d2`, samplers, `train_two_stage` |
-| `problem.py` | **this** problem — exact solution, `FlowPINN`, the control panel, the report |
+| `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
+| `problem.py` | **this** problem — the data, the exact solution, the collocation and data points, the points a network is scored on |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
-**On Colab nothing needs uploading**: each notebook's first code cell fetches
-the three modules from the public course repository. The control panel also needs `ipywidgets`, which is
-preinstalled on Colab; locally, `pip install ipywidgets`.
+**The notebook is generated too**, both forms from one source,
+`tools/exercises/ex091/build_ex091.py`, with the cells every one-notebook set
+shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
+rather than editing a notebook, or the two forms drift apart.
+
+**On Colab nothing needs uploading**: the first code cell fetches the three
+modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only; no GPU is needed anywhere in Part 2. A single run at the default
-configuration is a few minutes. Notebook 02 launches one run per press of the
-button and notebook 03 launches seven in a row, so **time one run before you
-commit to a sweep** and budget accordingly.
-
-Two things make a run longer than the Part 1 figures would suggest. An L-BFGS
-*step* in `train_two_stage` is an outer step of up to twenty inner iterations
-with a strong-Wolfe line search, so `lbfgs_epochs = 200` is a substantial
-stage, not a footnote. And the residual here is second order in three inputs
-for **two** coupled fields, which is the most autograd work of any set in the
-course so far.
-
-If a cell seems stuck, it probably is not: the L-BFGS stage prints only every
-few dozen steps, so a long silence after the Adam output is normal.
-
-## What to hand in
-
-- the residual and the loss you wrote, with the error against the exact
-  solution, and the loss curve for every run you quote
-- the control-panel study, with the parameter you found mattered most
-- the Reynolds number at which your solution stops being trustworthy, and the
-  evidence you used to decide that
-- the five questions at the end of the generated report, answered
-
-## Things that go wrong, and what they mean
-
-**The solution looks right and the error is large.** Compare against the exact
-solution the module provides, not against your intuition about what a flow
-should look like. Plausible-looking flow fields are easy.
-
-**Raising Reynolds makes training fail rather than gradually degrade.** That is
-the honest finding, and the sweep exists to let you report where it happens
-rather than quoting a number from a paper.
-
-**The loss falls as far as a low-Re run but the error is far worse.** The model
-satisfies the equations at the points you gave it and does something else
-between them. Compare the front width `8 nu` with the spacing of your
-collocation set before blaming the optimiser.
-
-**The control panel does not render.** `ipywidgets` is missing, or the notebook
-needs re-running after installing it. It is a display problem, not a physics
-one.
-
-**`NotImplementedError`.** Expected. You have reached a TODO cell, or a paste
-cell in notebook 02 or 03 that is waiting for your notebook 01 functions.
-
-**The loss becomes `nan`.** Almost always a residual that divides by zero or
-takes a log or square root of a negative number. Print the residual on a
-handful of points before training.
-
-## How this is meant to be used
-
-The modules are complete and working — you are not asked to rewrite them. Your
-work is in the cells marked `# TODO`, which are the residual and the loss.
-They are short by design, so your time goes on the parts that carry the ideas
-rather than on tensor plumbing.
-
-You *are* expected to read `problem.py`. The laboratory around the physics —
-the sampling, the runner, the panel, the report — is the reference
-implementation your work is judged against, and the module docstring states
-the problem more precisely than this file does.
+CPU only; a GPU is slower on problems this small. About two minutes in all on
+a laptop, most of it the two trainings of sections 5 and 6 and the 321 × 321
+grid of section 6.
 
 ## Reference texts
 
@@ -169,37 +101,17 @@ Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
 J. Comput. Phys. **378** (2019) 686–707.
 
 These are the works to read for the theory. **The code, the problem and the
-exposition in this exercise set are original to this course** — written from the
-2019 paper and the PyTorch documentation, and not derived from any publisher's
-code listings. Where a symbol matches a textbook's, it is because both follow
-the standard notation of the field.
+exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-This set was migrated onto the shared `course_core.py` / `pinn_core.py` from
-its own private core, in an environment where PyTorch could not be installed.
-The physics — the exact solution, the Reynolds relation, the geometry and the
-time window — is unchanged from the working version. **Nothing that requires
-torch has been executed.** Run notebooks 00 and 01 end to end before this goes
-to students, and in particular confirm that the reference-solution residual
-check in notebook 00 still passes.
-
-## Results between notebooks on Colab
-
-Later notebooks read `.npz` / `.pkl` files that earlier ones write into
-`Ex09.1_outputs/`. On Google Colab every notebook runs on its own temporary machine,
-so those files would not survive from one notebook to the next. Notebooks
-01 to 04 therefore start with an `outputs-cell` that calls `keep_outputs()` from
-`course_core.py`: on Colab it mounts the student's Google Drive and moves the results
-folder to `MyDrive/DL4Eng/Ex09.1_outputs`. If the student declines the Drive request or
-has no Google account, `saved()` downloads each result file when it is written
-and `needed()` asks for the files to be uploaded before they are read. Locally
-the cell does nothing. The report notebook writes its `.md` and `.pdf` into the
-same folder.
+The light version has been executed end to end on a local CPU; the exercise
+version stops at its first TODO. Still to do, as for every set (C8): a run from
+a fresh Colab runtime, and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (notebook 04, the last section). Each student chooses one
+The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex091_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

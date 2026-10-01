@@ -1,613 +1,429 @@
-r"""Ex_09.2 — the physics: steady mean flow past an obstacle in a channel.
+r"""Ex_09.2 — the problem: the mean flow past a tube in a water duct.
 
 *Deep Learning for Engineering* — MSc, Aalborg University.
 Remus Teodorescu (ret@et.aau.dk), with support from Research Assistant
 Noman Khan (nomank@energy.aau.dk).
 
-**Reference texts.** Liu, *PINN with Python: An Introduction* (2025); Raissi,
-Perdikaris & Karniadakis, *Physics-informed neural networks*, J. Comput. Phys.
-**378** (2019) 686–707. These are the works to read for the theory. The code,
-the problem and the exposition here are original to this course, written from
-the 2019 paper and the PyTorch documentation and not derived from any
-publisher's code listings. Where a symbol matches a textbook's it is because
-both follow the standard notation of the field.
+**Reference texts.** Pope, *Turbulent Flows* (2000), ch. 4, 7 and 10; Liu,
+*PINN with Python: An Introduction* (2025); Raissi, Perdikaris & Karniadakis,
+*Physics-informed neural networks*, J. Comput. Phys. **378** (2019) 686–707.
+These are the works to read for the theory. The code, the problem and the
+exposition here are original to this course.
 
 ## The problem
 
-Steady mean flow through a rectangular channel containing one obstacle. The
-student chooses the shape; the solver, the sampling and the reporting are the
-same in every case.
+Water runs through a duct 100 mm high at a mean speed of 0.25 m/s, past a tube
+of 40 mm that crosses it. The Reynolds number is 25 000, so the flow is
+turbulent, and what is solved for is its **mean**: the Reynolds-averaged
+equations with the eddy-viscosity closure of L9.2,
 
-    (u·∇)u = −∇p + ν_eff ∇²u,        ∇·u = 0
+    (u . grad) u = - grad p / rho + nu_eff lap u,     div u = 0,
+    nu_eff = nu + nu_t
 
-``ν_eff = ν + ν_t`` is the effective viscosity of L9.2. Prescribing ν_t turns
-an unsolvable turbulent problem into the laminar one of L9.1 — which is the
-whole trick, and also the whole weakness, and saying which of the two it is in
-your own case is what this exercise is marked on.
+with ONE number for the eddy viscosity over the whole duct, nu_t = 0.02 U H -
+five hundred times the viscosity of water. That number is a choice, made so
+that the modelled mean flow is steady and smooth; a real closure varies in
+space. Saying what the answer is worth with a closure like that is what the
+exercise is about, and section 6 of the notebook finds the number from
+measurements instead.
 
-Incompressibility is hard-enforced: the network outputs a **stream function**
-ψ and a pressure p, and the velocity is taken as ``u = ψ_y``, ``v = −ψ_x``. So
-``∇·u = 0`` holds identically and there is no continuity term in the loss at
-all — the stream-function route of L9.1's *Three Ways to Impose
-Incompressibility*, hard enforcement applied to a constraint rather than to a
-boundary condition.
+In scaled units - lengths over the duct height H, speeds over the mean speed
+U, pressure over rho U^2 - the duct is 4 x 1, the tube a circle of radius 0.2
+at (1.2, 0.5), the inflow 6 y (1 - y), and the only number left is
+nu_eff / (U H) = 0.02.
 
-## Why this file carries its own samplers
+## What is in here
 
-The domain is **not a rectangle**. It is a rectangle with a hole in it, and the
-hole moves and changes shape under student control.
+The data; the samplers of the network's points; and the two classical
+solvers, which are too long for a notebook cell:
 
-``pinn_core`` samples rectangles, and that is deliberate: a shared library that
-tried to sample arbitrary geometry would either be a mesh generator or a lie.
-An exercise set with real geometry is expected to supply its own samplers, and
-these are this set's:
+    reference(spacing)     quadratic finite elements on a mesh FITTED to the
+                           tube, the nonlinear system solved by Newton's
+                           method. The reference: the problem has no exact
+                           solution.
+    finite_volumes(n_y)    a staggered grid of square cells, the tube as a
+                           STAIRCASE, marched in time to the steady state.
+                           The classical method the network is compared with.
 
-    sample_channel     interior points, rejecting anything inside the obstacle
-    sample_walls       the two channel walls
-    sample_inlet       x = 0
-    sample_outlet      x = L
-    sample_obstacle    the obstacle surface, plus a graded near-wall cloud
-
-The graded near-wall cloud lies **in the fluid**, just outside the surface, so
-it is a set of residual points, not boundary points: :func:`run_case` appends
-it to the interior set ``pts["f"]``. No-slip applies on the surface only.
-
-Only the first of them touches the shared machinery: it draws its candidate
-batches with :func:`pinn_core.interior_points` over the bounding rectangle and
-then rejects. The rest are one-dimensional and are written out here.
-
-They follow the shared library's convention and **return NumPy arrays**. Wrap
-them with :func:`to_tensor` at the point of use — with
-``requires_grad=True`` for anything the network is differentiated at, which
-here means all of them, because the velocity itself is a derivative of ψ.
-
-## The geometry is a level set
-
-Every shape exposes the same ``phi(x, y)``: negative inside, zero on the
-surface, positive outside. The solver never asks which shape it was given, so
-adding a sixth shape means writing one function and touching nothing else.
+There is no network here: the trial stream function and the residuals are
+written in the notebook.
 """
 
 from __future__ import annotations
 
-import time
-
 import numpy as np
-import torch
-
-from pinn_core import (SEED, DEVICE, set_seed, to_tensor, to_numpy,
-                       MLP, parameter_count, describe, grad,
-                       interior_points, grid_points, train_two_stage)
 
 __all__ = [
-    "SHAPES", "CHANNEL", "DOMAIN", "LBFGS_INNER", "AEROFOIL_THICK", "Obstacle", "ChannelPINN",
-    "sample_channel", "sample_walls", "sample_inlet", "sample_outlet",
-    "sample_obstacle", "inlet_profile", "eddy_viscosity",
-    "drag_coefficient", "pressure_drop",
-    "PipeConfig", "run_case", "control_panel", "plot_case", "plot_shape",
-    "make_report",
+    "H_DUCT", "U_MEAN", "RHO", "NU_WATER", "NU_EFF", "NU_EFF_SI", "RE_DUCT",
+    "P_SCALE", "F_SCALE", "CHANNEL", "TUBE", "PROBES", "NOISE",
+    "inflow", "psi_inflow", "sample_fluid", "sample_tube", "sample_outlet",
+    "reference", "reference_at", "finite_volumes", "mean_over_height",
+    "network_numbers", "probe_readings", "drag_coefficient", "describe_problem",
 ]
 
-#: The five obstacle shapes. Adding one means adding a branch to
-#: :meth:`Obstacle.phi` and to :meth:`Obstacle.outline`, and nothing else.
-SHAPES = ("circle", "square", "ellipse", "diamond", "aerofoil")
+# ----------------------------------------------------------------- the data
+H_DUCT = 0.10            #: m, the height of the duct
+U_MEAN = 0.25            #: m/s, the mean speed of the water
+RHO = 998.0              #: kg/m^3, water at 20 degC
+NU_WATER = 1.0e-6        #: m^2/s, water at 20 degC
+RE_DUCT = U_MEAN * H_DUCT / NU_WATER          #: 25 000: turbulent
 
-#: Channel length and height, non-dimensional.
+#: The effective viscosity nu + nu_t in scaled units, nu_eff / (U H). The
+#: closure of this set: one number for the whole duct.
+NU_EFF = 0.02
+NU_EFF_SI = NU_EFF * U_MEAN * H_DUCT          #: m^2/s, 5.0e-04
+
+P_SCALE = RHO * U_MEAN ** 2                   #: Pa, the pressure scale, 62.38
+F_SCALE = RHO * U_MEAN ** 2 * H_DUCT          #: N per metre of tube, the force scale, 6.24
+
+#: The duct and the tube in scaled units.
 CHANNEL = dict(L=4.0, H=1.0)
+TUBE = dict(xc=1.2, yc=0.5, r=0.2)
 
-#: ``((x_lo, x_hi), (y_lo, y_hi))`` — the bounding rectangle of the channel,
-#: in the form ``pinn_core``'s samplers and ``grid_points`` expect. The flow
-#: domain is this box **minus** the obstacle; see :func:`sample_channel`.
-DOMAIN = ((0.0, CHANNEL["L"]), (0.0, CHANNEL["H"]))
-
-#: L-BFGS iterations inside one :func:`pinn_core.train_two_stage` step. The
-#: shared optimiser takes ``lbfgs_steps`` outer steps of ``max_iter=20``, so a
-#: configuration asking for 300 L-BFGS iterations wants 15 of them. Converting
-#: here keeps ``PipeConfig.lbfgs_epochs`` meaning what it has always meant — a
-#: number of L-BFGS iterations — and keeps the runtime what it has always been.
-LBFGS_INNER = 20
-
-#: Largest half-thickness of the aerofoil outline per unit size and aspect:
-#: the maximum of ``(1 - s) * sqrt((s + 1) / 2)`` on ``[-1, 1]``, at ``s = -1/3``.
-AEROFOIL_THICK = 4.0 / (3.0 * np.sqrt(3.0))
+#: Where section 6's twelve velocity probes sit, in the wake of the tube, and
+#: the noise of their readings in units of U.
+PROBES = np.array([[x, y] for x in (1.6, 2.0, 2.4, 2.8) for y in (0.3, 0.5, 0.7)])
+NOISE = 0.01
 
 
-class Obstacle:
-    """Signed level set: negative inside, zero on the surface, positive outside.
+def inflow(y):
+    """The inflow profile, 6 y (1 - y): mean 1, zero on both walls. The
+    developed profile of a duct with a uniform viscosity."""
+    return 6.0 * y * (1.0 - y)
 
-    Every shape exposes the same interface, so the solver never needs to know
-    which one was chosen.
+
+def psi_inflow(y):
+    """The stream function of the inflow, 3 y^2 - 2 y^3: its y-derivative is
+    :func:`inflow`, it is 0 on the lower wall and 1 on the upper."""
+    return 3.0 * y ** 2 - 2.0 * y ** 3
+
+
+def drag_coefficient(force):
+    """A scaled force per unit depth as a drag coefficient on the tube's
+    diameter and the mean speed: F / (1/2 rho U^2 D)."""
+    return force / (0.5 * 2.0 * TUBE["r"])
+
+
+def _outside(p, margin=0.0):
+    return np.hypot(p[:, 0] - TUBE["xc"], p[:, 1] - TUBE["yc"]) > TUBE["r"] + margin
+
+
+# ------------------------------------------------------------------- samplers
+def sample_fluid(n, seed=88):
+    """``n`` collocation points in the water: half spread over the whole duct,
+    half over the stretch round the tube and its wake (x from 0.7 to 2.2),
+    where the flow bends. Points inside the tube are rejected."""
+    rng = np.random.default_rng(seed)
+
+    def draw(m, x0, x1):
+        out = np.empty((0, 2))
+        while len(out) < m:
+            p = np.c_[rng.uniform(x0, x1, 2 * m), rng.uniform(0.0, CHANNEL["H"], 2 * m)]
+            out = np.vstack([out, p[_outside(p)]])
+        return out[:m]
+
+    return np.vstack([draw(n // 2, 0.0, CHANNEL["L"]), draw(n - n // 2, 0.7, 2.2)])
+
+
+def sample_tube(n):
+    """``n`` points on the surface of the tube, evenly spaced."""
+    t = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    return np.c_[TUBE["xc"] + TUBE["r"] * np.cos(t), TUBE["yc"] + TUBE["r"] * np.sin(t)]
+
+
+def sample_outlet(n):
+    """``n`` points on the outlet, x = L, evenly spaced from wall to wall."""
+    return np.c_[np.full(n, CHANNEL["L"]), np.linspace(0.0, CHANNEL["H"], n)]
+
+
+def mean_over_height(y, f):
+    """The mean of ``f`` over the height of the duct, by the trapezoidal rule."""
+    k = np.argsort(y)
+    y, f = np.asarray(y)[k], np.asarray(f)[k]
+    return float(np.sum(0.5 * (f[1:] + f[:-1]) * np.diff(y)) / (y[-1] - y[0]))
+
+
+# ------------------------------------------------------------- the reference
+# A 7-point quadrature rule on the triangle, exact to degree 5.
+_A1, _B1 = 0.0597158717897698, 0.4701420641051151
+_A2, _B2 = 0.7974269853530873, 0.1012865073234563
+_QP = np.array([[1 / 3, 1 / 3, 1 / 3],
+                [_A1, _B1, _B1], [_B1, _A1, _B1], [_B1, _B1, _A1],
+                [_A2, _B2, _B2], [_B2, _A2, _B2], [_B2, _B2, _A2]])
+_QW = np.array([0.225] + [0.1323941527885062] * 3 + [0.1259391805448271] * 3)
+
+
+def _mesh(spacing, fine=4.0, growth=1.35):
+    """Vertices and triangles: a square grid of the given spacing, and rings
+    of nodes round the tube that start ``fine`` times finer on its surface and
+    grow outwards. A Delaunay triangulation joins them."""
+    from scipy.spatial import Delaunay
+    nx, ny = int(round(CHANNEL["L"] / spacing)), int(round(CHANNEL["H"] / spacing))
+    X, Y = np.meshgrid(np.linspace(0, CHANNEL["L"], nx + 1), np.linspace(0, CHANNEL["H"], ny + 1))
+    rings, rad, s = [], TUBE["r"], spacing / fine
+    while s < spacing:
+        n = int(np.ceil(2 * np.pi * rad / s))
+        t = np.linspace(0, 2 * np.pi, n, endpoint=False) + (0.5 * np.pi / n) * len(rings)
+        rings.append(np.c_[TUBE["xc"] + rad * np.cos(t), TUBE["yc"] + rad * np.sin(t)])
+        rad += 0.9 * s
+        s *= growth
+    P = np.c_[X.ravel(), Y.ravel()]
+    P = np.vstack([P[_outside(P, rad - TUBE["r"] - 0.9 * s / growth + 0.7 * spacing)]] + rings)
+    tri = Delaunay(P).simplices
+    tri = tri[_outside(P[tri].mean(axis=1))]
+    x, y = P[tri, 0], P[tri, 1]
+    det = (x[:, 1] - x[:, 0]) * (y[:, 2] - y[:, 0]) - (x[:, 2] - x[:, 0]) * (y[:, 1] - y[:, 0])
+    tri, det = tri[np.abs(det) > 1e-14], det[np.abs(det) > 1e-14]
+    tri[det < 0] = tri[det < 0][:, [0, 2, 1]]                # counter-clockwise
+    return P, tri
+
+
+def reference(spacing=1 / 40, nu=NU_EFF, tol=1e-10):
+    """The reference solution: Taylor-Hood finite elements (quadratic velocity,
+    linear pressure) on a mesh fitted to the tube, the steady equations solved
+    by Newton's method from rest.
+
+    The inflow, the walls and the tube are imposed at the nodes; the outlet is
+    free (zero traction, the natural condition of the method). Returns a dict:
+    the nodes ``P`` (vertices first, then edge midpoints), the triangles, the
+    nodal ``u``, ``v`` and ``p``, the force on the tube per unit depth
+    (``drag``, ``lift``), the pressure drop ``dp`` from inlet to outlet, and
+    the number of unknowns - everything in scaled units.
+
+    Its accuracy is shown in the notebook, by refining ``spacing``. Measured
+    once beyond what the notebook runs: 1/40 is within 0.004 U of 1/80 in
+    velocity everywhere, and its drag and pressure drop within 0.01 %.
     """
-
-    def __init__(self, shape="circle", xc=1.2, yc=0.5, size=0.2, aspect=1.0):
-        if shape not in SHAPES:
-            raise ValueError(f"shape must be one of {SHAPES}")
-        self.shape, self.xc, self.yc = shape, float(xc), float(yc)
-        self.size, self.aspect = float(size), float(aspect)
-
-    @property
-    def D(self):
-        """Projected height - the length scale for drag and for blockage.
-
-        Measured from the real outline. For the circle, square and diamond it
-        is ``2 * size``, for the ellipse ``2 * size * aspect``. The aerofoil's
-        half-thickness ``aspect * (1 - s) * sqrt((s + 1) / 2)`` peaks a third
-        of the chord behind the nose, at ``AEROFOIL_THICK * aspect`` with
-        ``AEROFOIL_THICK = 4 / (3 sqrt 3) = 0.770``, so its height is about
-        ``1.54 * size`` at aspect 1, not ``2 * size``.
-        """
-        if self.shape == "aerofoil":
-            return 2 * self.size * self.aspect * AEROFOIL_THICK
-        return 2 * self.size * (self.aspect if self.shape == "ellipse" else 1.0)
-
-    def phi(self, x, y):
-        """Level set, accepting numpy arrays or torch tensors."""
-        bk = torch if torch.is_tensor(x) else np
-        dx, dy = (x - self.xc) / self.size, (y - self.yc) / self.size
-        if self.shape == "circle":
-            return dx ** 2 + dy ** 2 - 1.0
-        if self.shape == "ellipse":
-            return dx ** 2 + (dy / self.aspect) ** 2 - 1.0
-        if self.shape == "square":
-            return bk.maximum(abs(dx), abs(dy)) - 1.0
-        if self.shape == "diamond":
-            return abs(dx) + abs(dy) - 1.0
-        # Aerofoil: a smooth teardrop, blunt at the nose and tapered aft.
-        # The thickness formula is only meaningful for |dx| <= 1, so the level
-        # set is intersected with the chord - without that, points far
-        # downstream on the centreline read as lying ON the surface.
-        if bk is np:
-            thick = np.clip(self.aspect * (1.0 - dx)
-                            * np.sqrt(np.clip((dx + 1.0) / 2.0, 0.0, None)), 0.0, None)
-            return np.maximum(np.abs(dy) - thick, np.abs(dx) - 1.0)
-        thick = torch.clamp(self.aspect * (1.0 - dx)
-                            * torch.sqrt(torch.clamp((dx + 1.0) / 2.0, min=0.0)), min=0.0)
-        return torch.maximum(torch.abs(dy) - thick, torch.abs(dx) - 1.0)
-
-    def inside(self, x, y):
-        return self.phi(x, y) < 0
-
-    def outline(self, n=400):
-        """Polyline of the surface, for plotting."""
-        t = np.linspace(0, 2 * np.pi, n)
-        if self.shape == "circle":
-            return self.xc + self.size * np.cos(t), self.yc + self.size * np.sin(t)
-        if self.shape == "ellipse":
-            return (self.xc + self.size * np.cos(t),
-                    self.yc + self.size * self.aspect * np.sin(t))
-        if self.shape == "square":
-            c = np.maximum(np.abs(np.cos(t)), np.abs(np.sin(t)))
-            return self.xc + self.size * np.cos(t) / c, self.yc + self.size * np.sin(t) / c
-        if self.shape == "diamond":
-            c = np.abs(np.cos(t)) + np.abs(np.sin(t))
-            return self.xc + self.size * np.cos(t) / c, self.yc + self.size * np.sin(t) / c
-        s = np.linspace(-1, 1, n // 2)
-        th = self.aspect * (1 - s) * np.sqrt(np.clip((s + 1) / 2, 0, None))
-        return (self.xc + self.size * np.concatenate([s, s[::-1]]),
-                self.yc + self.size * np.concatenate([th, -th[::-1]]))
-
-
-class ChannelPINN(torch.nn.Module):
-    """Outputs the stream function and pressure, (psi, p).
-
-    Taking the velocity from psi makes the flow divergence-free by
-    construction - the stream-function route of L9.1's "Three Ways to Impose
-    Incompressibility".
-
-    A thin wrapper around the shared :class:`MLP`: two inputs ``(x, y)``, two
-    outputs ``(psi, p)``, tanh throughout. The size attributes are copied onto
-    the wrapper so :func:`pinn_core.describe` can report on it directly.
-    """
-
-    def __init__(self, n_hidden=48, n_layers=6, activation=torch.nn.Tanh):
-        super().__init__()
-        self.net = MLP(n_in=2, n_out=2, n_hidden=n_hidden, n_layers=n_layers,
-                       activation=activation)
-        self.n_in, self.n_out = 2, 2
-        self.n_hidden, self.n_layers = int(n_hidden), int(n_layers)
-
-    def forward(self, xy):
-        return self.net(xy)
-
-    def velocity(self, xy):
-        """``(u, v, p)`` at ``xy``, which must have ``requires_grad=True``.
-
-        ``u`` and ``v`` are derivatives of the network output, so a tensor
-        made without ``requires_grad`` gives an autograd error here rather
-        than a wrong answer — which is the good failure mode.
-        """
-        out = self.net(xy)
-        psi, p = out[:, 0:1], out[:, 1:2]
-        g = grad(psi, xy)
-        return g[:, 1:2], -g[:, 0:1], p        # u = psi_y, v = -psi_x
-
-
-# ------------------------------------------------------------------- sampling
-def sample_channel(n, obs, chan=None, seed=None):
-    """Interior points, rejecting anything inside the obstacle.
-
-    Candidate batches come from the shared rectangle sampler over the bounding
-    box; the rejection test is this set's own, because the shared library has
-    no notion of a hole. Returns ``(n, 2)`` NumPy.
-
-    The threshold is ``phi > 0.04`` rather than ``phi > 0``: a collocation
-    point sitting on the surface has no boundary layer on one side of it, and
-    the residual there is dominated by the singularity rather than by the
-    physics. The graded cloud from :func:`sample_obstacle` covers that band
-    instead.
-    """
-    ch = chan or CHANNEL
-    rng = np.random.default_rng(SEED if seed is None else seed)
-    domain = ((0.0, ch["L"]), (0.0, ch["H"]))
-    keep = np.empty((0, 2))
-    while len(keep) < n:
-        c = interior_points(max(2 * n, 1024), domain, method="lhs",
-                            seed=int(rng.integers(0, 2 ** 31 - 1)))
-        keep = np.vstack([keep, c[obs.phi(c[:, 0], c[:, 1]) > 0.04]])
-    return keep[:n]
-
-
-def sample_walls(n, chan=None):
-    """The two channel walls, ``n`` points along each. NumPy, ``(2n, 2)``."""
-    ch = chan or CHANNEL
-    x = np.linspace(0, ch["L"], n)
-    return np.concatenate([np.column_stack([x, np.zeros(n)]),
-                           np.column_stack([x, np.full(n, ch["H"])])])
-
-
-def sample_inlet(n, chan=None):
-    """``n`` points on the inlet plane ``x = 0``. NumPy, ``(n, 2)``."""
-    ch = chan or CHANNEL
-    y = np.linspace(0, ch["H"], n)
-    return np.column_stack([np.zeros(n), y])
-
-
-def sample_outlet(n, chan=None):
-    """``n`` points on the outlet plane ``x = L``. NumPy, ``(n, 2)``."""
-    ch = chan or CHANNEL
-    y = np.linspace(0, ch["H"], n)
-    return np.column_stack([np.full(n, ch["L"]), y])
-
-
-def sample_obstacle(n, obs, grade=2.2, seed=None):
-    """Points on the obstacle surface, plus a graded cloud just outside it.
-
-    The graded cloud is what resolves the boundary layer - see "Where the
-    Points Must Go" in L9.1. Its points lie in the fluid, so they are residual
-    (collocation) points: :func:`run_case` adds them to ``pts["f"]``. Putting
-    no-slip on them would stop the flow in a band around the obstacle.
-
-    Returns ``(surface, near)``, both NumPy.
-    """
-    xs, ys = obs.outline(n)
-    surf = np.column_stack([xs, ys])
-    rng = np.random.default_rng((SEED + 7) if seed is None else seed)
-    idx = rng.integers(0, len(surf), n * 3)
-    off = np.power(rng.random(n * 3), grade) * obs.size * 1.6
-    nx = surf[idx, 0] - obs.xc
-    ny = surf[idx, 1] - obs.yc
-    nn = np.hypot(nx, ny) + 1e-12
-    near = np.column_stack([surf[idx, 0] + off * nx / nn,
-                            surf[idx, 1] + off * ny / nn])
-    near = near[obs.phi(near[:, 0], near[:, 1]) > 0.01]
-    return surf, near
-
-
-# -------------------------------------------------------------------- physics
-def inlet_profile(y, U=1.0, chan=None, kind="poiseuille"):
-    """Prescribed inlet velocity: uniform, or fully developed parabolic."""
-    ch = chan or CHANNEL
-    if kind == "uniform":
-        return U * (torch.ones_like(y) if torch.is_tensor(y) else np.ones_like(y))
-    eta = y / ch["H"]
-    return 6.0 * U * eta * (1.0 - eta)
-
-
-def eddy_viscosity(Re, model="none", Cmu=0.09):
-    """Effective viscosity, non-dimensional (nu = 1/Re with U = D = 1).
-
-    'none'    laminar, nu_eff = 1/Re
-    'uniform' a crude constant eddy viscosity - the simplest closure of L9.2
-    """
-    nu = 1.0 / Re
-    if model == "none":
-        return nu
-    if model == "uniform":
-        return nu + Cmu * 0.01           # a deliberately crude closure
-    raise ValueError("model must be 'none' or 'uniform'")
-
-
-def drag_coefficient(model, obs, nu_eff, rho=1.0, U=1.0, n=400):
-    """C_D from pressure and shear integrated over the obstacle surface.
-
-    Approximate: it uses the surface normal from the level set and a
-    one-sided velocity gradient. Good enough to compare shapes, not a
-    certified value - see the validation gap in L9.2's "Where This Stops
-    Working".
-    """
-    xs, ys = obs.outline(n)
-    P = to_tensor(np.column_stack([xs, ys]), requires_grad=True)
-    u, v, p = model.velocity(P)
-    gx = torch.autograd.grad(obs.phi(P[:, 0:1], P[:, 1:2]).sum(), P,
-                             create_graph=False, retain_graph=True)[0]
-    # The aerofoil's level set has an infinite slope at its nose (a square
-    # root at zero), which made every aerofoil C_D NaN. Those one or two
-    # points are dropped from the integral rather than poisoning it.
-    gx = torch.nan_to_num(gx, nan=0.0, posinf=0.0, neginf=0.0)
-    nrm = torch.sqrt((gx ** 2).sum(dim=1, keepdim=True)) + 1e-12
-    nx, ny = gx[:, 0:1] / nrm, gx[:, 1:2] / nrm
-    gu = grad(u, P)
-    shear = nu_eff * (gu[:, 0:1] * nx + gu[:, 1:2] * ny)
-    ds = np.hypot(np.diff(xs, append=xs[0]), np.diff(ys, append=ys[0]))
-    ds = to_tensor(ds.reshape(-1, 1))
-    F = ((-p * nx + shear) * ds).sum()
-    return float(F.item() / (0.5 * rho * U ** 2 * obs.D))
-
-
-def pressure_drop(model, chan=None, n=120):
-    """Mean pressure at the inlet minus mean pressure at the outlet."""
-    ch = chan or CHANNEL
-    A = to_tensor(sample_inlet(n, ch))
-    B = to_tensor(sample_outlet(n, ch))
-    with torch.no_grad():
-        pa = model(A)[:, 1].mean().item()
-        pb = model(B)[:, 1].mean().item()
-    return float(pa - pb)
-
-
-# -------------------------------------------------------- the control surface
-class PipeConfig:
-    """Everything the exercise exposes.
-
-    The geometry itself is a parameter here — the shape, its size and its
-    position are all under the student's control, which is what makes the
-    shape comparison of notebook 03 possible and what makes it easy to compare
-    two shapes at different blockages and think you have measured shape.
-    """
-
-    def __init__(self, shape="circle", size=0.2, aspect=1.0, x_pos=1.2,
-                 reynolds=100.0, inlet_speed=1.0, inlet_kind="poiseuille",
-                 closure="none", n_collocation=6000, n_surface=250,
-                 near_wall=True,
-                 n_hidden=48, n_layers=6, adam_epochs=3000, lbfgs_epochs=300,
-                 seed=88):
-        self.shape, self.size, self.aspect, self.x_pos = shape, float(size), float(aspect), float(x_pos)
-        self.reynolds, self.inlet_speed = float(reynolds), float(inlet_speed)
-        self.inlet_kind, self.closure = inlet_kind, closure
-        self.n_collocation, self.n_surface = int(n_collocation), int(n_surface)
-        self.near_wall = bool(near_wall)
-        self.n_hidden, self.n_layers = int(n_hidden), int(n_layers)
-        self.adam_epochs, self.lbfgs_epochs = int(adam_epochs), int(lbfgs_epochs)
-        self.seed = int(seed)
-
-    @property
-    def obstacle(self):
-        return Obstacle(self.shape, self.x_pos, CHANNEL["H"] / 2, self.size, self.aspect)
-
-    @property
-    def nu_eff(self):
-        return eddy_viscosity(self.reynolds, self.closure)
-
-    @property
-    def blockage(self):
-        return self.obstacle.D / CHANNEL["H"]
-
-    def __repr__(self):
-        return (f"PipeConfig({self.shape}, Re={self.reynolds:g}, "
-                f"blockage={self.blockage:.2f}, closure={self.closure}, "
-                f"N_f={self.n_collocation}, near_wall={self.near_wall})")
-
-
-def run_case(cfg, residual_fn, loss_fn_factory, verbose=True):
-    """Train one configuration and return the engineering quantities.
-
-    The samplers hand back NumPy; every point set is wrapped here with
-    ``requires_grad=True``, including the boundary sets, because the velocity
-    is itself a derivative of the network output and so even a no-slip term
-    differentiates through its points.
-
-    The graded near-wall cloud is fluid, not boundary: with
-    ``cfg.near_wall`` on (the default) it is appended to the interior set, so
-    ``pts["f"]`` holds both and the residual is enforced on both. Switch it
-    off to measure what the grading does to the drag.
-    """
-    set_seed(cfg.seed)
-    obs = cfg.obstacle
-    model = ChannelPINN(cfg.n_hidden, cfg.n_layers).to(DEVICE)
-    surf, near = sample_obstacle(cfg.n_surface, obs, seed=cfg.seed)
-    f = sample_channel(cfg.n_collocation, obs, seed=cfg.seed)
-    if cfg.near_wall:
-        f = np.vstack([f, near])
-    pts = {
-        "f": to_tensor(f, requires_grad=True),
-        "walls": to_tensor(sample_walls(120), requires_grad=True),
-        "inlet": to_tensor(sample_inlet(80), requires_grad=True),
-        "outlet": to_tensor(sample_outlet(80), requires_grad=True),
-        "surf": to_tensor(surf, requires_grad=True),
-    }
-    if verbose:
-        describe(model, len(f))
-
-    t0 = time.time()
-    hist = train_two_stage(model, loss_fn_factory(model, pts, cfg),
-                           adam_steps=cfg.adam_epochs,
-                           lbfgs_steps=max(1, cfg.lbfgs_epochs // LBFGS_INNER),
-                           lr=1e-3,
-                           report_every=750 if verbose else 0)
-    wall = time.time() - t0
-
-    try:
-        cd = drag_coefficient(model, obs, cfg.nu_eff, U=cfg.inlet_speed)
-    except Exception as e:
-        cd = float("nan")
-        if verbose:
-            print("  drag failed:", e)
-    dp = pressure_drop(model)
-
-    res = {"config": cfg, "model": model, "history": hist, "seconds": wall,
-           "final_loss": float(hist["lbfgs"][-1]), "C_D": cd, "dp": dp,
-           "n_params": parameter_count(model),
-           "n_near": len(near) if cfg.near_wall else 0}
-    if verbose:
-        print(f"\n{cfg}\n  wall {wall:.1f}s  loss {res['final_loss']:.3e}  "
-              f"C_D {cd:.3f}  dp {dp:.4f}")
-    return res
-
-
-# -------------------------------------------------------------------- pictures
-def plot_shape(cfg):
-    """Preview the geometry and the sample distribution before training."""
-    import matplotlib.pyplot as plt
-    obs = cfg.obstacle
-    pts = sample_channel(2500, obs, seed=cfg.seed)
-    surf, near = sample_obstacle(cfg.n_surface, obs, seed=cfg.seed)
-    xs, ys = obs.outline()
-    plt.figure(figsize=(11, 3.0))
-    plt.scatter(pts[:, 0], pts[:, 1], s=2, alpha=0.4, label="interior")
-    plt.scatter(near[:, 0], near[:, 1], s=3, alpha=0.6, label="graded near-wall")
-    plt.plot(xs, ys, "w-", lw=1.5)
-    plt.xlim(0, CHANNEL["L"]); plt.ylim(0, CHANNEL["H"])
-    plt.gca().set_aspect("equal"); plt.legend(fontsize=8)
-    plt.title(f"{cfg.shape}, blockage {cfg.blockage:.2f}")
-    plt.tight_layout(); plt.show()
-
-
-def plot_case(result, k=(360, 90)):
-    """Speed, pressure and streamwise velocity on a grid, obstacle masked out."""
-    import matplotlib.pyplot as plt
-    cfg = result["config"]; obs = cfg.obstacle
-    X, Y, pts = grid_points(k[0], k[1], DOMAIN)
-    P = to_tensor(pts, requires_grad=True)
-    u, v, p = result["model"].velocity(P)
-    U = to_numpy(u).reshape(X.shape)
-    V = to_numpy(v).reshape(X.shape)
-    PR = to_numpy(p).reshape(X.shape)
-    mask = obs.phi(X, Y) < 0
-    for A in (U, V, PR):
-        A[mask] = np.nan
-    xs, ys = obs.outline()
-    fig, ax = plt.subplots(3, 1, figsize=(11, 7.2))
-    for a, (D, ttl) in zip(ax, [(np.sqrt(U ** 2 + V ** 2), "speed"),
-                                (PR, "pressure"), (U, "u")]):
-        im = a.contourf(X, Y, D, 50, cmap="magma")
-        a.plot(xs, ys, "w-", lw=1.4); a.set_aspect("equal"); a.set_title(ttl)
-        fig.colorbar(im, ax=a)
-    plt.tight_layout(); plt.show()
-    return fig
-
-
-def control_panel(on_run, defaults=None):
-    """The widget panel. ``on_run(cfg)`` is called when Run case is pressed."""
-    import ipywidgets as W
-    from IPython.display import display
-
-    d = defaults or PipeConfig()
-    style = {"description_width": "140px"}; lay = W.Layout(width="400px")
-    w = {
-        "shape": W.Dropdown(options=list(SHAPES), value=d.shape,
-                            description="Obstacle shape", style=style, layout=lay),
-        "size": W.FloatSlider(value=d.size, min=0.05, max=0.35, step=0.01,
-                              description="Size", style=style, layout=lay),
-        "aspect": W.FloatSlider(value=d.aspect, min=0.3, max=2.5, step=0.1,
-                                description="Aspect ratio", style=style, layout=lay),
-        "x_pos": W.FloatSlider(value=d.x_pos, min=0.6, max=2.5, step=0.1,
-                               description="Position along pipe", style=style, layout=lay),
-        "reynolds": W.FloatLogSlider(value=d.reynolds, base=10, min=0.7, max=3.5, step=0.1,
-                                     description="Reynolds number", style=style, layout=lay),
-        "inlet_speed": W.FloatSlider(value=d.inlet_speed, min=0.2, max=3.0, step=0.1,
-                                     description="Inlet speed U", style=style, layout=lay),
-        "inlet_kind": W.Dropdown(options=["poiseuille", "uniform"], value=d.inlet_kind,
-                                 description="Inlet profile", style=style, layout=lay),
-        "closure": W.Dropdown(options=["none", "uniform"], value=d.closure,
-                              description="Turbulence closure", style=style, layout=lay),
-        "n_collocation": W.IntSlider(value=d.n_collocation, min=1000, max=25000, step=1000,
-                                     description="Collocation points", style=style, layout=lay),
-        "near_wall": W.Checkbox(value=d.near_wall, description="Graded near-wall points",
-                                style=style, layout=lay),
-        "n_hidden": W.IntSlider(value=d.n_hidden, min=20, max=100, step=10,
-                                description="Neurons per layer", style=style, layout=lay),
-        "n_layers": W.IntSlider(value=d.n_layers, min=3, max=9, step=1,
-                                description="Hidden layers", style=style, layout=lay),
-        "adam_epochs": W.IntSlider(value=d.adam_epochs, min=500, max=10000, step=500,
-                                   description="Adam epochs", style=style, layout=lay),
-    }
-    readout = W.HTML()
-
-    def _update(*_):
-        cfg = PipeConfig(**{k: v.value for k, v in w.items()})
-        # P* is Liu's pseudo-dimension, (p + 1) + (N_n + 1) N_L with p = 2. It
-        # counts neurons, not weights, and it is the number the sampling
-        # condition is written against.
-        p_star = 3 + (w["n_hidden"].value + 1) * w["n_layers"].value
-        ratio = w["n_collocation"].value / p_star
-        warn = "" if ratio >= 10 else " &nbsp;<b style='color:#c60'>low</b>"
-        block = cfg.blockage
-        bwarn = "" if block < 0.5 else " &nbsp;<b style='color:#c60'>very blocked</b>"
-        readout.value = (f"<div style='font-family:monospace'>nu_eff = {cfg.nu_eff:.4g}"
-                         f" &nbsp;|&nbsp; P* = {p_star} &nbsp;|&nbsp; N_f/P* = {ratio:.1f}{warn}"
-                         f" &nbsp;|&nbsp; blockage = {block:.2f}{bwarn}</div>")
-    for x in w.values():
-        x.observe(_update, "value")
-    _update()
-
-    prev = W.Button(description="Preview geometry", icon="search",
-                    layout=W.Layout(width="190px"))
-    run = W.Button(description="Run case", button_style="success", icon="play",
-                   layout=W.Layout(width="160px"))
-    out = W.Output()
-
-    def _cfg():
-        return PipeConfig(**{k: v.value for k, v in w.items()})
-
-    def _prev(_):
-        with out:
-            out.clear_output(); plot_shape(_cfg())
-
-    def _run(_):
-        with out:
-            out.clear_output(); on_run(_cfg())
-
-    prev.on_click(_prev); run.on_click(_run)
-    display(W.VBox([
-        W.HTML("<h3>Ex_09.2 &mdash; obstacle in a pipe</h3>"
-               "<p>Choose a shape and set the flow. <b>Preview geometry</b> is free; "
-               "<b>Run case</b> trains a model. Every run is recorded for the report.</p>"),
-        W.HBox([W.VBox(list(w.values())[:6]), W.VBox(list(w.values())[6:])]),
-        readout, W.HBox([prev, run]), out]))
-    return w
-
-
-def make_report(results, filename="Ex09.2_report.md", author="", notes=""):
-    """Write the case table and the five report questions to a Markdown file."""
-    L = ["# Ex_09.2 - Flow past an obstacle in a pipe", ""]
-    if author:
-        L.append(f"**Author:** {author}  ")
-    L += [f"**Cases run:** {len(results)}", "", "## Cases", "",
-          "| # | shape | blockage | Re | closure | N_f | near-wall | params | wall (s) | final loss | C_D | dp |",
-          "|---|-------|----------|----|---------|-----|-----------|--------|----------|------------|-----|----|"]
-    for i, r in enumerate(results, 1):
-        c = r["config"]
-        L.append(f"| {i} | {c.shape} | {c.blockage:.2f} | {c.reynolds:g} | {c.closure} | "
-                 f"{c.n_collocation} | {r.get('n_near', '-')} | {r['n_params']} | {r['seconds']:.1f} | "
-                 f"{r['final_loss']:.3e} | {r['C_D']:.3f} | {r['dp']:.4f} |")
-    L += ["", "## Your interpretation", "",
-          "1. **Shape.** Compare two shapes at the same Reynolds number and the same",
-          "   blockage. Which had the higher drag, and why physically? Refer to where",
-          "   the flow separates.", "",
-          "2. **Reynolds number.** How did drag and pressure drop vary with Re? At what",
-          "   Re did the solution begin to degrade, and how did the degradation appear -",
-          "   as an obvious failure, or as a plausible but smeared field?", "",
-          "3. **Closure.** Compare `closure='none'` with `closure='uniform'` at the same",
-          "   Re. What changed, and what does that tell you about the eddy-viscosity",
-          "   hypothesis?", "",
-          "4. **Sampling.** Run one case twice, with the graded near-wall points on",
-          "   and off. How much did the drag move, and the pressure drop? Why is drag",
-          "   more sensitive to the grading than the pressure drop is?", "",
-          "5. **Honest assessment.** Would you present any of these numbers to a client?",
-          "   State what validation would be needed first.", ""]
-    if notes:
-        L += ["## Notes", "", notes, ""]
-    with open(filename, "w") as fh:
-        fh.write("\n".join(L))
-    print(f"wrote {filename}  ({len(results)} cases)")
-    return filename
+    import scipy.sparse as sp
+    import scipy.sparse.linalg as spla
+
+    P1, tri = _mesh(spacing)
+    # the edge midpoints: the extra nodes of the quadratic element
+    e = np.vstack([tri[:, [0, 1]], tri[:, [1, 2]], tri[:, [2, 0]]])
+    uniq, inv = np.unique(np.sort(e, axis=1), axis=0, return_inverse=True)
+    inv = inv.ravel()
+    nt, n1 = len(tri), len(P1)
+    P = np.vstack([P1, 0.5 * (P1[uniq[:, 0]] + P1[uniq[:, 1]])])
+    t6 = np.c_[tri, n1 + inv[:nt], n1 + inv[nt:2 * nt], n1 + inv[2 * nt:]]
+    n2 = len(P)
+
+    x, y = P1[tri, 0], P1[tri, 1]
+    area = 0.5 * ((x[:, 1] - x[:, 0]) * (y[:, 2] - y[:, 0]) - (x[:, 2] - x[:, 0]) * (y[:, 1] - y[:, 0]))
+    b = np.stack([y[:, 1] - y[:, 2], y[:, 2] - y[:, 0], y[:, 0] - y[:, 1]], 1) / (2 * area[:, None])
+    c = np.stack([x[:, 2] - x[:, 1], x[:, 0] - x[:, 2], x[:, 1] - x[:, 0]], 1) / (2 * area[:, None])
+    lam = _QP
+    N = np.c_[lam * (2 * lam - 1), 4 * lam[:, 0] * lam[:, 1], 4 * lam[:, 1] * lam[:, 2], 4 * lam[:, 2] * lam[:, 0]]
+
+    def dN(g):
+        out = np.empty((nt, len(_QW), 6))
+        for i in range(3):
+            out[:, :, i] = (4 * lam[None, :, i] - 1) * g[:, None, i]
+        for k, (i, j) in enumerate(((0, 1), (1, 2), (2, 0))):
+            out[:, :, 3 + k] = 4 * (lam[None, :, i] * g[:, None, j] + lam[None, :, j] * g[:, None, i])
+        return out
+
+    Nx, Ny = dN(b), dN(c)
+    w = area[:, None] * _QW[None, :]
+    I6, J6 = np.repeat(t6, 6, axis=1).ravel(), np.tile(t6, (1, 6)).ravel()
+
+    def mat66(Ke):
+        return sp.coo_matrix((Ke.ravel(), (I6, J6)), shape=(n2, n2)).tocsr()
+
+    K = mat66(np.einsum("eq,eqi,eqj->eij", w, Nx, Nx) + np.einsum("eq,eqi,eqj->eij", w, Ny, Ny))
+    I63, J63 = np.repeat(t6, 3, axis=1).ravel(), np.tile(tri, (1, 6)).ravel()
+    Bx = sp.coo_matrix((np.einsum("eq,eqi,qk->eik", w, Nx, lam).ravel(), (I63, J63)), shape=(n2, n1)).tocsr()
+    By = sp.coo_matrix((np.einsum("eq,eqi,qk->eik", w, Ny, lam).ravel(), (I63, J63)), shape=(n2, n1)).tocsr()
+
+    # where the velocity is imposed: the inlet, the two walls, the tube
+    eps = 1e-9
+    on_in = P[:, 0] < eps
+    on_wall = (P[:, 1] < eps) | (P[:, 1] > CHANNEL["H"] - eps)
+    ring = np.abs(np.hypot(P1[:, 0] - TUBE["xc"], P1[:, 1] - TUBE["yc"]) - TUBE["r"]) < 1e-9
+    e3 = np.vstack([t6[:, [0, 1, 3]], t6[:, [1, 2, 4]], t6[:, [2, 0, 5]]])
+    mid = e3[ring[e3[:, 0]] & ring[e3[:, 1]], 2]
+    mid = np.unique(mid[np.bincount(e3[:, 2], minlength=n2)[mid] == 1])   # edges ON the tube belong to one triangle
+    on_tube = np.zeros(n2, bool)
+    on_tube[:n1] = ring
+    on_tube[mid] = True
+    fixed = on_in | on_wall | on_tube
+    u, v, p = np.zeros(n2), np.zeros(n2), np.zeros(n1)
+    u[on_in] = inflow(P[on_in, 1])
+    u[on_wall | on_tube] = 0.0
+    free_u = np.where(~fixed)[0]
+    free = np.r_[free_u, n2 + free_u, 2 * n2 + np.arange(n1)]
+
+    def system(u, v, p, jacobian=True):
+        ue, ve = u[t6], v[t6]
+        uq, vq = np.einsum("qi,ei->eq", N, ue), np.einsum("qi,ei->eq", N, ve)
+        A = nu * K + mat66(np.einsum("eq,qi,eqj->eij", w * uq, N, Nx) + np.einsum("eq,qi,eqj->eij", w * vq, N, Ny))
+        R = np.r_[A @ u - Bx @ p, A @ v - By @ p, -(Bx.T @ u + By.T @ v)]
+        if not jacobian:
+            return R, None
+        ux, uy = np.einsum("eqi,ei->eq", Nx, ue), np.einsum("eqi,ei->eq", Ny, ue)
+        vx, vy = np.einsum("eqi,ei->eq", Nx, ve), np.einsum("eqi,ei->eq", Ny, ve)
+        M = lambda f: mat66(np.einsum("eq,qi,qj->eij", w * f, N, N))
+        J = sp.bmat([[A + M(ux), M(uy), -Bx], [M(vx), A + M(vy), -By], [-Bx.T, -By.T, None]], format="csr")
+        return R, J
+
+    for it in range(25):                                     # Newton's method
+        R, J = system(u, v, p)
+        if np.abs(R[free]).max() < tol:
+            break
+        d = np.zeros(2 * n2 + n1)
+        d[free] = spla.spsolve(J[free][:, free].tocsc(), -R[free])
+        u += d[:n2]
+        v += d[n2:2 * n2]
+        p += d[2 * n2:]
+    R, _ = system(u, v, p, jacobian=False)                   # the reaction at the tube's nodes is the force on it
+    ref = dict(P=P, P1=P1, tri=tri, t6=t6, u=u, v=v, p=p, nu=nu, newton=it, n_unknowns=len(free),
+               drag=float(-R[:n2][on_tube].sum()), lift=float(-R[n2:2 * n2][on_tube].sum()))
+    k_in, k_out = np.where(P1[:, 0] < eps)[0], np.where(P1[:, 0] > CHANNEL["L"] - eps)[0]
+    ref["dp"] = mean_over_height(P1[k_in, 1], p[k_in]) - mean_over_height(P1[k_out, 1], p[k_out])
+    return ref
+
+
+def reference_at(ref, x, y):
+    """The reference's ``(u, v, p)`` at the points ``(x, y)``, with the shape
+    functions of the triangle that holds each point (quadratic for the
+    velocity, linear for the pressure). NaN inside the tube."""
+    from matplotlib.tri import Triangulation
+    if "_finder" not in ref:
+        ref["_finder"] = Triangulation(ref["P1"][:, 0], ref["P1"][:, 1], ref["tri"]).get_trifinder()
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    shape = x.shape
+    x, y = x.ravel(), y.ravel()
+    e = ref["_finder"](x, y)
+    ok = e >= 0
+    tri, t6, P1 = ref["tri"][e[ok]], ref["t6"][e[ok]], ref["P1"]
+    x0, y0 = P1[tri[:, 0], 0], P1[tri[:, 0], 1]
+    x1, y1 = P1[tri[:, 1], 0], P1[tri[:, 1], 1]
+    x2, y2 = P1[tri[:, 2], 0], P1[tri[:, 2], 1]
+    det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)
+    l1 = ((x[ok] - x0) * (y2 - y0) - (x2 - x0) * (y[ok] - y0)) / det
+    l2 = ((x1 - x0) * (y[ok] - y0) - (x[ok] - x0) * (y1 - y0)) / det
+    lam = np.c_[1 - l1 - l2, l1, l2]
+    N = np.c_[lam * (2 * lam - 1), 4 * lam[:, 0] * lam[:, 1], 4 * lam[:, 1] * lam[:, 2], 4 * lam[:, 2] * lam[:, 0]]
+    out = []
+    for vals, shp, conn in ((ref["u"], N, t6), (ref["v"], N, t6), (ref["p"], lam, tri)):
+        f = np.full(len(x), np.nan)
+        f[ok] = (shp * vals[conn]).sum(axis=1)
+        out.append(f.reshape(shape))
+    return out
+
+
+# ------------------------------------------------- the classical method: a grid
+def finite_volumes(n_y, nu=NU_EFF, tol=1e-6, t_max=40.0):
+    """The mean flow on a staggered grid of square cells, ``n_y`` across the
+    duct: ``u`` on the vertical faces, ``v`` on the horizontal ones, ``p`` at
+    the centres. Central differences. The tube is a STAIRCASE: the velocity is
+    set to zero on every face inside it. Marched in time to the steady state
+    by a projection step - an explicit step of convection and viscosity, then
+    a pressure that makes the result divergence-free, its matrix factorised
+    once.
+
+    Returns a dict: the face coordinates, ``u``, ``v``, ``p``, the masks of the
+    faces inside the tube, the force on the tube per unit depth (``drag``, the
+    momentum the staircase removes), the pressure drop ``dp``, and the time
+    ``t`` at which the flow stopped changing - in scaled units."""
+    import scipy.sparse as sp
+    import scipy.sparse.linalg as spla
+
+    h = CHANNEL["H"] / n_y
+    nx, ny = int(round(CHANNEL["L"] / h)), n_y
+    xu, yu = np.arange(nx + 1) * h, (np.arange(ny) + 0.5) * h
+    xv, yv = (np.arange(nx) + 0.5) * h, np.arange(ny + 1) * h
+    XU, YU = np.meshgrid(xu, yu)
+    XV, YV = np.meshgrid(xv, yv)
+    inside = lambda X, Y: (X - TUBE["xc"]) ** 2 + (Y - TUBE["yc"]) ** 2 < TUBE["r"] ** 2
+    su, sv = inside(XU, YU), inside(XV, YV)
+    u_in = inflow(yu)
+    # the pressure matrix: a five-point Laplacian, zero gradient on the walls and the inlet, p = 0 on the outlet
+    idx = np.arange(nx * ny).reshape(ny, nx)
+    rows, cols, diag = [], [], np.zeros((ny, nx))
+    for a, b in ((idx[:, :-1], idx[:, 1:]), (idx[:-1, :], idx[1:, :])):
+        rows += [a.ravel(), b.ravel()]
+        cols += [b.ravel(), a.ravel()]
+    diag[:, :-1] -= 1; diag[:, 1:] -= 1; diag[:-1, :] -= 1; diag[1:, :] -= 1; diag[:, -1] -= 2
+    r, c = np.concatenate(rows), np.concatenate(cols)
+    A = sp.coo_matrix((np.ones(len(r)), (r, c)), shape=(nx * ny, nx * ny)) + sp.diags(diag.ravel())
+    lu = spla.splu((A / h ** 2).tocsc())
+    dt = min(0.2 * h / 2.5, 0.2 * h * h / nu)                # the stable step: convection and viscosity
+    u = np.tile(u_in[:, None], (1, nx + 1))
+    u[su] = 0.0
+    v = np.zeros((ny + 1, nx))
+    t = 0.0
+    while t < t_max:
+        # ghost values: no slip on the walls, the inflow, zero gradient at the outlet
+        U = np.zeros((ny + 2, nx + 3)); U[1:-1, 1:-1] = u
+        U[1:-1, 0] = 2 * u_in - u[:, 1]; U[1:-1, -1] = u[:, -1]
+        U[0, :] = -U[1, :]; U[-1, :] = -U[-2, :]
+        V = np.zeros((ny + 3, nx + 2)); V[1:-1, 1:-1] = v
+        V[1:-1, 0] = -v[:, 0]; V[1:-1, -1] = v[:, -1]
+        uc, vc = U[1:-1, 1:-1], V[1:-1, 1:-1]
+        vbar = 0.25 * (V[1:-2, 1:] + V[1:-2, :-1] + V[2:-1, 1:] + V[2:-1, :-1])       # v at the u faces
+        ubar = 0.25 * (U[1:, 1:-2] + U[1:, 2:-1] + U[:-1, 1:-2] + U[:-1, 2:-1])       # u at the v faces
+        conv_u = uc * (U[1:-1, 2:] - U[1:-1, :-2]) / (2 * h) + vbar * (U[2:, 1:-1] - U[:-2, 1:-1]) / (2 * h)
+        conv_v = ubar * (V[1:-1, 2:] - V[1:-1, :-2]) / (2 * h) + vc * (V[2:, 1:-1] - V[:-2, 1:-1]) / (2 * h)
+        lap_u = (U[1:-1, 2:] + U[1:-1, :-2] + U[2:, 1:-1] + U[:-2, 1:-1] - 4 * uc) / h ** 2
+        lap_v = (V[1:-1, 2:] + V[1:-1, :-2] + V[2:, 1:-1] + V[:-2, 1:-1] - 4 * vc) / h ** 2
+        us, vs = uc + dt * (nu * lap_u - conv_u), vc + dt * (nu * lap_v - conv_v)
+        us[:, 0] = u_in; vs[0, :] = 0.0; vs[-1, :] = 0.0
+        drag = us[su].sum() * h * h / dt                     # the momentum the tube's faces take out
+        us[su] = 0.0; vs[sv] = 0.0
+        div = ((us[:, 1:] - us[:, :-1]) + (vs[1:, :] - vs[:-1, :])) / h
+        p = lu.solve((div / dt).ravel()).reshape(ny, nx)     # the pressure that removes the divergence
+        pe = np.hstack([p, -p[:, -1:]])
+        un, vn = us.copy(), vs.copy()
+        un[:, 1:] -= dt * (pe[:, 1:] - pe[:, :-1]) / h
+        vn[1:-1, :] -= dt * (p[1:, :] - p[:-1, :]) / h
+        drag += un[su].sum() * h * h / dt
+        un[su] = 0.0; vn[sv] = 0.0
+        change = max(np.abs(un - u).max(), np.abs(vn - v).max()) / dt
+        u, v, t = un, vn, t + dt
+        if change < tol:
+            break
+    return dict(xu=xu, yu=yu, xv=xv, yv=yv, u=u, v=v, p=p, in_tube_u=su, in_tube_v=sv, h=h, t=t,
+                drag=float(drag), dp=float(p[:, 0].mean() - p[:, -1].mean()))
+
+
+# ------------------------------------------------------ numbers from a network
+def network_numbers(fields, nu=NU_EFF, n=400):
+    """The two engineering numbers from a network. ``fields`` maps points to
+    ``(u, v, p)``. Returns the force on the tube per unit depth - the traction
+    ``-p n + nu (grad u + grad u^T) n`` averaged over ``n`` surface points,
+    times the circumference - and the pressure drop, the mean pressure over
+    the inlet minus the mean over the outlet. Scaled units."""
+    from course_core import to_numpy, to_tensor
+    from pinn_core import grad
+    xy = to_tensor(sample_tube(n), requires_grad=True)
+    u, v, p = fields(xy)
+    gu, gv = grad(u, xy), grad(v, xy)
+    nx = (xy[:, 0:1] - TUBE["xc"]) / TUBE["r"]               # the normal, out of the tube
+    ny = (xy[:, 1:2] - TUBE["yc"]) / TUBE["r"]
+    tx = -p * nx + nu * (2 * gu[:, 0:1] * nx + (gu[:, 1:2] + gv[:, 0:1]) * ny)
+    drag = float(tx.mean().item()) * 2.0 * np.pi * TUBE["r"]
+    y = np.linspace(0.0, CHANNEL["H"], 201)
+    ends = []
+    for x in (0.0, CHANNEL["L"]):
+        q = to_tensor(np.c_[np.full(len(y), x), y], requires_grad=True)
+        ends.append(mean_over_height(y, to_numpy(fields(q)[2]).ravel()))
+    return drag, ends[0] - ends[1]
+
+
+def probe_readings(ref, seed=92):
+    """What twelve velocity probes in the wake would read: the reference's
+    ``u`` at :data:`PROBES`, with noise of :data:`NOISE` (1 % of the mean
+    speed). Synthetic measurements: the reference, sampled."""
+    rng = np.random.default_rng(seed)
+    return reference_at(ref, PROBES[:, 0], PROBES[:, 1])[0] + rng.normal(0.0, NOISE, len(PROBES))
+
+
+def describe_problem() -> None:
+    """Print the duct and the numbers it implies."""
+    D = 2 * TUBE["r"] * H_DUCT
+    print(f"  duct             : {H_DUCT * 1e3:.0f} mm high, {CHANNEL['L'] * H_DUCT * 1e3:.0f} mm long; water at {U_MEAN:.2f} m/s (mean)")
+    print(f"  tube             : {D * 1e3:.0f} mm across the duct, its centre {TUBE['xc'] * H_DUCT * 1e3:.0f} mm from the inlet, on the centreline")
+    print(f"  Reynolds number  : U H / nu = {RE_DUCT:.0f}  ->  turbulent; the mean flow is solved for")
+    print(f"  closure          : nu_eff = nu + nu_t = {NU_EFF:.2f} U H = {NU_EFF_SI:.1e} m^2/s  ({NU_EFF_SI / NU_WATER:.0f} times water's)")
+    print(f"  the model's Re   : U H / nu_eff = {1 / NU_EFF:.0f}, and {2 * TUBE['r'] / NU_EFF:.0f} on the tube's diameter")
+    print(f"  pressure scale   : rho U^2 = {P_SCALE:.2f} Pa        force scale: rho U^2 H = {F_SCALE:.2f} N per metre of tube")

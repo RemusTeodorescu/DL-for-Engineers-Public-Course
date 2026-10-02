@@ -85,6 +85,14 @@ up: $\mathbf{h}_i^{(k)}$.
 Physical quantities (temperature, velocity, concentration, voltage) are
 defined on the slide where they appear, with their SI unit.
 
+Two physical symbols are fixed for the whole course (2 October 2026): **$k$
+is the thermal conductivity** and **$\sigma$ the electrical conductivity**,
+as in Incropera, the L8 reading, and in most engineering texts. ISO and
+many European texts write $\lambda$ for the thermal conductivity; the course
+does not, because $\lambda$ is already a loss weight and an eigenvalue. Where
+$k$ would also be a reaction rate constant (L10.1's Butler-Volmer), the rate
+constant is $k_r$.
+
 ## Accepted double meanings
 
 Three symbols carry two meanings; the context separates them.

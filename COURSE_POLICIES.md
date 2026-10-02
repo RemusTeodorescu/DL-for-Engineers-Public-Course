@@ -37,6 +37,13 @@ policies under each; `--full` adds the review history behind every one.
 - The Learning Objectives are the numbered sections, each with its reading (UDL chapter).
 - Only the first lecture of a block opens with a Recap: the previous lecture's
   four questions with their answers, verbatim.
+- **The Recap names the lecture it recaps (D24, Part 2, 2 October 2026).** Its
+  title is `Recap of L7.2 Fundamental PDEs`: the lecture's number, as the
+  slide's source line gives it, and its name, as its own title slide prints
+  it. `slide_policies.py` reads the name from that lecture's generator, so a
+  renamed lecture is reported on the next Recap until it is copied across.
+  L7.1, L8.1 and L9.1 carry it; L10.1, L11.1 and L12.1 take it with their
+  Recap slide.
 - Two talk stops per lecture, each on a slide that defines a new concept: a
   general question first, then a question about a figure on the same slide.
 - **The Questions slide (D21, 1 October 2026).** Four exam questions, two
@@ -57,7 +64,7 @@ policies under each; `--full` adds the review history behind every one.
   references, that the answers are drawn, and that each box holds its text.
 - Every Key Takeaway answers an objective and is reproduced in a notebook.
 
-*Replaces D3, D4, D6, D7, D8, D10, D13, D15, D16, D21, P7, E4, E6.*
+*Replaces D3, D4, D6, D7, D8, D10, D13, D15, D16, D21, D24, P7, E4, E6.*
 
 ## C2 · One concept per slide, stated first
 

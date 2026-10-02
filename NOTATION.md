@@ -85,6 +85,13 @@ up: $\mathbf{h}_i^{(k)}$.
 Physical quantities (temperature, velocity, concentration, voltage) are
 defined on the slide where they appear, with their SI unit.
 
+**Units** (2 October 2026) are written in square brackets after the symbol
+they label, $k$ [W/(m·K)]. Two units multiplied are joined by a centred dot
+when the first has no exponent, W/(m·K), J/(kg·K), Pa·s, so that "m K"
+cannot be read as millikelvin; after an exponent they are written together,
+W/(m²K), MJ/(m³K), mol/(m²s). A number quoted in a sentence keeps its unit
+plain: "390.50 W/m²".
+
 Two physical symbols are fixed for the whole course (2 October 2026): **$k$
 is the thermal conductivity** and **$\sigma$ the electrical conductivity**,
 as in Incropera, the L8 reading, and in most engineering texts. ISO and

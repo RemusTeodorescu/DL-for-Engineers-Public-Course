@@ -13,7 +13,7 @@ same network recovers the plate's diffusivity from four thermocouples.
 ## The problem
 
 The 100 × 100 mm aluminium plate of Ex_08.1 (k = 167 W/m·K, ρc_p = 2.43
-MJ/m³·K, so α = 6.87 × 10⁻⁵ m²/s), its elliptical cooling channel held at
+MJ/m³K, so α = 6.87 × 10⁻⁵ m²/s), its elliptical cooling channel held at
 40 °C, its outer edges insulated. At t = 0 the plate is at 40 °C and its heat
 generation, 1 MW/m³, is switched on. The window is 80 s.
 

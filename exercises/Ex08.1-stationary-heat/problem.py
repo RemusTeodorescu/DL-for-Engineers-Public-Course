@@ -57,7 +57,7 @@ __all__ = [
 
 # ------------------------------------------------------------------ the data
 L_PLATE = 0.100          #: m, the side of the plate
-K_PLATE = 167.0          #: W/(m K), aluminium alloy 6061
+K_PLATE = 167.0          #: W/(m·K), aluminium alloy 6061
 Q_PLATE = 1.0e6          #: W/m^3, the heat generated in the plate
 T_COOLANT = 40.0         #: degC, the wall of the channel
 DELTA_T = Q_PLATE * L_PLATE ** 2 / K_PLATE   #: K, the temperature scale, 59.88
@@ -239,7 +239,7 @@ def describe_problem() -> None:
     """Print the plate and the numbers it implies."""
     h = HOLE
     L = L_PLATE * 1e3
-    print(f"  plate            : {L:.0f} x {L:.0f} mm aluminium, k = {K_PLATE:.0f} W/(m K)")
+    print(f"  plate            : {L:.0f} x {L:.0f} mm aluminium, k = {K_PLATE:.0f} W/(m·K)")
     print(f"  heat generated   : Q = {Q_PLATE:.1e} W/m^3, evenly")
     print(f"  cooling channel  : ellipse {2 * h['a'] * L:.0f} x {2 * h['b'] * L:.0f} mm at the centre, "
           f"wall at {T_COOLANT:.0f} degC")

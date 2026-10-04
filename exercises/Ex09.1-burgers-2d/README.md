@@ -14,6 +14,26 @@ two outputs — score both against an exact solution, and compare them on
 accuracy and on time. Then they raise the Reynolds number from 20 to 500 and do
 it again.
 
+## The pipe version, for inspection
+
+`Ex09.1_pipe_startup_new.ipynb` (with its light form) sits beside the Burgers
+notebook until the lecturer chooses one. It is the coolant in one straight
+leg of a cold plate's serpentine - a 6 mm tube, 50/50 water–glycol at 40 °C,
+0.3 L/min, Re = 452 - when the pump starts. Newton's law in the tube leaves
+$ho u_t = G + \mu(u_{rr} + u_r/r)$; its steady limit is Hagen–Poiseuille's
+parabola and Darcy's 64/Re; the start-up is exact (Szymański's Bessel series).
+Finite differences meet the agreed 1e-03 with 21 nodes and 80 steps in about
+a millisecond; the PINN, with the wall and the start built in and $s = (r/R)^2$
+as input, is within 6e-04 after 37 s of training and 0.4 ms online. Section 6
+finds the coolant's viscosity from a flow meter's first second: Darcy on the
+last reading is 15 % high (the flow has not settled), least squares on the
+exact series and the network both within 2 %. Its physics is in `pipe.py`;
+its mini projects are MP9.1A, one 12 mm bend (Dean vortices, friction twice
+the straight tube's, ground truth by `tools/miniprojects/dean.py`), and
+MP9.1B, a 4 × 2 mm milled channel (exact series, $f\,\mathrm{Re}$ = 62.21),
+both in `tools/miniprojects/pipe_truth.py`. **The coolant's properties, the
+tube, the bend radius and the channel are typical values typed from memory.**
+
 ## The problem
 
 ```

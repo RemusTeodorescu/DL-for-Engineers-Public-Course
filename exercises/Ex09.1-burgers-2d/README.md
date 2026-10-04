@@ -4,8 +4,11 @@
 
 The coupled Burgers equations in **one notebook** (course policies C11 and
 C13): the momentum equations of a flow with the pressure and the
-incompressibility constraint left out. A flow carries a front across a square;
-the front's width is set by the Reynolds number. Students compute the answer
+incompressibility constraint left out. Two streams of the same fluid meet:
+below a slanted line the fluid moves at (0.50, 1.00), towards the line; above
+it at (0.75, 0.75), along it. Where they meet the velocity changes in a thin
+band, a front, whose width is set by the Reynolds number, and the front creeps
+upwards. Students compute the answer
 two ways — finite differences on a grid, and a physics-informed network with
 two outputs — score both against an exact solution, and compare them on
 accuracy and on time. Then they raise the Reynolds number from 20 to 500 and do

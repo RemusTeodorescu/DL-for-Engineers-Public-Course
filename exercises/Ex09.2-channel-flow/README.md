@@ -53,10 +53,13 @@ Ex09.2_hydrogen_channel_light.ipynb   the same notebook with every cell written 
 The electrode sees 0.106 percentage points more steam than the mean at every
 position and speed: the channel mixes across within a millimetre. The march
 meets 0.1 percentage point at 401 × 41 in about 5 ms; the network is within
-1.1 to 1.6e-04 of the steam fraction at every speed after about four minutes
-of training. Neither gets the Sherwood number to better than 10 %, because it
-measures a tenth of a per cent of the field. Online both take about 5 ms per
-speed; the network's gain is the speed as an input. Newton through autograd
+1.1 to 1.6e-04 of the steam fraction at every speed after about two minutes
+of training on a CPU. Neither gets the Sherwood number to better than 10 %, because it
+measures a tenth of a per cent of the field. Online, at the same accuracy, the
+grid needs 801 × 81 nodes (about 8 ms a march on a laptop CPU) where the
+trained network gives the field in about 1.5 ms and the outlet value in about
+0.1 ms - five and seventy times faster, inference only, after two minutes of
+training; its larger gain is the speed as an input. Newton through autograd
 finds 0.3173 m/s for 25 % hydrogen at the electrode, against the exact
 0.3174.
 

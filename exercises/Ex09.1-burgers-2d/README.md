@@ -47,11 +47,14 @@ extrapolates: a 3-D grid of 161 nodes per direction about half an hour per
 answer, a three-parameter sweep a thousand runs - the network's case is many
 queries and many dimensions, not one small solve.
 
-Its mini projects: **MP9.1A, the serpentine** - the speed across a leg and a
-bend, the bend by Dean's equations (fastest liquid 0.74 R towards the outer
-wall, friction twice the leg's; ground truth by `tools/miniprojects/dean.py`,
-checked against Dean's series), the serpentine's pressure drop 450 Pa without
-the entrance lengths, which no solver here computes; **MP9.1B, the pump's
+Its mini projects: **MP9.1A, one bend of the serpentine, in 3-D** - a U-bend
+between a 20 mm and a 110 mm leg; the students write a marching
+(parabolised) solver, with guidelines in the brief, prove it against two
+supplied limits (the notebook's parabola, and the fully developed bend from
+`tools/miniprojects/dean.py`: fastest liquid 0.74 R towards the outer wall,
+friction twice the leg's) and then train a 3-D PINN against it, reporting the
+speed maps through and after the bend, the vortices' decay and the bend's
+loss coefficient; **MP9.1B, the pump's
 speed reference** - the least-pumping flow over 30 minutes for a staircase of
 module power, keeping the module at or below 80 °C: the flow must rise eight
 minutes before a step, and a controller that sees only the present power

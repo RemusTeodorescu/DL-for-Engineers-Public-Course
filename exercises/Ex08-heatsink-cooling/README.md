@@ -88,7 +88,10 @@ asks Colab for a GPU runtime (T4); if it opens on a CPU, the setup cell says so.
 
 ## Expected runtime
 
-RUNTIME_LINE
+About twenty-five minutes for the whole notebook, most of it the three trainings
+(steady, in time, inverse). Measured on 5 October 2026 on a laptop GPU: 407, 517
+and 585 s; the laptop's CPU is no slower, because networks this small do not fill
+a GPU. Colab's T4 against Colab's two-core CPU has not been measured yet.
 
 ## Reference texts
 

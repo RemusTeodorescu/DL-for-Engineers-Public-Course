@@ -164,13 +164,21 @@ def kelvin_free(theta):
 
 
 # ----------------------------------------------------------- finite differences
-def fdm(nx, nz, s):
-    """The full problem marched from the inlet: Crank-Nicolson along the
+def fdm(nx, nz, s, start=2):
+    """The full problem marched from the inlet (FDM): Crank-Nicolson along the
     channel (second order), central differences across, ghost nodes for the
     two walls. The equation is parabolic in X, so x is stepped like time and
-    no outlet condition is needed; at the walls the velocity is zero and the
-    step reduces to the wall condition itself. Returns X, Z (1-D) and theta
-    (nz, nx)."""
+    no outlet condition is needed. Returns X, Z (1-D) and theta (nz, nx).
+
+    At the walls the velocity is zero, so a wall row has no march term left:
+    it is the wall condition alone, and Crank-Nicolson holds it only as the
+    AVERAGE of the old and the new column. The inlet column breaks it (the
+    gas enters with zero slope where the electrode asks for -G), and that
+    error then flips sign at every step and never decays: a sawtooth on the
+    electrode node. So the first ``start`` columns are each taken by two
+    fully implicit half steps (Rannacher's start), which satisfy the wall
+    condition on every column; Crank-Nicolson keeps it from there, and the
+    scheme converges at second order. ``start=0`` is plain Crank-Nicolson."""
     hx, hz = 1.0 / (nx - 1), 1.0 / (nz - 1)
     X, Z = np.linspace(0, 1, nx), np.linspace(0, 1, nz)
     A = sp.diags([1.0, -2.0, 1.0], [-1, 0, 1], shape=(nz, nz)).tolil()
@@ -180,9 +188,16 @@ def fdm(nx, nz, s):
     M = sp.diags(poiseuille(Z) * G * s).tocsc()                # the velocity in front of theta_X; zero at the walls
     L = spla.splu((M - 0.5 * hx * A).tocsc())
     R = (M + 0.5 * hx * A).tocsc()
+    Lb = spla.splu((M - 0.5 * hx * A).tocsc())                 # a fully implicit half step (hx/2), for the start
     th = np.zeros((nz, nx))
     for n in range(1, nx):
-        th[:, n] = L.solve(R @ th[:, n - 1] + hx * b)
+        if n <= start:
+            y = th[:, n - 1]
+            for _ in range(2):
+                y = Lb.solve(M @ y + 0.5 * hx * b)             # two implicit half steps: the wall condition holds on this column
+            th[:, n] = y
+        else:
+            th[:, n] = L.solve(R @ th[:, n - 1] + hx * b)      # Crank-Nicolson
     return X, Z, th
 
 

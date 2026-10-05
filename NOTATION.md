@@ -100,6 +100,12 @@ does not, because $\lambda$ is already a loss weight and an eigenvalue. Where
 $k$ would also be a reaction rate constant (L10.1's Butler-Volmer), the rate
 constant is $k_r$.
 
+**FDM and grid** (5 October 2026). The classical method is named **FDM**
+(finite differences; "finite differences (FDM)" where a notebook or a deck
+first names it), never "the grid". **Grid** names only the mesh FDM works on:
+"a 401 × 41 grid", "refine the grid", "the grid's nodes". A table column, a
+plot label or a bar compares *FDM* with the network.
+
 ## Accepted double meanings
 
 Three symbols carry two meanings; the context separates them.

@@ -56,14 +56,13 @@ Ex09.1_cooling_plate_light.ipynb   the same notebook with every cell written out
 | finite differences, 21 nodes × 80 Crank–Nicolson steps | 9.1 × 10⁻⁴ | about 1 ms on a CPU |
 | PINN, 4 × 32, wall and start built in | 6.2 × 10⁻⁴ | about 40 s of training on a CPU; 0.3 – 0.4 ms per answer |
 
-Online, inference only, at the same accuracy on one device (a laptop GPU),
-FDM needs 41 radii × 160 steps (about 20 ms) where the trained PINN answers
-in about 0.3 ms, some seventy times faster; in SciPy on a CPU the same FDM
-takes about 1.6 ms, and the gap is about five times. The training, about
-100 s, is repaid only after thousands of answers. A scaling test of the same
-equation in a box extrapolates FDM on a 3-D grid of 161 nodes per direction
-to about half an hour per answer. The PINN's case is many
-queries and many dimensions, not one small solve.
+Online, inference only, at the same accuracy and on the same device, section
+5 times one FDM solve against one evaluation of the trained PINN; the
+training is reported apart, as the offline cost, and never set against a
+solve. The numbers are those of the runtime you run it on. A scaling test of
+the same equation in a box shows the grid's cost growing with the dimension
+where the network's does not. The PINN's case is many queries and many
+dimensions, not one small solve.
 
 | the viscosity from the first second (true 3.50 mPa·s) | found | off by |
 |---|---|---|

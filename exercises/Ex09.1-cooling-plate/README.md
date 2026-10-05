@@ -35,8 +35,8 @@ mini projects. Check them before quoting a result.
 ## The notebook
 
 ```
-Ex09.1_pipe_startup.ipynb         the exercise: two TODO cells, the answer in the comment above each
-Ex09.1_pipe_startup_light.ipynb   the same notebook with every cell written out
+Ex09.1_cooling_plate.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex09.1_cooling_plate_light.ipynb   the same notebook with every cell written out
 ```
 
 | section | what the student does |

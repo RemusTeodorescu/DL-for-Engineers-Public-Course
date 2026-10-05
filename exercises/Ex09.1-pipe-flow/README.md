@@ -56,17 +56,20 @@ Ex09.1_pipe_startup_light.ipynb   the same notebook with every cell written out
 | finite differences, 21 nodes × 80 Crank–Nicolson steps | 9.1 × 10⁻⁴ | about 1 ms on a CPU |
 | PINN, 4 × 32, wall and start built in | 6.2 × 10⁻⁴ | about 40 s of training on a CPU; 0.3 – 0.4 ms per answer |
 
-On one device (a laptop GPU) the trained network answers 31 times faster than
-the grid, and its training is repaid after about 10 500 answers. A scaling
-test of the same equation in a box extrapolates a 3-D grid of 161 nodes per
-direction to about half an hour per answer. The network's case is many
+Online, inference only, at the same accuracy on one device (a laptop GPU),
+FDM needs 41 radii × 160 steps (about 20 ms) where the trained network answers
+in about 0.3 ms, some seventy times faster; in SciPy on a CPU the same FDM
+takes about 1.6 ms, and the gap is about five times. The training, about
+100 s, is repaid only after thousands of answers. A scaling test of the same
+equation in a box extrapolates FDM on a 3-D grid of 161 nodes per direction
+to about half an hour per answer. The network's case is many
 queries and many dimensions, not one small solve.
 
 | the viscosity from the first second (true 3.50 mPa·s) | found | off by |
 |---|---|---|
 | Darcy's law on the last reading, as if steady | 4.04 mPa·s | +15.5 % |
 | least squares on the exact series | 3.55 mPa·s | +1.4 % |
-| least squares with the grid as the model, 5 runs | 3.53 mPa·s | +1.0 % |
+| least squares with FDM as the model, 5 runs | 3.53 mPa·s | +1.0 % |
 | the physics-informed network | 3.56 mPa·s | +1.6 % |
 
 An inverse problem is not a network's privilege: any model that predicts the

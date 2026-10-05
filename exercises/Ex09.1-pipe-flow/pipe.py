@@ -349,7 +349,7 @@ def fdm_torch(n, steps, keep=40, c=None, a=None, device=None):
 def box_explicit(d, n, t_end=1.0, kappa=1.0, device=None):
     """The scaling test: the same kind of equation, u_t = 1 + kappa lap u, in a
     unit box of ``d`` dimensions with u = 0 on its walls and at the start, by
-    explicit finite differences on ``n`` nodes per direction - the way a grid
+    explicit finite differences on ``n`` nodes per direction - the way FDM
     runs on a GPU, every node updated at once. The step is the largest that is
     stable, h^2 / (2 d kappa), so the number of steps grows with n^2. Returns
     the field at ``t_end`` and the number of steps."""

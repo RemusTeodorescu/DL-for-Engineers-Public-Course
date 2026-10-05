@@ -49,7 +49,7 @@ import numpy as np
 __all__ = [
     "G", "MASS", "MU", "C_RR", "K_TRACTION", "R_ARM", "P_HOTEL", "V_MAX", "V_FLOOR", "W_TIME",
     "RHO_AIR", "CD_A", "SEGMENTS", "LAP_LENGTH",
-    "course", "ceiling", "lap_cost", "optimise", "coast_down", "coast_down_model", "describe_problem",
+    "course", "ceiling", "lap_cost", "optimise", "coast_down", "coast_down_model", "describe_problem", "draw_course",
 ]
 
 # ------------------------------------------------- the car: PLACEHOLDERS, measure your own
@@ -156,3 +156,29 @@ def describe_problem() -> None:
         f = C_RR * MASS * G + 0.5 * RHO_AIR * CD_A * v ** 2
         print(f"  steady {v:.1f} m/s   : traction {f * v + (f / K_TRACTION) ** 2 * R_ARM:.2f} W, electronics {P_HOTEL:.0f} W, "
               f"{(f * v + (f / K_TRACTION) ** 2 * R_ARM + P_HOTEL + W_TIME) / v:.1f} J per metre with the time counted")
+
+
+def draw_course(ax=None):
+    """The lap unrolled along its 18 m: straights in grey, the three corners
+    in orange with their radius and the grip limit of each. The lap closes:
+    the end of the strip is its start."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10, 2.6))
+    s0 = 0.0
+    for i, (length, k) in enumerate(SEGMENTS):
+        corner = k > 0
+        ax.add_patch(plt.Rectangle((s0, 0), length, 0.5, fc="tab:orange" if corner else "0.8", ec="k", lw=0.8))
+        if corner:
+            ax.text(s0 + length / 2, 0.75, f"corner R {1 / k:.2f} m\ngrip limit {np.sqrt(MU * G / k):.2f} m/s",
+                    ha="center", va="bottom", fontsize=9, color="tab:orange")
+        s0 += length
+    ax.text(SEGMENTS[0][0] / 2, -0.2, f"straight: top speed\n{V_MAX:.1f} m/s", ha="center", va="top", fontsize=9)
+    ax.annotate("", xy=(2.2, 0.25), xytext=(0.4, 0.25), arrowprops=dict(arrowstyle="-|>", color="tab:blue", lw=2))
+    for x, word in ((0.0, "start"), (LAP_LENGTH, "start again")):
+        ax.plot([x, x], [-0.15, 0.65], color="k", lw=2)
+        ax.text(x, 0.75, word, ha="center", va="bottom", fontsize=9)
+    ax.annotate("", xy=(0, -1.25), xytext=(LAP_LENGTH, -1.25), arrowprops=dict(arrowstyle="<->", lw=0.8, color="k"))
+    ax.text(LAP_LENGTH / 2, -1.35, f"one lap, {LAP_LENGTH:.0f} m, unrolled", ha="center", va="top", fontsize=9)
+    ax.set_xlim(-0.8, LAP_LENGTH + 1.2); ax.set_ylim(-1.9, 1.7); ax.axis("off")
+    return ax.figure

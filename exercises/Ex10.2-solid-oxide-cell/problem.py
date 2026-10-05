@@ -55,7 +55,7 @@ __all__ = [
     "D_GAS", "ASR", "E_0", "C_TOT", "PE", "K_REACT", "V_LOW", "V_HIGH", "V_TN",
     "PRICE_H2", "PRICE_EL", "M_H2",
     "nernst", "voltage", "reference", "cell_numbers", "value_per_hour",
-    "sample_channel", "outlet_points", "describe_problem",
+    "sample_channel", "outlet_points", "describe_problem", "draw_cell",
 ]
 
 # ----------------------------------------------------------------- the data
@@ -164,3 +164,35 @@ def describe_problem() -> None:
     print(f"  scaled numbers   : Pe = u L / D = {PE:.0f};  K = L / (u h c 2F ASR) = {K_REACT:.2f} per volt")
     print(f"  steam supplied   : {U_GAS * H_CHANNEL * W_CELL * C_TOT * Y_IN * 1000:.2f} mmol/s; using all of it would take "
           f"{U_GAS * H_CHANNEL * W_CELL * C_TOT * Y_IN * 2 * FARADAY:.0f} A")
+
+
+def draw_cell(ax=None):
+    """The steam channel of the electrolysis cell along its length: steam in
+    on the left, split at the fuel electrode below it, the oxygen ions through
+    the electrolyte to the air side. The height is drawn ten times too large."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10, 3.8))
+    L, h = L_CHANNEL * 1e3, 10.0 * H_CHANNEL * 1e3
+    ax.add_patch(plt.Rectangle((0, h), L, 2.5, fc="0.75", ec="k", lw=0.8))
+    ax.text(L / 2, h + 1.25, "interconnect", ha="center", va="center", fontsize=9)
+    ax.add_patch(plt.Rectangle((0, 0), L, h, fc="#DDEEFF", ec="k", lw=0.8))
+    ax.add_patch(plt.Rectangle((0, -3.5), L, 3.5, fc="0.55", ec="k", lw=0.8))
+    ax.text(L / 2, -1.75, "fuel electrode:  H₂O + 2e⁻ → H₂ + O²⁻", ha="center", va="center", fontsize=9, color="w")
+    ax.add_patch(plt.Rectangle((0, -7.0), L, 3.5, fc="#F3E3C3", ec="k", lw=0.8))
+    ax.text(L / 2, -5.25, "electrolyte: O²⁻ to the air side", ha="center", va="center", fontsize=9)
+    for xa in np.linspace(30, 92, 6):
+        ax.annotate("", xy=(xa, 0.4), xytext=(xa, h / 2 + 1.5), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1))
+        ax.annotate("", xy=(xa + 2.5, h / 2 + 1.5), xytext=(xa + 2.5, 0.4), arrowprops=dict(arrowstyle="->", color="tab:green", lw=1))
+    ax.text(61, h / 2 + 2.6, "steam down, hydrogen up: one for one", ha="center", fontsize=9)
+    for z in np.linspace(0.15, 0.85, 5):
+        ax.annotate("", xy=(16, z * h), xytext=(4, z * h), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1))
+    ax.text(-2, h / 2, f"{100 * Y_IN:.0f} % steam\n{U_GAS:.1f} m/s", ha="right", va="center", fontsize=9)
+    ax.text(L + 2, h / 2, "outlet", ha="left", va="center", fontsize=9)
+    ax.annotate("", xy=(0, h + 5), xytext=(L, h + 5), arrowprops=dict(arrowstyle="<->", lw=0.8, color="k"))
+    ax.text(L / 2, h + 5.6, f"{L:.0f} mm", ha="center", va="bottom", fontsize=9)
+    ax.annotate("", xy=(L + 13, 0), xytext=(L + 13, h), arrowprops=dict(arrowstyle="<->", lw=0.8, color="k"))
+    ax.text(L + 15, h / 2, f"{H_CHANNEL * 1e3:.0f} mm", va="center", fontsize=9)
+    ax.text(L + 2, -5.0, f"cell voltage\n{V_LOW:.2f} to {V_HIGH:.2f} V", ha="left", va="center", fontsize=9)
+    ax.set_xlim(-22, L + 26); ax.set_ylim(-8, h + 9); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure

@@ -61,7 +61,7 @@ __all__ = [
     "FARADAY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
     "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "C_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
-    "surface_readings", "describe_problem",
+    "surface_readings", "describe_problem", "draw_particle",
 ]
 
 # ----------------------------------------------------------------- the data
@@ -174,3 +174,38 @@ def describe_problem() -> None:
     print(f"  diffusion time   : R^2 / D_s = {R_PARTICLE ** 2 / D_SOLID:.0f} s")
     print(f"  scales           : c_ref = j t_end / R = {C_REF:.0f} mol/m^3;  C = D_s t_end / R^2 = {C_SCALED:.2f}")
     print(f"  mass balance     : the mean concentration falls by 3 c_ref = {3 * C_REF:.0f} mol/m^3 over the hour")
+
+
+def draw_particle(ax=None):
+    """The particle of the single particle model: the electrode it stands for,
+    and the particle itself, coloured by the exact concentration at the end
+    of the hour, with the lithium leaving through its surface."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(9.0, 3.8))
+    # the electrode: a slab of particles, one of which stands for all
+    ax.add_patch(plt.Rectangle((0, 0), 2.0, 4.0, fill=False, lw=1.2, ec="0.4"))
+    rng = np.random.default_rng(3)
+    for cx, cy in zip(rng.uniform(0.25, 1.75, 24), rng.uniform(0.25, 3.75, 24)):
+        ax.add_patch(plt.Circle((cx, cy), 0.2, fc="0.85", ec="0.5", lw=0.6))
+    ax.add_patch(plt.Circle((1.0, 2.0), 0.24, fc="tab:orange", ec="k", lw=1.0))
+    ax.text(1.0, -0.25, f"negative electrode,\n{L_ELECTRODE * 1e6:.0f} µm of graphite", ha="center", va="top", fontsize=10)
+    ax.plot([1.24, 4.0], [2.0, 3.9], color="0.5", lw=0.8, ls="--")
+    ax.plot([1.24, 4.0], [2.0, 0.1], color="0.5", lw=0.8, ls="--")
+    # the particle, in rings of the exact concentration at the end of the hour
+    cx, cy, Rd = 6.0, 2.0, 1.9
+    c = concentration(exact(np.linspace(0, 1, 41), 1.0))
+    cmap, lo, hi = plt.get_cmap("viridis"), c.min(), c.max()
+    for k in range(40, 0, -1):
+        ax.add_patch(plt.Circle((cx, cy), Rd * k / 40, fc=cmap((c[k] - lo) / (hi - lo)), ec="none"))
+    ax.add_patch(plt.Circle((cx, cy), Rd, fill=False, ec="k", lw=1.2))
+    for a in np.linspace(0, 2 * np.pi, 9)[:-1]:
+        ax.annotate("", xy=(cx + 2.45 * np.cos(a), cy + 2.45 * np.sin(a)), xytext=(cx + 1.95 * np.cos(a), cy + 1.95 * np.sin(a)),
+                    arrowprops=dict(arrowstyle="->", color="tab:red", lw=1.2))
+    ax.annotate("", xy=(cx + Rd * np.cos(2.4), cy + Rd * np.sin(2.4)), xytext=(cx, cy), arrowprops=dict(arrowstyle="->", color="w", lw=1))
+    ax.text(cx, cy - 0.45, f"R = {R_PARTICLE * 1e6:.2f} µm", color="w", fontsize=10, ha="center", va="top")
+    ax.text(8.7, 3.4, "lithium leaves\nthrough the surface:\na 1C discharge", color="tab:red", fontsize=10, va="center")
+    ax.text(8.7, 1.9, f"surface {c[-1]:.0f} mol/m³\ncentre {c[0]:.0f} mol/m³\nafter the hour", fontsize=10, va="center")
+    ax.text(8.7, 0.5, "centre: symmetry", fontsize=10, va="center")
+    ax.set_xlim(-0.2, 11.6); ax.set_ylim(-1.2, 4.6); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure

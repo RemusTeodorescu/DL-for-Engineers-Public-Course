@@ -68,7 +68,7 @@ __all__ = [
     "L_PANEL", "C_WAVE", "V_STRIKE", "OMEGA", "WAVE_T_END",
     "WAVE_DOMAIN", "wave_exact", "wave_velocity", "wave_period",
     "hard_bc_factor", "describe_problem",
-    "plot_slice", "plot_time_history",
+    "plot_slice", "plot_time_history", "draw_die", "draw_panel",
 ]
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -243,3 +243,48 @@ def plot_time_history(times, curves, ax=None, title="", ylabel=""):
     ax.set_xlabel("t  [ms]"); ax.set_ylabel(ylabel); ax.set_title(title)
     ax.legend(frameon=False, fontsize=9); ax.grid(alpha=0.25)
     return ax
+
+
+def draw_die(ax=None):
+    """The die of notebook 01: a 10 mm square of silicon, its edges held at
+    the package temperature, and the two humps it starts from (the colour)."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(5.2, 4.2))
+    L = L_DIE * 1e3
+    g = np.linspace(0, L_DIE, 81)
+    X, Y = np.meshgrid(g, g)
+    th = heat_initial(X, Y)
+    ax.contourf(X * 1e3, Y * 1e3, th, 16, cmap="inferno")
+    ax.add_patch(plt.Rectangle((0, 0), L, L, fill=False, lw=4, ec="tab:blue"))
+    ax.text(L / 2, -0.6, f"edges held at {T_PACKAGE:.0f} °C", ha="center", va="top", color="tab:blue", fontsize=10)
+    i = np.unravel_index(th.argmax(), th.shape)
+    ax.annotate(f"at t = 0:\n{th.max():.0f} K above", xy=(X[i] * 1e3, Y[i] * 1e3), xytext=(L + 0.8, 0.75 * L),
+                fontsize=10, va="center", arrowprops=dict(arrowstyle="->", color="k"))
+    ax.annotate("", xy=(0, L + 0.6), xytext=(L, L + 0.6), arrowprops=dict(arrowstyle="<->", lw=0.8, color="k"))
+    ax.text(L / 2, L + 0.8, f"{L:.0f} mm of silicon", ha="center", va="bottom", fontsize=10)
+    ax.set_xlim(-0.6, L + 5.0); ax.set_ylim(-2.0, L + 2.2); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure
+
+
+def draw_panel(ax=None):
+    """The panel of notebook 03: a 400 mm square membrane clamped on its
+    edges, flat at t = 0 and struck so that it moves in its first mode."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(5.2, 4.2))
+    L = L_PANEL * 1e3
+    g = np.linspace(0, 1, 81)
+    X, Y = np.meshgrid(g, g)
+    ax.contour(X * L, Y * L, np.sin(np.pi * X) * np.sin(np.pi * Y), levels=[0.15, 0.4, 0.65, 0.9],
+               colors="tab:green", linewidths=1.2)
+    ax.add_patch(plt.Rectangle((0, 0), L, L, fill=False, lw=4, ec="tab:blue"))
+    ax.text(L / 2, -24, "edges clamped: u = 0", ha="center", va="top", color="tab:blue", fontsize=10)
+    ax.plot([L / 2], [L / 2], "o", color="tab:orange", ms=7)
+    ax.annotate(f"struck: {V_STRIKE:.2f} m/s\nat the centre,\nflat at t = 0", xy=(L / 2, L / 2), xytext=(L + 30, 0.72 * L),
+                fontsize=10, va="center", arrowprops=dict(arrowstyle="->", color="k"))
+    ax.text(L + 30, 0.25 * L, "green: the shape\nof the strike", fontsize=10, color="tab:green", va="center")
+    ax.annotate("", xy=(0, L + 24), xytext=(L, L + 24), arrowprops=dict(arrowstyle="<->", lw=0.8, color="k"))
+    ax.text(L / 2, L + 32, f"{L:.0f} mm panel", ha="center", va="bottom", fontsize=10)
+    ax.set_xlim(-24, L + 200); ax.set_ylim(-80, L + 88); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure

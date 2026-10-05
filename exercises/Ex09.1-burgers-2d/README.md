@@ -37,7 +37,15 @@ second: Darcy's law on the last reading +15.5 % (the flow has not settled);
 least squares on the exact series, least squares with the grid as the model
 (5 runs, about 13 ms) and the network (about 40 s of training) all within
 2 % - an inverse problem is not a network's privilege, and for this tube the
-grid in an optimiser is the cheapest.
+grid in an optimiser is the cheapest. Section 5 also times both methods **on one device**
+(the GPU on Colab; the grid in PyTorch, `pp.fdm_torch`): on a laptop GPU the
+grid takes 9.6 ms, the trained network answers in 0.31 ms - 31 times faster -
+but its 97 s of training are repaid only after about 10 500 answers; the
+inverse grid fit is 555 times faster than the network's. A scaling cell
+measures the same equation in a box in 1, 2 and 3 dimensions and
+extrapolates: a 3-D grid of 161 nodes per direction about half an hour per
+answer, a three-parameter sweep a thousand runs - the network's case is many
+queries and many dimensions, not one small solve.
 
 Its mini projects: **MP9.1A, the serpentine** - the speed across a leg and a
 bend, the bend by Dean's equations (fastest liquid 0.74 R towards the outer

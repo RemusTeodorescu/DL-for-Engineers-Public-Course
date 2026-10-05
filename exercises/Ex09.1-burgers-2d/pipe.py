@@ -301,3 +301,63 @@ def draw_sections(fields, times):
             plt.colorbar(im, ax=ax, shrink=0.75, format="%.0e" if err else "%.2f", label="" if err else "u  [m/s]")
     plt.tight_layout()
     return fig
+
+
+# ------------------------------------------------------------------ the same methods on one device (GPU on Colab)
+def fdm_torch(n, steps, keep=40, c=None, a=None, device=None):
+    """The finite differences of :func:`fdm`, written in torch so that they run
+    on the same device as the network: the same nodes, the same axis rule, the
+    same Crank-Nicolson step, the matrix LU-factorised once on the device.
+    Returns tensors ``(eta, t, U)`` on the device."""
+    import torch
+    c = C_SCALED if c is None else c
+    a = A_SCALED if a is None else a
+    dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    dt_ = torch.float64
+    eta = torch.linspace(0.0, 1.0, n, dtype=dt_, device=dev)
+    h = 1.0 / (n - 1)
+    m = n - 1
+    L = torch.zeros(m, m, dtype=dt_, device=dev)
+    j = torch.arange(1, m, device=dev)
+    L[j, j] = -2.0 / h ** 2
+    L[j, j - 1] = 1 / h ** 2 - 1 / (2 * h * eta[j])
+    L[j[:-1], j[:-1] + 1] = 1 / h ** 2 + 1 / (2 * h * eta[j[:-1]])
+    L[0, 0], L[0, 1] = -4.0 / h ** 2, 4.0 / h ** 2       # the axis: 2 u_rr with the mirror node
+    L = c * L
+    dt = 1.0 / steps
+    I = torch.eye(m, dtype=dt_, device=dev)
+    lu, piv = torch.linalg.lu_factor(I - 0.5 * dt * L)
+    B = I + 0.5 * dt * L
+    u = torch.zeros(m, 1, dtype=dt_, device=dev)
+    every = max(steps // keep, 1)
+    out = [torch.zeros(n, dtype=dt_, device=dev)]
+    for k in range(1, steps + 1):
+        u = torch.linalg.lu_solve(lu, piv, B @ u + dt * a)
+        if k % every == 0:
+            out.append(torch.cat([u[:, 0], torch.zeros(1, dtype=dt_, device=dev)]))
+    ts = torch.arange(len(out), dtype=dt_, device=dev) * every * dt
+    return eta, ts, torch.stack(out)
+
+
+def box_explicit(d, n, t_end=1.0, kappa=1.0, device=None):
+    """The scaling test: the same kind of equation, u_t = 1 + kappa lap u, in a
+    unit box of ``d`` dimensions with u = 0 on its walls and at the start, by
+    explicit finite differences on ``n`` nodes per direction - the way a grid
+    runs on a GPU, every node updated at once. The step is the largest that is
+    stable, h^2 / (2 d kappa), so the number of steps grows with n^2. Returns
+    the field at ``t_end`` and the number of steps."""
+    import torch
+    dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    h = 1.0 / (n - 1)
+    dt = 0.9 * h * h / (2 * d * kappa)
+    steps = int(np.ceil(t_end / dt)); dt = t_end / steps
+    u = torch.zeros((n,) * d, dtype=torch.float64, device=dev)
+    inner = (slice(1, -1),) * d
+    for _ in range(steps):
+        lap = -2 * d * u[inner]
+        for ax in range(d):
+            lo = [slice(1, -1)] * d; hi = [slice(1, -1)] * d
+            lo[ax] = slice(0, -2); hi[ax] = slice(2, None)
+            lap = lap + u[tuple(lo)] + u[tuple(hi)]
+        u[inner] = u[inner] + dt * (1.0 + kappa * lap / h ** 2)
+    return u, steps

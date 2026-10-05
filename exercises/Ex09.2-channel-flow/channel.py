@@ -237,6 +237,57 @@ def draw_channel(ax):
     ax.set_xlabel("x  [mm]"); ax.set_yticks([]); ax.set_title("the fuel channel, per metre of width; the height drawn ten times too large", fontsize=10)
 
 
+def draw_coordinates():
+    """The channel's coordinates and the three velocity components: the channel
+    in 3-D with x along it, z across the gap and the width into the page, and
+    the gap seen from the side. At one parcel the three components are drawn:
+    u along the channel (kept), v across the gap and w across the width (both
+    zero: the walls and the volume condition kill v, and a channel a hundred
+    times wider than it is high has nothing varying across its width)."""
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(14, 4.6))
+    ax = fig.add_subplot(1, 2, 1, projection="3d")
+    L, W, H = 3.0, 1.6, 0.9                                     # the height drawn far too large, as in the channel figure
+    for z in (0, H):
+        ax.plot([0, L, L, 0, 0], [0, 0, W, W, 0], [z] * 5, color="0.6", lw=1.2 if z == 0 else 0.8)
+    for x, y in ((0, 0), (L, 0), (L, W), (0, W)):
+        ax.plot([x, x], [y, y], [0, H], color="0.6", lw=0.8)
+    ax.text(L + 0.1, W + 0.1, -0.02, "electrode (z = 0)", fontsize=9, color="0.3")
+    ax.text(L + 0.1, W + 0.1, H + 0.08, "interconnect (z = h)", fontsize=9, color="0.3")
+    ax.quiver(-0.3, 0, 0, 1.0, 0, 0, color="k", lw=1.2, arrow_length_ratio=0.15); ax.text(0.8, -0.15, 0.0, "x  along", fontsize=10)
+    ax.quiver(0, 0, 0, 0, 0, 1.0, color="k", lw=1.2, arrow_length_ratio=0.15); ax.text(0, 0.05, 1.1, "z  across the gap", fontsize=10)
+    ax.quiver(0, 0, 0, 0, 0.8, 0, color="k", lw=1.2, arrow_length_ratio=0.15); ax.text(-0.9, 0.95, -0.12, "across the width (100 mm)", fontsize=10)
+    x0, y0, z0 = 2.1, 0.5, 0.55                                 # one parcel
+    ax.plot([x0], [y0], [z0], "o", color="tab:orange", ms=7)
+    ax.quiver(x0, y0, z0, 0.8, 0, 0, color="tab:blue", lw=2, arrow_length_ratio=0.2); ax.text(x0 + 0.85, y0, z0 + 0.05, "u", color="tab:blue", fontsize=13)
+    ax.quiver(x0, y0, z0, 0, 0, 0.35, color="tab:green", lw=2, arrow_length_ratio=0.3); ax.text(x0, y0, z0 + 0.45, "v", color="tab:green", fontsize=13)
+    ax.quiver(x0, y0, z0, 0, 0.4, 0, color="tab:purple", lw=2, arrow_length_ratio=0.3); ax.text(x0, y0 + 0.5, z0, "w", color="tab:purple", fontsize=13)
+    ax.set_xlim(-0.3, L + 0.3); ax.set_ylim(-0.3, W + 0.3); ax.set_zlim(-0.1, 1.2)
+    ax.set_box_aspect((L + 0.6, W + 0.6, 1.3), zoom=1.05); ax.view_init(24, -58); ax.axis("off")
+    ax.set_title("the channel's coordinates: x along, z across the 1 mm gap, the third direction across its 100 mm width", fontsize=10)
+
+    ax = fig.add_subplot(1, 2, 2)
+    ax.plot([0, 3], [0, 0], color="k", lw=3); ax.plot([0, 3], [1, 1], color="k", lw=3)
+    ax.text(1.5, -0.12, "electrode, u = 0", ha="center", va="top", fontsize=9.5)
+    ax.text(1.5, 1.06, "interconnect, u = 0", ha="center", va="bottom", fontsize=9.5)
+    zz = np.linspace(0, 1, 11)[1:-1]
+    for z in zz:
+        ax.annotate("", xy=(0.5 + 1.2 * poiseuille(z) / 1.5, z), xytext=(0.5, z), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1))
+    zc = np.linspace(0, 1, 100); ax.plot(0.5 + 1.2 * poiseuille(zc) / 1.5, zc, color="tab:blue", lw=1.5)
+    ax.plot(2.3, 0.55, "o", color="tab:orange", ms=9); ax.plot(2.3, 0.55, "o", color="tab:blue", ms=4)
+    ax.annotate("", xy=(2.3, 0.85), xytext=(2.3, 0.55), arrowprops=dict(arrowstyle="->", color="tab:green", lw=2)); ax.text(2.36, 0.78, "v", color="tab:green", fontsize=13)
+    ax.text(2.36, 0.46, "u  (out of the page: w)", color="tab:blue", fontsize=10)
+    for yy, col, txt in ((1.15, "tab:blue", "u  along the channel:  kept, Poiseuille's parabola"),
+                         (0.80, "tab:green", "v  across the gap:  zero - no flow through either wall,\n     and the volume condition with u unchanging along"),
+                         (0.35, "tab:purple", "w  across the width:  zero - a hundred times wider than\n     high, nothing varies across it except at the edges"),
+                         (-0.15, "k", "so the velocity is u(z), the same at every x: the flow is\n     solved; the notebook's unknown is the steam fraction")):
+        ax.text(3.3, yy, txt, color=col, fontsize=10, va="center")
+    ax.axis("off"); ax.set_xlim(-0.1, 9.0); ax.set_ylim(-0.45, 1.45)
+    ax.set_title("the gap seen from the side: the three components at one parcel", fontsize=10)
+    plt.tight_layout()
+    return fig
+
+
 def describe_problem():
     print(f"  channel   : {L_CHANNEL * 1e3:.0f} mm long, {H_CHANNEL * 1e3:.0f} mm high, {T_CELL - 273.15:.0f} °C, 1 atm: c = {C_TOT:.2f} mol/m³")
     print(f"  gas       : {100 * (1 - Y_IN):.0f} % hydrogen at the inlet, ρ = {RHO_IN:.3f} kg/m³, μ = {MU_GAS:.1e} Pa s, D = {D_GAS:.1e} m²/s (estimates)")

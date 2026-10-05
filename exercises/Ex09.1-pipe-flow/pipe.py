@@ -246,67 +246,6 @@ def draw_domain():
     return fig
 
 
-def draw_coordinates():
-    """The tube's coordinates and the three velocity components: a short piece
-    of the tube in 3-D with x along the axis, r out from it and theta round it,
-    and the section seen along the axis. At one parcel the three components
-    are drawn: u along the tube (kept), v towards the wall and the swirl round
-    the axis (both zero in a straight tube far from the bends)."""
-    import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(14, 4.8))
-    ax = fig.add_subplot(1, 2, 1, projection="3d")
-    a = np.linspace(0, 2 * np.pi, 120)
-    for x in (0.0, 1.0, 2.0, 3.0):                             # the tube: rings and generators
-        ax.plot(np.full_like(a, x), np.cos(a), np.sin(a), color="0.6", lw=1.2 if x in (0.0, 3.0) else 0.6)
-    for ang in np.linspace(0, 2 * np.pi, 8, endpoint=False):
-        ax.plot([0, 3], [np.cos(ang)] * 2, [np.sin(ang)] * 2, color="0.85", lw=0.6)
-    ax.plot([-0.3, 3.6], [0, 0], [0, 0], color="k", lw=1.2)     # the axis, x
-    ax.text(2.6, 0, 0.18, "x  along the tube", fontsize=10)
-    th, rr, x0 = 0.9, 0.65, 1.4                                 # one parcel, at radius r and angle theta
-    py, pz = rr * np.cos(th), rr * np.sin(th)
-    ax.plot([x0, x0], [0, py], [0, pz], color="tab:green", lw=1.5)
-    ax.text(x0, 0.5 * py + 0.08, 0.5 * pz + 0.12, "r", color="tab:green", fontsize=12)
-    arc = np.linspace(0, th, 30)
-    ax.plot(np.full_like(arc, x0), 0.35 * np.cos(arc), 0.35 * np.sin(arc), color="tab:purple", lw=1.5)
-    ax.plot([x0, x0], [0, 0.4], [0, 0], color="0.4", lw=0.8, ls="--")
-    ax.text(x0, 0.42, 0.10, "θ", color="tab:purple", fontsize=12)
-    ax.plot([x0], [py], [pz], "o", color="tab:orange", ms=7)
-    ax.quiver(x0, py, pz, 1.0, 0, 0, color="tab:blue", lw=2, arrow_length_ratio=0.2)
-    ax.text(x0 + 0.5, py, pz + 0.18, "u", color="tab:blue", fontsize=13)
-    ax.quiver(x0, py, pz, 0, 0.35 * np.cos(th), 0.35 * np.sin(th), color="tab:green", lw=2, arrow_length_ratio=0.3)
-    ax.text(x0, py + 0.45 * np.cos(th), pz + 0.45 * np.sin(th) + 0.05, "v", color="tab:green", fontsize=13)
-    ax.quiver(x0, py, pz, 0, -0.35 * np.sin(th), 0.35 * np.cos(th), color="tab:purple", lw=2, arrow_length_ratio=0.3)
-    ax.text(x0, py - 0.55 * np.sin(th), pz + 0.45 * np.cos(th), "u_θ", color="tab:purple", fontsize=13)
-    ax.set_xlim(-0.2, 3.7); ax.set_ylim(-1.1, 1.1); ax.set_zlim(-1.1, 1.1)
-    ax.set_box_aspect((3.9, 2.2, 2.2), zoom=1.3); ax.view_init(22, -55); ax.axis("off")
-    ax.set_title("the tube's coordinates: x along, r out from the axis, θ round it", fontsize=10)
-
-    ax = fig.add_subplot(1, 2, 2)
-    ax.plot(np.cos(a), np.sin(a), color="k", lw=3)
-    ax.plot([0, 1.15], [0, 0], color="0.4", lw=0.8, ls="--")
-    ax.plot([0, py], [0, pz], color="tab:green", lw=1.5)
-    ax.text(0.5 * py - 0.12, 0.5 * pz + 0.06, "r", color="tab:green", fontsize=13)
-    ax.plot(0.3 * np.cos(arc), 0.3 * np.sin(arc), color="tab:purple", lw=1.5)
-    ax.text(0.34, 0.10, "θ", color="tab:purple", fontsize=13)
-    ax.plot(py, pz, "o", color="tab:orange", ms=9)
-    ax.plot(py, pz, "o", color="tab:blue", ms=4)
-    ax.annotate("", xy=(py + 0.3 * np.cos(th), pz + 0.3 * np.sin(th)), xytext=(py, pz), arrowprops=dict(arrowstyle="->", color="tab:green", lw=2))
-    ax.text(py + 0.33 * np.cos(th), pz + 0.33 * np.sin(th) + 0.04, "v", color="tab:green", fontsize=13)
-    ax.annotate("", xy=(py - 0.3 * np.sin(th), pz + 0.3 * np.cos(th)), xytext=(py, pz), arrowprops=dict(arrowstyle="->", color="tab:purple", lw=2))
-    ax.text(py - 0.3 * np.sin(th) - 0.22, pz + 0.3 * np.cos(th) + 0.04, "u_θ", color="tab:purple", fontsize=13)
-    ax.text(py + 0.08, pz - 0.16, "u", color="tab:blue", fontsize=13)
-    for yy, col, txt in ((0.55, "tab:blue", "u  along the tube, out of the page:  kept"),
-                         (0.25, "tab:green", "v  towards the wall:  zero"),
-                         (-0.05, "tab:purple", "u_θ  round the axis, the swirl:  zero"),
-                         (-0.35, "k", "r  distance from the axis,  θ  angle round it")):
-        ax.text(1.35, yy, txt, color=col, fontsize=10.5)
-    ax.text(1.35, -0.75, "round and straight: nothing depends on θ,\nnothing swirls; the velocity is u(r, t)", fontsize=10)
-    ax.set_aspect("equal"); ax.axis("off"); ax.set_xlim(-1.2, 4.2); ax.set_ylim(-1.25, 1.35)
-    ax.set_title("the section, seen along the axis: the three components at one parcel", fontsize=10)
-    plt.tight_layout()
-    return fig
-
-
 def draw_methods(n_fdm, pts_s, pts_t):
     """Where each method puts its unknowns: the leg in the plate (from
     above), the finite-difference nodes across the section, and the network's

@@ -70,9 +70,9 @@ wall at constant flux and the other impermeable (Shah & London; Incropera's
 table 8.1 gives the same number for heat). :func:`exact` is that field;
 :func:`fdm` marches the full problem from the inlet on a grid, entrance included.
 
-Values (C10 rule 5), typical and ASSUMED until cited: the cell of Ex_10.2
+Values (C10 rule 5), typical and ASSUMED until cited: a solid oxide cell
 (100 mm long, 1 mm channel, 800 degC, 1 atm; D = 8.0e-04 m^2/s for steam in
-hydrogen, Ex_10.2's estimate); 97 % hydrogen at the inlet; 0.5 A/cm^2; a gas
+hydrogen, an estimate); 97 % hydrogen at the inlet; 0.5 A/cm^2; a gas
 viscosity of 2.2e-05 Pa s.
 """
 
@@ -100,7 +100,7 @@ L_CHANNEL = 0.10           #: m
 H_CHANNEL = 1.0e-3         #: m, channel height
 W_CELL = 0.10              #: m, the cell's width into the page
 Y_IN = 0.03                #: steam fraction at the inlet: 97 % hydrogen, humidified
-D_GAS = 8.0e-4             #: m²/s, steam in hydrogen at 800 degC   [Ex_10.2's estimate]
+D_GAS = 8.0e-4             #: m²/s, steam in hydrogen at 800 degC   [estimate]
 MU_GAS = 2.2e-5            #: Pa s, the mixture's viscosity at 800 degC   [typical value]
 M_H2, M_H2O = 2.016e-3, 18.015e-3   #: kg/mol
 RHO_IN = C_TOT * ((1 - Y_IN) * M_H2 + Y_IN * M_H2O)   #: kg/m³ at the inlet, 0.028

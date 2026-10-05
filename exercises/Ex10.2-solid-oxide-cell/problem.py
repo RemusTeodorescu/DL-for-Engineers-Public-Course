@@ -12,7 +12,7 @@ the problem and the exposition here are original to this course.
 ## The problem
 
 A solid oxide cell at 800 °C, run as an electrolyser at a fixed cell voltage
-``V``. Steam enters a gas channel 100 mm long and 1 mm high and is split into
+``V``. Steam enters a gas channel 100 mm long and 1 mm high (Ex_09.2's channel) and is split into
 hydrogen as it flows along the electrode. With ``y`` the steam fraction:
 
     u y_x = D y_xx - i(y) / (2 F h c_tot)        along the channel

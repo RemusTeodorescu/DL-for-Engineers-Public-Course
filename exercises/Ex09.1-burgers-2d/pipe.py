@@ -160,3 +160,144 @@ def describe_problem() -> None:
     print(f"  steady          : centre speed {V:.3f} m/s; pressure drop {G:.0f} Pa per metre; Darcy f = 64/Re = {darcy(RE):.3f}")
     print(f"  after a bend    : about 0.05 Re D = {ENTRANCE * 1e3:.0f} mm before the parabola has formed")
     print(f"  start-up        : R^2 / nu = {R_TUBE ** 2 / NU:.2f} s; window {T_END:.0f} s; scaled viscosity C = {C_SCALED:.3f}")
+
+
+# ------------------------------------------------------------------ the cold plate, for the drawings (illustrative sizes)
+PLATE = (0.250, 0.130, 0.012)  #: m, aluminium plate: length, width, thickness
+LEG_X = (0.010, 0.240)         #: m, where the straight legs start and end along the plate
+BEND_R = 0.012                 #: m, radius of a U-bend, to the tube's axis
+LEG_Y = (0.029, 0.053, 0.077, 0.101)   #: m, the four legs, 2 x BEND_R apart
+TUBE_Z = 0.006                 #: m, the tube's axis, at mid-thickness
+MODULE = (0.095, 0.155, 0.035, 0.095)  #: m, the power module's footprint on the top face: x0, x1, y0, y1
+
+
+def serpentine():
+    """The tube's axis through the plate: a list of ``(kind, x, y)`` pieces,
+    legs and bends in the order the coolant meets them."""
+    pieces = []
+    for k, y in enumerate(LEG_Y):
+        x = np.linspace(*LEG_X, 50) if k % 2 == 0 else np.linspace(*LEG_X[::-1], 50)
+        pieces.append(("leg", x, np.full_like(x, y)))
+        if k < len(LEG_Y) - 1:
+            a = np.linspace(-np.pi / 2, np.pi / 2, 40)
+            if k % 2 == 0:                                   # a bend at the far end, turning back
+                pieces.append(("bend", LEG_X[1] + BEND_R * np.cos(a), y + BEND_R + BEND_R * np.sin(a)))
+            else:                                            # a bend at the near end
+                pieces.append(("bend", LEG_X[0] - BEND_R * np.cos(a), y + BEND_R + BEND_R * np.sin(a)))
+    return pieces
+
+
+def draw_domain():
+    """The physical domain, full width: the cold plate with its serpentine in
+    3-D, the part of one leg this notebook solves, and the tube's
+    cross-section with what is known on it."""
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(15, 5.6))
+    ax = fig.add_subplot(1, 2, 1, projection="3d")
+    L, W, H = (1e3 * v for v in PLATE)
+    for z in (0, H):                                         # the plate's outline, top and bottom
+        ax.plot([0, L, L, 0, 0], [0, 0, W, W, 0], [z] * 5, color="0.55", lw=1)
+    for x, y in ((0, 0), (L, 0), (L, W), (0, W)):
+        ax.plot([x, x], [y, y], [0, H], color="0.55", lw=1)
+    m = [1e3 * v for v in MODULE]
+    ax.plot([m[0], m[1], m[1], m[0], m[0]], [m[2], m[2], m[3], m[3], m[2]], [H] * 5, color="tab:red", lw=2)
+    ax.text(m[1] + 4, m[3], H + 2, "power module", color="tab:red", fontsize=9)
+    zt = 1e3 * TUBE_Z
+    for kind, x, y in serpentine():
+        ax.plot(1e3 * x, 1e3 * y, zt, color="tab:blue" if kind == "leg" else "tab:purple", lw=3)
+    xs = np.linspace(1e3 * LEG_X[0], 1e3 * (LEG_X[1] - ENTRANCE), 20)   # leg 2 runs back from its bend; the parabola needs ENTRANCE first
+    ax.plot(xs, np.full_like(xs, 1e3 * LEG_Y[1]), zt, color="tab:orange", lw=6)
+    ax.text(1e3 * LEG_X[0], 1e3 * LEG_Y[1] - 12, zt, "solved here", color="tab:orange", fontsize=9)
+    ax.text(-25, 1e3 * LEG_Y[0], zt, "in", fontsize=9)
+    ax.text(-25, 1e3 * LEG_Y[-1], zt, "out", fontsize=9)
+    ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]"); ax.set_zlabel("z  [mm]")
+    ax.set_box_aspect((L, W, 40)); ax.view_init(28, -62)
+    ax.set_title(f"cold plate {L:.0f} x {W:.0f} x {H:.0f} mm; a {1e3 * D_TUBE:.0f} mm tube: four legs (blue), three bends (purple)", fontsize=10)
+
+    ax = fig.add_subplot(1, 2, 2)
+    a = np.linspace(0, 2 * np.pi, 300)
+    ax.plot(np.cos(a), np.sin(a), color="k", lw=3)           # the wall
+    for rr in (0.25, 0.5, 0.75):
+        ax.plot(rr * np.cos(a), rr * np.sin(a), color="0.85", lw=0.8)
+    ax.annotate("", xy=(np.cos(0.6), np.sin(0.6)), xytext=(0, 0), arrowprops=dict(arrowstyle="->"))
+    ax.text(0.42, 0.40, "R = 3 mm", fontsize=10)
+    ax.annotate("", xy=(0.55, 0), xytext=(0, 0), arrowprops=dict(arrowstyle="->", color="tab:green"))
+    ax.text(0.20, -0.14, "r", color="tab:green", fontsize=11)
+    ax.plot(0, 0, "o", color="tab:orange")
+    ax.text(-0.95, -0.30, "axis: u largest, du/dr = 0", fontsize=9, color="tab:orange")
+    ax.text(-1.0, -1.25, "wall: u = 0, the liquid sticks to it", fontsize=10)
+    ax.text(-1.0, 1.10, "u points along the tube, out of the page", fontsize=10)
+    eta = np.linspace(-1, 1, 41)                              # the steady profile across the section, drawn to the right
+    ax.plot(1.5 + 0.45 * (1 - eta ** 2), eta, color="tab:blue", lw=2)
+    ax.plot([1.5, 1.5], [-1, 1], color="0.5", lw=0.8)
+    for e in np.linspace(-0.9, 0.9, 7):
+        ax.annotate("", xy=(1.5 + 0.45 * (1 - e ** 2), e), xytext=(1.5, e), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=0.8))
+    ax.text(1.42, 1.10, "u(r), once steady", color="tab:blue", fontsize=10)
+    ax.set_aspect("equal"); ax.axis("off"); ax.set_xlim(-1.3, 2.3); ax.set_ylim(-1.4, 1.3)
+    ax.set_title("cross-section A-A of the leg, and what is known on it", fontsize=10)
+    plt.tight_layout()
+    return fig
+
+
+def draw_methods(n_fdm, pts_s, pts_t):
+    """Where each method puts its unknowns: the leg in the plate (from
+    above), the finite-difference nodes across the section, and the network's
+    collocation points over radius and time."""
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(15, 4.6))
+    ax = fig.add_subplot(1, 3, 1)
+    L, W = 1e3 * PLATE[0], 1e3 * PLATE[1]
+    ax.plot([0, L, L, 0, 0], [0, 0, W, W, 0], color="0.55", lw=1)
+    for kind, x, y in serpentine():
+        ax.plot(1e3 * x, 1e3 * y, color="tab:blue" if kind == "leg" else "tab:purple", lw=2)
+    xs = np.linspace(1e3 * LEG_X[0], 1e3 * (LEG_X[1] - ENTRANCE), 20)
+    ax.plot(xs, np.full_like(xs, 1e3 * LEG_Y[1]), color="tab:orange", lw=5, alpha=0.6)
+    xc = 1e3 * (LEG_X[0] + 0.4 * (LEG_X[1] - ENTRANCE - LEG_X[0]))
+    ax.plot([xc, xc], [1e3 * LEG_Y[1] - 9, 1e3 * LEG_Y[1] + 9], color="k", lw=2)
+    ax.text(xc + 2, 1e3 * LEG_Y[1] + 9, "A-A", fontsize=9)
+    ax.set_aspect("equal"); ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
+    ax.set_title("the plate from above; the solved part (orange), the section A-A", fontsize=10)
+    ax = fig.add_subplot(1, 3, 2)
+    a = np.linspace(0, 2 * np.pi, 300)
+    eta = np.linspace(0, 1, n_fdm)
+    for e in eta[1:-1]:
+        ax.plot(e * np.cos(a), e * np.sin(a), color="0.6", lw=0.5)   # each node stands for a ring: u is the same all round it
+    ax.plot(np.cos(a), np.sin(a), color="k", lw=2)
+    ax.plot(eta, 0 * eta, "o", ms=3, color="tab:blue")
+    ax.set_aspect("equal"); ax.axis("off")
+    ax.set_title(f"finite differences: {n_fdm} nodes from the axis to the wall, each a ring", fontsize=10)
+    ax = fig.add_subplot(1, 3, 3)
+    ax.plot(np.sqrt(pts_s), pts_t * T_END, ".", ms=1.5, color="tab:orange")
+    ax.set_xlabel("r / R"); ax.set_ylabel("t  [s]")
+    ax.set_title(f"the PINN: {len(pts_s)} collocation points over radius and time", fontsize=10)
+    plt.tight_layout()
+    return fig
+
+
+def draw_sections(fields, times):
+    """Colour maps of the velocity across the tube's section: one row per
+    entry of ``fields`` (a name and a function of ``(s, t_scaled)`` giving
+    m/s), one column per instant in ``times`` (s). A row whose name contains
+    "error" is drawn in its own colour scale."""
+    import matplotlib.pyplot as plt
+    r = np.linspace(0, 1, 81); a = np.linspace(0, 2 * np.pi, 121)
+    RR, AA = np.meshgrid(r, a)
+    X, Y = RR * np.cos(AA), RR * np.sin(AA)
+    re_ = np.linspace(0, 1, 82); ae = np.linspace(0, 2 * np.pi, 122)   # cell edges, so pcolormesh needs no guessing
+    RE, AE = np.meshgrid(re_, ae); XE, YE = RE * np.cos(AE), RE * np.sin(AE)
+    rows = list(fields.items())
+    fig, axes = plt.subplots(len(rows), len(times), figsize=(3.3 * len(times) + 1.0, 3.0 * len(rows)), squeeze=False)
+    speeds = [float(np.max(f(r ** 2, times[-1] / T_END))) for name, f in rows if "error" not in name]
+    vmax = max(speeds) if speeds else None
+    for i, (name, f) in enumerate(rows):
+        err = "error" in name
+        for j, t in enumerate(times):
+            ax = axes[i, j]
+            rc = 0.5 * (re_[1:] + re_[:-1])
+            vals = np.tile(f(rc ** 2, t / T_END), (len(ae) - 1, 1))
+            im = ax.pcolormesh(XE, YE, vals, cmap="magma" if err else "viridis", shading="auto", vmin=0, vmax=None if err else vmax)
+            ax.set_aspect("equal"); ax.axis("off")
+            ax.set_title(f"{name}, t = {t:g} s", fontsize=9)
+            plt.colorbar(im, ax=ax, shrink=0.75, format="%.0e" if err else "%.2f", label="" if err else "u  [m/s]")
+    plt.tight_layout()
+    return fig

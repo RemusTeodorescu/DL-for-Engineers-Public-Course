@@ -22,7 +22,8 @@ a 6 mm copper tube in a serpentine - four legs of 230 mm, three U-bends of
 12 mm radius - drawn in 3-D in section 2. The notebook solves the coolant
 (50/50 water–glycol at 40 °C, 0.3 L/min, Re = 452) in the fully developed
 part of one leg when the pump starts. Section 3 reduces Navier–Stokes to
-$ho u_t = G + \mu(u_{rr} + u_r/r)$ step by step (round and straight, far
+$
+ho u_t = G + \mu(u_{rr} + u_r/r)$ step by step (round and straight, far
 from the bends, the volume kept), lists the conditions (no slip, symmetry on
 the axis, at rest, the pump's push), says why this case can be solved by
 hand, gives Hagen–Poiseuille's parabola and Darcy's law ($K = R^2/8$, exact
@@ -32,8 +33,11 @@ steps in 1 ms; the PINN (wall and start built in, $s = (r/R)^2$ as input) is
 within 6e-04 after about 40 s of training, 0.4 ms online. Section 5 draws the
 velocity across the section in colour, exact, grid and network, and their
 errors. Section 6 finds the coolant's viscosity from a flow meter's first
-second: Darcy's law on the last reading +15.5 % (the flow has not settled),
-least squares on the exact series and the network within 2 %.
+second: Darcy's law on the last reading +15.5 % (the flow has not settled);
+least squares on the exact series, least squares with the grid as the model
+(5 runs, about 13 ms) and the network (about 40 s of training) all within
+2 % - an inverse problem is not a network's privilege, and for this tube the
+grid in an optimiser is the cheapest.
 
 Its mini projects: **MP9.1A, the serpentine** - the speed across a leg and a
 bend, the bend by Dean's equations (fastest liquid 0.74 R towards the outer

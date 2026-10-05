@@ -395,7 +395,7 @@ def draw_heatsink(ax, show_sensor=False, show_domain=True, dark=False):
         ax.text(W + 2, -Lf / 2, f"the fins: η = {ETA_FIN:.3f},\nh_eff = {H_EFF:.0f} W/(m²K)\non the fin side", va="center", fontsize=8.5 * fz, color=note)
     if show_sensor:
         ax.plot([SENSOR * mm], [tb], "v", color=ink, ms=9, zorder=5)
-        ax.text(SENSOR * mm, tb + 2, "thermocouple", ha="center", va="bottom", fontsize=8.5 * fz, color=ink)
+        ax.text(SENSOR * mm + 2, tb + 1.5, "thermocouple", ha="left", va="bottom", fontsize=8.5 * fz, color=ink)
     ax.annotate("", xy=(0, tb + 11), xytext=(W, tb + 11), arrowprops=dict(arrowstyle="<->", lw=0.8, color=ink))
     ax.text(W / 2, tb + 12, f"{W:.0f} mm", ha="center", va="bottom", fontsize=8.5 * fz, color=ink)
     ax.annotate("", xy=(-4, 0), xytext=(-4, tb), arrowprops=dict(arrowstyle="<->", lw=0.8, color=ink))

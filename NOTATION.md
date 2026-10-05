@@ -104,7 +104,15 @@ constant is $k_r$.
 (finite differences; "finite differences (FDM)" where a notebook or a deck
 first names it), never "the grid". **Grid** names only the mesh FDM works on:
 "a 401 × 41 grid", "refine the grid", "the grid's nodes". A table column, a
-plot label or a bar compares *FDM* with the network.
+plot label or a bar compares *FDM* with the *PINN*.
+
+**PINN and network** (5 October 2026), the same rule for the other side.
+**PINN** names the method - in a comparison, a table, a bar, "the trained
+PINN answers in 0.3 ms", "a PINN's privilege"; "physics-informed neural
+network (PINN)" where a notebook or a deck first names it. **Network** names
+the neural network inside it: its layers and weights, the $\mathcal{N}$ of a
+trial function, "the conditions built into the network". The narration says
+"physics-informed network" aloud rather than the acronym.
 
 ## Accepted double meanings
 

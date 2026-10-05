@@ -14,9 +14,9 @@ rest.
 
 ```
 ρ u_t = G + μ (u_rr + u_r / r)        Newton's law along the tube: the pressure's push against the drag
-u = 0 on the wall                      no slip                          (built into the network)
+u = 0 on the wall                      no slip                          (built into the PINN)
 ∂u/∂r = 0 on the axis                  symmetry                         (built in by the input s = r²/R²)
-u = 0 at t = 0                         the coolant at rest              (built into the network)
+u = 0 at t = 0                         the coolant at rest              (built into the PINN)
 ```
 
 Section 3 builds this from Navier–Stokes step by step: a parcel; round and
@@ -42,7 +42,7 @@ Ex09.1_pipe_startup_light.ipynb   the same notebook with every cell written out
 | section | what the student does |
 |---|---|
 | 1 – 3 | the problem; the plate and its serpentine drawn in 3-D, the section A-A; the physics step by step, the conditions, Hagen–Poiseuille, Darcy, the exact start-up |
-| 4 | the exact solution as the reference; finite differences across the tube for an agreed 1e-03, with the grid and the network's points drawn |
+| 4 | the exact solution as the reference; finite differences across the tube for an agreed 1e-03, with the grid and the PINN's points drawn |
 | 5 | a PINN with the wall and the start built in (TODO 1 the trial function, TODO 2 the residual); the comparison, the section in colour; both methods timed on one device, and how the costs grow in 1, 2 and 3 dimensions |
 | 6 | the inverse problem: the coolant's viscosity from a flow meter's first second, four ways |
 | 7 | what the notebook says |
@@ -57,12 +57,12 @@ Ex09.1_pipe_startup_light.ipynb   the same notebook with every cell written out
 | PINN, 4 × 32, wall and start built in | 6.2 × 10⁻⁴ | about 40 s of training on a CPU; 0.3 – 0.4 ms per answer |
 
 Online, inference only, at the same accuracy on one device (a laptop GPU),
-FDM needs 41 radii × 160 steps (about 20 ms) where the trained network answers
+FDM needs 41 radii × 160 steps (about 20 ms) where the trained PINN answers
 in about 0.3 ms, some seventy times faster; in SciPy on a CPU the same FDM
 takes about 1.6 ms, and the gap is about five times. The training, about
 100 s, is repaid only after thousands of answers. A scaling test of the same
 equation in a box extrapolates FDM on a 3-D grid of 161 nodes per direction
-to about half an hour per answer. The network's case is many
+to about half an hour per answer. The PINN's case is many
 queries and many dimensions, not one small solve.
 
 | the viscosity from the first second (true 3.50 mPa·s) | found | off by |
@@ -70,9 +70,9 @@ queries and many dimensions, not one small solve.
 | Darcy's law on the last reading, as if steady | 4.04 mPa·s | +15.5 % |
 | least squares on the exact series | 3.55 mPa·s | +1.4 % |
 | least squares with FDM as the model, 5 runs | 3.53 mPa·s | +1.0 % |
-| the physics-informed network | 3.56 mPa·s | +1.6 % |
+| the PINN | 3.56 mPa·s | +1.6 % |
 
-An inverse problem is not a network's privilege: any model that predicts the
+An inverse problem is not a PINN's privilege: any model that predicts the
 readings can be fitted to them.
 
 ## Files
@@ -94,7 +94,7 @@ runtime for the timing of section 5.
 
 ## Expected runtime
 
-About two minutes on a CPU, most of it the network's two trainings.
+About two minutes on a CPU, most of it the PINN's two trainings.
 
 ## Reference texts
 
@@ -113,7 +113,7 @@ property values checked against a supplier's data.
 
 It replaced, on 5 October 2026, the notebook on the coupled Burgers equations
 (a front carried by a flow), whose ideas - the Reynolds number as the width of
-a front, the network's points against a thin feature - are on L9.1's Advanced
+a front, the PINN's points against a thin feature - are on L9.1's Advanced
 Topics slide.
 
 ## Mini project proposal

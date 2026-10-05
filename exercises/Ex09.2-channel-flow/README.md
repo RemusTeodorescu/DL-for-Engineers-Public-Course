@@ -56,11 +56,11 @@ differences (FDM), marched from the inlet with Crank–Nicolson and two
 implicit steps first (without them the wall condition is held only on
 average and the error on the electrode node oscillates from step to step),
 converge at second order and meet 0.1 percentage point at 401 × 41 in a few
-milliseconds; the network is within 1.4 to 2.1e-04 of the steam fraction
+milliseconds; the PINN is within 1.4 to 2.1e-04 of the steam fraction
 after about two minutes of training on a CPU. Neither gets the Sherwood
 number to better than 8 %, because it measures a tenth of a per cent of the
 field. Online, at the same accuracy (1 m/s), FDM on 401 × 41 takes about
-3.4 ms a march on a laptop CPU, where the trained network gives the field in
+3.4 ms a march on a laptop CPU, where the trained PINN gives the field in
 about 1.5 ms and the outlet value in about 0.1 ms - two and thirty to forty
 times faster, inference only; its larger gain is the speed as an input. Newton through autograd
 finds 0.3173 m/s for 25 % hydrogen at the electrode, against the exact
@@ -81,7 +81,7 @@ The first two are generated: edit `tools/pinn/*.py` and run
 
 ## Expected runtime
 
-About six minutes on a CPU, most of it the network's training.
+About six minutes on a CPU, most of it the PINN's training.
 
 ## Reference texts
 

@@ -46,6 +46,9 @@ __all__ = [
 ]
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if DEVICE.type == "cpu" and "google.colab" in __import__("sys").modules:   # on Colab without a GPU: say how to get one
+    print("NO GPU on this runtime. On Colab: Runtime -> Change runtime type -> T4 GPU, then run the notebook again. "
+          "The training is faster there, and the timings compare FDM and the PINN on the device the PINN is meant for.")
 
 SEED = 88
 

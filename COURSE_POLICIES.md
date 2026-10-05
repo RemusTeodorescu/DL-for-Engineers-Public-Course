@@ -331,7 +331,11 @@ run with it.
 *New, 29 September 2026. It is the rule for **every** Part 2 set. Ex07.1 was
 the first under it; Ex07.2 (three notebooks, a benchmark set), Ex08.1,
 Ex08.2, Ex09.1 and Ex09.2 (1 October) follow, and Ex10.1 to Ex12.2 since
-1 October: every Part 2 set holds under `check_exercise_policy.py`.*
+1 October: every Part 2 set holds under `check_exercise_policy.py`. On 5
+October Ex08.1 and Ex08.2 became **one notebook for both lectures**, Ex08,
+Heatsink Cooling of a Power Module: Part 1 (L8.1) and Part 2 (L8.2) in one
+session, so that Part 2 loads nothing again. It is one notebook and its light
+version, so it holds under C11 as it stands.*
 
 ## C12 · Numbers with at most two decimals
 
@@ -381,31 +385,34 @@ Then the report and the mini project (C10). What stays out:
 - **A lecture that teaches an inverse problem gets one section for it**, after
   the comparison and before the discussion: the same network and residual with
   one more trainable number and one more loss term, written out, with no TODO.
-  Ex08.2 recovers the diffusivity that way, and Ex09.2 the eddy viscosity.
+  Ex08 recovers the fins' heat transfer coefficient that way, and Ex09.1 the
+  coolant's viscosity.
   It is the lecture's second topic, not an alternative, so it does not break
   the rule above. Where the lecture's second topic is not an inverse problem
-  the section takes that topic instead: Ex09.1 raises the Reynolds number.
+  the section takes that topic instead: Ex09.2 finds the inlet speed a design
+  asks for.
 - **An inverse problem divides its residual by the number it identifies.**
   Left undivided, the optimiser can shrink the trainable number and the
-  residual with it: Ex08.2's diffusivity and Ex09.2's viscosity both ran to
-  zero that way, with a loss that looked healthy.
+  residual with it: the diffusivity of the old Ex08.2 and the eddy viscosity
+  of the old Ex09.2 both ran to zero that way, with a loss that looked healthy.
 - **Where the problem has no exact solution**, section 4 builds a converged
   reference first - a different and better-suited method than the classical
-  one it is compared with (Ex08.1: finite elements on a mesh fitted to the
-  hole, against finite differences on a staircase grid; Ex09.2: quadratic
-  finite elements fitted to the tube, against finite volumes on a staircase
-  grid) - and shows its accuracy by refinement, at least ten times better
+  one it is compared with (until October 2026, Ex08.1's plate: finite
+  elements on a mesh fitted to the hole, against FDM on a staircase grid;
+  Ex09.2's tube in a duct: quadratic finite elements, against finite volumes
+  on a staircase grid; every Part 2 set now has an exact solution) - and shows its accuracy by refinement, at least ten times better
   than the agreed accuracy. A solver too long for a cell lives in the set's
   `problem.py` and the notebook calls it.
 - **A model problem stays in scaled units.** Real units and a real object are
-  the rule; a problem that is an equation and not a device (Ex09.1's coupled
-  Burgers equations) says so and is not dressed as one.
-- **A result that contradicts the lecture is reported, not hidden.** Ex09.1's
-  network does not meet a Reynolds ceiling on its problem; the notebook says
-  so and says why, and the slide was corrected to match.
+  the rule; a problem that is an equation and not a device (the coupled
+  Burgers equations Ex09.1 used until October 2026) says so and is not
+  dressed as one.
+- **A result that contradicts the lecture is reported, not hidden.** The
+  Burgers network of the old Ex09.1 met no Reynolds ceiling on its problem;
+  the notebook said so and said why, and the slide was corrected to match.
 
 *New, 29 September 2026. Ex07.1 was written this way; Ex07.2's three notebooks
 were the first built to it, then Ex08.1, Ex08.2, Ex09.1 and Ex09.2
 (1 October), whose builders share `tools/exercises/part2_notebook.py`. Start a
-new set's builder from `tools/exercises/ex081/build_ex081.py`, or from
+new set's builder from `tools/exercises/ex08/build_ex08.py`, or from
 `ex092/build_ex092.py` for a set with an inverse section.*

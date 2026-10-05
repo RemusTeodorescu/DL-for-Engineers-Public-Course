@@ -372,36 +372,39 @@ def sensor_readings(seed=88):
 
 
 # ------------------------------------------------------------------ drawing
-def draw_heatsink(ax, show_sensor=False, show_domain=True):
-    """The cross-section, in millimetres: base plate, fins, module, air."""
+def draw_heatsink(ax, show_sensor=False, show_domain=True, dark=False):
+    """The cross-section, in millimetres: base plate, fins, module, air.
+    dark=True draws the same picture for a dark background (the lecture slides)."""
+    ink, metal, note, air = ("w", "0.35", "0.8", "#5BC0DE") if dark else ("k", "0.80", "0.3", "tab:blue")
+    fz = 1.6 if dark else 1.0                                  # larger labels on a slide
     import matplotlib.patches as mpatches
     mm = 1e3
     W, tb, Lf, tf, p = W_BASE * mm, T_BASE * mm, L_FIN * mm, T_FIN * mm, PITCH * mm
-    ax.add_patch(mpatches.Rectangle((0, 0), W, tb, facecolor="0.80", edgecolor="k", lw=1.2))
+    ax.add_patch(mpatches.Rectangle((0, 0), W, tb, facecolor=metal, edgecolor=ink, lw=1.2))
     for i in range(N_FINS):
         xc = (i + 0.5) * p
-        ax.add_patch(mpatches.Rectangle((xc - tf / 2, -Lf), tf, Lf, facecolor="0.80", edgecolor="k", lw=0.8))
+        ax.add_patch(mpatches.Rectangle((xc - tf / 2, -Lf), tf, Lf, facecolor=metal, edgecolor=ink, lw=0.8))
     ax.add_patch(mpatches.Rectangle((MODULE[0] * mm, tb), (MODULE[1] - MODULE[0]) * mm, 6, facecolor="tab:red", alpha=0.35, edgecolor="tab:red", lw=1.2))
-    ax.text((MODULE[0] + MODULE[1]) / 2 * mm, tb + 3, f"module, {POWER:.0f} W", ha="center", va="center", fontsize=9, color="tab:red")
+    ax.text((MODULE[0] + MODULE[1]) / 2 * mm, tb + 3, f"module, {POWER:.0f} W", ha="center", va="center", fontsize=9 * fz, color="#FFB199" if dark else "tab:red")
     for xa in np.linspace(8, W - 8, 6):
-        ax.annotate("", xy=(xa, -Lf - 2), xytext=(xa, -Lf - 10), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1))
-    ax.text(W / 2, -Lf - 13, f"forced air, {T_AIR:.0f} °C, h = {H_AIR:.0f} W/(m²K)", ha="center", va="top", fontsize=9, color="tab:blue")
+        ax.annotate("", xy=(xa, -Lf - 2), xytext=(xa, -Lf - 10), arrowprops=dict(arrowstyle="->", color=air, lw=1))
+    ax.text(W / 2, -Lf - 13, f"forced air, {T_AIR:.0f} °C, h = {H_AIR:.0f} W/(m²K)", ha="center", va="top", fontsize=9 * fz, color=air)
     if show_domain:
         ax.add_patch(mpatches.Rectangle((0, 0), W, tb, fill=False, edgecolor="tab:orange", lw=2, ls="--"))
-        ax.text(W + 2, tb / 2, "the base plate:\nthe domain solved", va="center", fontsize=8.5, color="tab:orange")
-        ax.text(W + 2, -Lf / 2, f"the fins: η = {ETA_FIN:.3f},\nh_eff = {H_EFF:.0f} W/(m²K)\non the fin side", va="center", fontsize=8.5, color="0.3")
+        ax.text(W + 2, tb / 2, "the base plate:\nthe domain solved", va="center", fontsize=8.5 * fz, color="tab:orange")
+        ax.text(W + 2, -Lf / 2, f"the fins: η = {ETA_FIN:.3f},\nh_eff = {H_EFF:.0f} W/(m²K)\non the fin side", va="center", fontsize=8.5 * fz, color=note)
     if show_sensor:
-        ax.plot([SENSOR * mm], [tb], "kv", ms=9, zorder=5)
-        ax.text(SENSOR * mm, tb + 2, "thermocouple", ha="center", va="bottom", fontsize=8.5)
-    ax.annotate("", xy=(0, tb + 11), xytext=(W, tb + 11), arrowprops=dict(arrowstyle="<->", lw=0.8))
-    ax.text(W / 2, tb + 12, f"{W:.0f} mm", ha="center", va="bottom", fontsize=8.5)
-    ax.annotate("", xy=(-4, 0), xytext=(-4, tb), arrowprops=dict(arrowstyle="<->", lw=0.8))
-    ax.text(-6, tb / 2, f"{tb:.0f} mm", ha="right", va="center", fontsize=8.5)
-    ax.annotate("", xy=(-4, -Lf), xytext=(-4, 0), arrowprops=dict(arrowstyle="<->", lw=0.8))
-    ax.text(-6, -Lf / 2, f"{Lf:.0f} mm", ha="right", va="center", fontsize=8.5)
+        ax.plot([SENSOR * mm], [tb], "v", color=ink, ms=9, zorder=5)
+        ax.text(SENSOR * mm, tb + 2, "thermocouple", ha="center", va="bottom", fontsize=8.5 * fz, color=ink)
+    ax.annotate("", xy=(0, tb + 11), xytext=(W, tb + 11), arrowprops=dict(arrowstyle="<->", lw=0.8, color=ink))
+    ax.text(W / 2, tb + 12, f"{W:.0f} mm", ha="center", va="bottom", fontsize=8.5 * fz, color=ink)
+    ax.annotate("", xy=(-4, 0), xytext=(-4, tb), arrowprops=dict(arrowstyle="<->", lw=0.8, color=ink))
+    ax.text(-6, tb / 2, f"{tb:.0f} mm", ha="right", va="center", fontsize=8.5 * fz, color=ink)
+    ax.annotate("", xy=(-4, -Lf), xytext=(-4, 0), arrowprops=dict(arrowstyle="<->", lw=0.8, color=ink))
+    ax.text(-6, -Lf / 2, f"{Lf:.0f} mm", ha="right", va="center", fontsize=8.5 * fz, color=ink)
     ax.set_xlim(-22, W + 40); ax.set_ylim(-Lf - 20, tb + 18)
     ax.set_aspect("equal"); ax.set_xlabel("x  [mm]"); ax.set_ylabel("z  [mm]")
-    ax.set_title("the heat sink in cross-section, per metre of depth", fontsize=10)
+    ax.set_title("the heat sink in cross-section, per metre of depth", fontsize=10 * fz)
 
 
 def describe_problem():

@@ -87,7 +87,7 @@ __all__ = [
     "Y_IN", "D_GAS", "MU_GAS", "M_H2", "M_H2O", "RHO_IN", "I_CELL", "N_WALL", "U_REF",
     "S_MIN", "S_MAX", "EPS", "G", "Y_SCALE", "PE_H", "PE_L", "RE", "ENTRANCE_MM", "SHERWOOD",
     "utilisation", "speed_for_utilisation", "pressure_drop", "poiseuille", "phi", "exact", "exact_wall_outlet",
-    "fdm", "sample_channel", "sample_faces", "draw_channel", "describe_problem", "kelvin_free",
+    "fdm", "sample_channel", "sample_faces", "draw_channel", "draw_cell", "describe_problem", "kelvin_free",
 ]
 
 # ------------------------------------------------------------------ the data
@@ -235,6 +235,83 @@ def draw_channel(ax):
     ax.annotate("", xy=(L + 12, 0), xytext=(L + 12, h), arrowprops=dict(arrowstyle="<->", lw=0.8)); ax.text(L + 14, h / 2, "1 mm", va="center", fontsize=8.5)
     ax.set_xlim(-22, L + 26); ax.set_ylim(-6, h + 11); ax.set_aspect("equal")
     ax.set_xlabel("x  [mm]"); ax.set_yticks([]); ax.set_title("the fuel channel, per metre of width; the height drawn ten times too large", fontsize=10)
+
+
+def draw_cell():
+    """What happens behind the electrode wall, in both directions of the same cell.
+
+    A cross-section through a solid oxide cell, not to scale: the fuel channel
+    of this notebook on top, then the porous fuel electrode, the electrolyte
+    (it conducts oxide ions O2- and nothing else), the air electrode and the
+    air channel. Left, the fuel cell (SOFC): oxide ions cross the electrolyte
+    upwards and burn the hydrogen that diffuses into the fuel electrode, the
+    steam goes back into the channel, the electrons go round the external
+    circuit through a load. Right, the electrolyser (SOEC): a power supply
+    drives the same reactions backwards - steam is split at the fuel
+    electrode, the hydrogen goes back into the channel, the oxide ions cross
+    downwards and leave the air electrode as oxygen."""
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.6))
+    layers = [  # (bottom, top, colour, name)
+        (0.0, 1.3, "#eaf3e6", "air channel"),
+        (1.3, 2.1, "#c9d9b9", "air electrode"),
+        (2.1, 2.5, "#e8d6a8", "electrolyte: conducts O$^{2-}$ only"),
+        (2.5, 3.5, "#b9c3cf", "fuel electrode (porous nickel and ceramic)"),
+        (3.5, 5.5, "#dbe9f6", "fuel channel: this notebook"),
+        (5.5, 6.1, "0.55", "interconnect"),
+    ]
+
+    def arrow(ax, x0, y0, x1, y1, col, text=None, tx=None, ty=None):
+        ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
+                    arrowprops=dict(arrowstyle="-|>", color=col, lw=2.0, mutation_scale=16))
+        if text:
+            ax.text(tx if tx is not None else x1 + 0.15, ty if ty is not None else (y0 + y1) / 2,
+                    text, color=col, fontsize=10.5, va="center", fontweight="bold")
+
+    for ax, mode in zip(axes, ("SOFC", "SOEC")):
+        fc = mode == "SOFC"
+        for y0, y1, col, name in layers:
+            ax.add_patch(mpatches.Rectangle((0, y0), 9.0, y1 - y0, facecolor=col, edgecolor="k", lw=0.8))
+            ax.text(8.9, y1 - 0.2 if "channel" in name else (y0 + y1) / 2, name, ha="right", va="center", fontsize=8.5,
+                    color="w" if name == "interconnect" else "0.25")
+        # the gas along the channel, and the air
+        ax.annotate("", xy=(2.2, 5.05), xytext=(0.2, 5.05), arrowprops=dict(arrowstyle="-|>", color="tab:blue", lw=1.5))
+        ax.text(0.2, 4.72, "97 % H$_2$, 3 % H$_2$O in" if fc else "90 % H$_2$O, 10 % H$_2$ in", fontsize=9.5, color="tab:blue")
+        ax.annotate("", xy=(2.2, 0.85), xytext=(0.2, 0.85), arrowprops=dict(arrowstyle="-|>", color="tab:green", lw=1.5))
+        ax.text(0.2, 0.42, "air in: O$_2$ taken" if fc else "air in: O$_2$ added", fontsize=9.5, color="tab:green")
+        # the exchange at the fuel electrode
+        if fc:
+            arrow(ax, 3.0, 4.3, 3.0, 3.05, "tab:green", "H$_2$", tx=2.35, ty=3.95)
+            arrow(ax, 4.1, 3.05, 4.1, 4.3, "tab:orange", "H$_2$O", tx=4.25, ty=3.95)
+            arrow(ax, 3.55, 1.7, 3.55, 2.95, "tab:red", "O$^{2-}$", tx=3.7, ty=2.3)
+            arrow(ax, 3.55, 0.95, 3.55, 1.6, "tab:green", "O$_2$", tx=3.7, ty=1.1)
+            ax.text(5.0, 3.62, "at the fuel electrode:\nH$_2$ + O$^{2-}$ → H$_2$O + 2e$^-$", fontsize=10.5, va="bottom")
+            ax.text(5.0, 0.1, "at the air electrode:\n½O$_2$ + 2e$^-$ → O$^{2-}$", fontsize=10.5, va="bottom")
+        else:
+            arrow(ax, 3.0, 4.3, 3.0, 3.05, "tab:orange", "H$_2$O", tx=2.15, ty=3.95)
+            arrow(ax, 4.1, 3.05, 4.1, 4.3, "tab:green", "H$_2$", tx=4.25, ty=3.95)
+            arrow(ax, 3.55, 2.95, 3.55, 1.7, "tab:red", "O$^{2-}$", tx=3.7, ty=2.3)
+            arrow(ax, 3.55, 1.6, 3.55, 0.95, "tab:green", "O$_2$", tx=3.7, ty=1.1)
+            ax.text(5.0, 3.62, "at the fuel electrode:\nH$_2$O + 2e$^-$ → H$_2$ + O$^{2-}$", fontsize=10.5, va="bottom")
+            ax.text(5.0, 0.1, "at the air electrode:\nO$^{2-}$ → ½O$_2$ + 2e$^-$", fontsize=10.5, va="bottom")
+        # the external circuit: electrons from one electrode to the other
+        ax.plot([9.0, 9.9, 9.9, 9.0], [3.0, 3.0, 1.7, 1.7], color="k", lw=1.2)
+        ax.add_patch(mpatches.Rectangle((9.6, 2.05), 0.6, 0.6, facecolor="w", edgecolor="k", lw=1.2))
+        ax.text(10.35, 2.35, "load" if fc else "power\nsupply", fontsize=9.5, va="center")
+        if fc:
+            arrow(ax, 9.9, 1.95, 9.9, 1.75, "k")
+            ax.text(10.05, 3.15, "e$^-$ out of the fuel electrode", fontsize=9)
+        else:
+            arrow(ax, 9.9, 2.75, 9.9, 2.95, "k")
+            ax.text(10.05, 3.15, "e$^-$ into the fuel electrode", fontsize=9)
+        ax.set_title(("fuel cell (SOFC): hydrogen burnt, steam returned, power out" if fc else
+                      "electrolyser (SOEC): steam split, hydrogen returned, power in"), fontsize=11)
+        ax.set_xlim(-0.1, 12.2); ax.set_ylim(-0.1, 6.2); ax.set_axis_off()
+    fig.suptitle("behind the electrode wall: one molecule out of the channel, one back, for every two electrons "
+                 "(layers not to scale)", fontsize=10.5)
+    fig.tight_layout()
+    return fig
 
 
 def draw_coordinates():

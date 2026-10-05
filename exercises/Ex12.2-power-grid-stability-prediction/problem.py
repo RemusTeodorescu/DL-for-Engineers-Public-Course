@@ -154,7 +154,7 @@ __all__ = [
     "RESULTS", "use_course_style",
     "BG", "TXT", "MUTED", "CYAN", "AMBER", "ORANGE", "GREEN", "PURPLE",
     "BUS_XY", "save", "load", "screening_table", "confusion",
-    "plot_network", "plot_swing", "plot_screening", "plot_parity",
+    "plot_network", "plot_swing", "plot_screening", "plot_parity", "draw_grid",
 ]
 
 
@@ -1557,3 +1557,16 @@ def describe_problem() -> None:
     print(f"  not screened     : line {skipped} - losing it cuts a bus off, which is loss of supply and not a stability case")
     print(f"  protection       : clears a fault in {1000 * PROTECTION_TIME:.0f} ms; a case with a shorter critical clearing time is insecure")
     print(f"  simulation       : {T_END:.1f} s simulated for each trial, search up to {1000 * CCT_MAX:.0f} ms, to {1000 * CCT_TOL:.0f} ms")
+
+
+def draw_grid(ax=None):
+    """The six-bus grid with one of the notebook's contingencies drawn on it:
+    a three-phase fault at the sending end of a line (ringed), cleared by
+    tripping that line (struck through)."""
+    import matplotlib.pyplot as plt
+    c = contingencies()[1]
+    ax = plot_network(outage=c["outage"], fault_bus=c["fault_bus"], ax=ax)
+    ax.set_title(f"one of {len(contingencies())} cases: a fault at bus {c['fault_bus']},\n"
+                 f"cleared by tripping line {c['outage']}", fontsize=10, color=TXT)
+    ax.text(-0.6, -0.42, "cyan: a machine   grey: a load", ha="left", va="bottom", fontsize=9, color=MUTED)
+    return ax.figure

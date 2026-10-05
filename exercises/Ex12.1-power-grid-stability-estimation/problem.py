@@ -119,7 +119,7 @@ __all__ = [
     "BG", "TXT", "MUTED", "CYAN", "AMBER", "ORANGE", "GREEN", "PURPLE",
     "save", "load", "reference_state", "error_table", "comparison_table",
     "plot_network_state", "plot_sweep", "plot_swing", "plot_frequency_event",
-    "plot_loss", "make_report",
+    "plot_loss", "make_report", "draw_meters",
 ]
 
 
@@ -1633,3 +1633,59 @@ def describe_problem() -> None:
         _, rank, full = observable(ms, Y)
         print(f"  meters, {kind:9s}: {len(ms):2d} readings, which determine {rank} of the {full} unknowns")
     print(f"  accuracy         : |V| 0.004, angle 0.002 rad, P and Q 0.010 p.u.; a forecast {SIGMA_FORECAST:.2f} p.u. (assumed)")
+
+
+#: where each bus is drawn (the same layout as Ex_12.2's)
+BUS_XY = np.array([[0.0, 1.00], [1.1, 1.85], [2.4, 1.85], [3.4, 0.95], [1.6, 0.05], [4.5, 0.30]])
+
+
+def draw_meters(fig=None, square=False):
+    """The six-bus grid three times, once for each set of readings the
+    notebook compares: where the PMUs read |V| and the angle (cyan diamond),
+    where a meter reads the injection P and Q (green square), and where the
+    thin set is filled in by a forecast (amber dashed square). ``square``
+    puts the three grids and the key in two rows instead of one."""
+    import matplotlib.pyplot as plt
+    use_course_style()
+    if fig is None:
+        fig = plt.figure(figsize=(9.0, 5.6) if square else (13.5, 2.8))
+    axes = fig.subplots(2, 2).ravel() if square else fig.subplots(1, 3)
+    for ax, kind, head in zip(axes, ("full", "thin", "forecast"),
+                              ("full\n2 PMUs, meters at 5 buses",
+                               "thin\n1 PMU, meters at 2 buses",
+                               "thin + forecast\nthe other 4 buses forecast")):
+        ms = meters(kind)
+        for f, t, *_ in BRANCHES:
+            ax.plot(BUS_XY[[f, t], 0], BUS_XY[[f, t], 1], "-", lw=2.0, color="#5B6779", zorder=1)
+        ax.scatter(BUS_XY[:, 0], BUS_XY[:, 1], s=260, c=[CYAN if BUSES[i][1] != "load" else MUTED for i in range(N_BUS)],
+                   zorder=3, edgecolors=BG, linewidths=1.4)
+        for i in range(N_BUS):
+            ax.annotate(str(i), BUS_XY[i], color=BG, fontsize=9, ha="center", va="center", zorder=4, fontweight="bold")
+        pmu = {i for (k, i) in ms.spec if k == "TH"}
+        inj = {}
+        for (k, i), s in zip(ms.spec, ms.sigma):
+            if k == "P":
+                inj[i] = "forecast" if s == SIGMA_FORECAST else "meter"
+        for i in pmu:
+            ax.plot(BUS_XY[i, 0] - 0.30, BUS_XY[i, 1] + 0.30, "D", ms=9, color=CYAN, zorder=4)
+        for i, how in inj.items():
+            x, y = BUS_XY[i, 0] + 0.30, BUS_XY[i, 1] + 0.30
+            if how == "meter":
+                ax.plot(x, y, "s", ms=9, color=GREEN, zorder=4)
+            else:
+                ax.plot(x, y, "s", ms=9, mfc="none", mec=AMBER, mew=1.6, ls="none", zorder=4)
+        ax.set_title(f"{head}: {len(ms)} readings", fontsize=10, color=TXT)
+        ax.set_xlim(-0.6, 5.1); ax.set_ylim(-0.4, 2.35); ax.set_aspect("equal"); ax.axis("off")
+    from matplotlib.lines import Line2D
+    keys = [Line2D([], [], marker="D", ls="none", ms=8, color=CYAN, label="PMU: |V| and angle"),
+            Line2D([], [], marker="s", ls="none", ms=8, color=GREEN, label="meter: P and Q injected"),
+            Line2D([], [], marker="s", ls="none", ms=8, mfc="none", mec=AMBER, mew=1.6, label="forecast of P and Q"),
+            Line2D([], [], marker="o", ls="none", ms=9, color=CYAN, label="bus with a machine"),
+            Line2D([], [], marker="o", ls="none", ms=9, color=MUTED, label="bus with a load")]
+    if square:
+        axes[3].axis("off")
+        axes[3].legend(handles=keys, loc="center", frameon=False, fontsize=10, labelcolor=TXT)
+    else:
+        fig.legend(handles=keys, loc="lower center", ncol=5, frameon=False, fontsize=10, labelcolor=TXT,
+                   bbox_to_anchor=(0.5, -0.02))
+    return fig

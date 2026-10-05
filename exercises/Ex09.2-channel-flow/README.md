@@ -1,4 +1,4 @@
-# Ex_09.2 — Hydrogen Along a Fuel Channel
+# Ex_09.2 — Hydrogen Fuel Channel for SOFC/SOEC
 
 **Paired with L9.2 · Gas Flow · Part 2**
 

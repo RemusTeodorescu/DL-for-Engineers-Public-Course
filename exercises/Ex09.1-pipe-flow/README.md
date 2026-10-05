@@ -1,4 +1,4 @@
-# Ex_09.1 — The Pump Starts
+# Ex_09.1 — Liquid Serpentine Cooling Plate
 
 **Paired with L9.1 · Laminar Flow · Part 2**
 

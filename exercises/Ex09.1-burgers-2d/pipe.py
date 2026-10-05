@@ -169,6 +169,10 @@ BEND_R = 0.012                 #: m, radius of a U-bend, to the tube's axis
 LEG_Y = (0.029, 0.053, 0.077, 0.101)   #: m, the four legs, 2 x BEND_R apart
 TUBE_Z = 0.006                 #: m, the tube's axis, at mid-thickness
 MODULE = (0.095, 0.155, 0.035, 0.095)  #: m, the power module's footprint on the top face: x0, x1, y0, y1
+#: m, the section A-A: a cut across the second leg (y = 53 mm) at x = 48 mm. The second leg runs from
+#: its bend at x = 240 mm back towards x = 10 mm; the parabola has re-formed by x = 240 - 136 = 104 mm,
+#: so A-A lies in the fully developed part, 56 mm beyond that point.
+SECTION_AA = (0.048, 0.053)
 
 
 def serpentine():
@@ -208,6 +212,9 @@ def draw_domain():
     xs = np.linspace(1e3 * LEG_X[0], 1e3 * (LEG_X[1] - ENTRANCE), 20)   # leg 2 runs back from its bend; the parabola needs ENTRANCE first
     ax.plot(xs, np.full_like(xs, 1e3 * LEG_Y[1]), zt, color="tab:orange", lw=6)
     ax.text(1e3 * LEG_X[0], 1e3 * LEG_Y[1] - 12, zt, "solved here", color="tab:orange", fontsize=9)
+    xa, ya = (1e3 * v for v in SECTION_AA)                    # the section A-A: a vertical plane across the leg
+    ax.plot([xa, xa, xa, xa, xa], [ya - 9, ya + 9, ya + 9, ya - 9, ya - 9], [0, 0, H, H, 0], color="k", lw=1.5)
+    ax.text(xa, ya + 11, H + 1, "A-A", fontsize=10)
     ax.text(-25, 1e3 * LEG_Y[0], zt, "in", fontsize=9)
     ax.text(-25, 1e3 * LEG_Y[-1], zt, "out", fontsize=9)
     ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]"); ax.set_zlabel("z  [mm]")
@@ -234,7 +241,7 @@ def draw_domain():
         ax.annotate("", xy=(1.5 + 0.45 * (1 - e ** 2), e), xytext=(1.5, e), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=0.8))
     ax.text(1.42, 1.10, "u(r), once steady", color="tab:blue", fontsize=10)
     ax.set_aspect("equal"); ax.axis("off"); ax.set_xlim(-1.3, 2.3); ax.set_ylim(-1.4, 1.3)
-    ax.set_title("cross-section A-A of the leg, and what is known on it", fontsize=10)
+    ax.set_title(f"cross-section A-A (x = {1e3 * SECTION_AA[0]:.0f} mm on the second leg), and what is known on it", fontsize=10)
     plt.tight_layout()
     return fig
 
@@ -252,9 +259,9 @@ def draw_methods(n_fdm, pts_s, pts_t):
         ax.plot(1e3 * x, 1e3 * y, color="tab:blue" if kind == "leg" else "tab:purple", lw=2)
     xs = np.linspace(1e3 * LEG_X[0], 1e3 * (LEG_X[1] - ENTRANCE), 20)
     ax.plot(xs, np.full_like(xs, 1e3 * LEG_Y[1]), color="tab:orange", lw=5, alpha=0.6)
-    xc = 1e3 * (LEG_X[0] + 0.4 * (LEG_X[1] - ENTRANCE - LEG_X[0]))
-    ax.plot([xc, xc], [1e3 * LEG_Y[1] - 9, 1e3 * LEG_Y[1] + 9], color="k", lw=2)
-    ax.text(xc + 2, 1e3 * LEG_Y[1] + 9, "A-A", fontsize=9)
+    xc, yc = (1e3 * v for v in SECTION_AA)                    # the section A-A, as in draw_domain
+    ax.plot([xc, xc], [yc - 9, yc + 9], color="k", lw=2)
+    ax.text(xc + 2, yc + 9, "A-A", fontsize=9)
     ax.set_aspect("equal"); ax.set_xlabel("x  [mm]"); ax.set_ylabel("y  [mm]")
     ax.set_title("the plate from above; the solved part (orange), the section A-A", fontsize=10)
     ax = fig.add_subplot(1, 3, 2)

@@ -1,130 +1,108 @@
-# Ex_09.2 — The Mean Flow Past a Tube
+# Ex_09.2 — Hydrogen Along a Fuel Channel
 
-**Paired with L9.2 · Turbulent Flow · Part 2**
+**Paired with L9.2 · Gas Flow · Part 2**
 
-A turbulent mean flow with an eddy-viscosity closure, in **one notebook**
-(course policies C11 and C13). Water runs through a duct and past a tube that
-crosses it; the pressure drop and the drag on the tube are wanted. Students
-compute them three ways — a finite-element reference on a mesh fitted to the
-tube, finite volumes on a staircase grid, and a physics-informed network with
-the stream function — and compare them on accuracy and on time. Then the same
-network finds the eddy viscosity from twelve velocity probes.
+The fuel channel of a solid oxide fuel cell, from the flow side, in **one
+notebook** (course policies C11 and C13). Humidified hydrogen flows along a
+1 mm channel over a 100 × 100 mm electrode at 800 °C; along the electrode wall
+hydrogen is taken up and steam returned at a rate set by the current. How does
+the gas change along and across the channel, how much of the fuel is used, and
+how fast must it be fed so that the electrode at the outlet still sees enough
+hydrogen?
 
 ## The problem
 
-A duct 100 mm high and 400 mm long carries water at a mean speed of 0.25 m/s
-past a 40 mm tube on its centreline, 120 mm from the inlet. The Reynolds number
-is 25 000, so the flow is turbulent and its **mean** is solved for:
-
 ```
-(u·∇)u = −∇p/ρ + ν_eff ∇²u,   ∇·u = 0,   ν_eff = ν + ν_t
-u = v = 0 on the walls, u = 6y(1−y) at the inlet      (built into the network)
-u = v = 0 on the tube; p = 0, v = 0 at the outlet     (weighted loss terms)
+u(z) y_x = D y_zz                        the steam fraction y, carried along and diffused across
+-D y_z = N/c at the electrode            hydrogen taken, steam returned: i / 2F
+y_z = 0 at the interconnect              impermeable
+y = 3 % at the inlet                     97 % hydrogen fed
 ```
 
-**The closure is one number**, ν_t = 0.02 UH = 5.0 × 10⁻⁴ m²/s, five hundred
-times the viscosity of water. It is a choice, made so that the modelled mean
-flow is steady and smooth; it is not a measured or a calibrated value, and a
-real eddy viscosity varies in space. The notebook says so, and its last
-bullet and mini project MP9.2B take it up. In scaled units — lengths over H,
-speeds over U, pressure over ρU² = 62.38 Pa — the duct is 4 × 1, the tube a
-circle of radius 0.2 at (1.2, 0.5), and ν_eff/(UH) = 0.02.
+Three facts reduce the gas to this: the Mach number is about 1e-03, so the
+gas is incompressible here; the exchange is equimolar, so the molar
+concentration and the velocity do not change; and Re = 1.3, so the velocity
+is Poiseuille's profile from the inlet on. **Diffusion along the channel is
+dropped** (Péclet 125 along it), which makes the equation parabolic in $x$:
+it marches from the inlet and needs no outlet condition. Beyond the first
+millimetre its solution is **exact**: linear along the channel and a quartic
+across it, with a Sherwood number of 2 · 35/13 = 5.385.
+
+The cell's current (0.5 A/cm²), the speeds (0.3 to 1.5 m/s) and the gas
+properties are typical values, flagged where they appear.
 
 ## The notebook
 
 ```
-Ex09.2_pinn_flow_past_tube.ipynb         the exercise: two TODO cells, the answer in the comment above each
-Ex09.2_pinn_flow_past_tube_light.ipynb   the same notebook with every cell written out
+Ex09.2_hydrogen_channel.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex09.2_hydrogen_channel_light.ipynb   the same notebook with every cell written out
 ```
 
 | section | what the student does |
 |---|---|
-| 1 – 3 | the problem, its data, its physics: why the mean, the closure problem, the eddy viscosity, the scaled units |
-| 4 | the reference: quadratic finite elements on the fitted mesh, Newton's method, refined twice; then finite volumes on the staircase grid, for an agreed 5 % on the pressure drop and the drag |
-| 5 | the PINN: the trial stream function with the walls and the inflow built in (TODO 1), the two momentum residuals (TODO 2), training; the three answers compared |
-| 6 | the inverse problem: the eddy viscosity as one more trainable number, found from twelve probes |
+| 1 – 3 | the problem, its data and its physics: the gas, the flow, the species equation, the exact solution |
+| 4 | finite differences marched along the channel (Crank–Nicolson), refined to an agreed 0.1 percentage point |
+| 5 | one PINN for every inlet speed (the speed as an input; TODO 1 the trial function, TODO 2 the residual), and the comparison |
+| 6 | the inlet speed for 25 % hydrogen at the electrode at the outlet, by Newton's method through the network |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
 | 9 | mini project proposal |
 
-Numbers are printed with at most two decimals (C12). The five obstacle
-shapes, the control panel and the shape comparison of the earlier
-five-notebook version are gone; the tube is the only obstacle.
+### What it measures
 
-### What it measures (CPU, seed 88)
-
-| | pressure drop | drag on the tube | worst velocity error | one solution | training |
-|---|---|---|---|---|---|
-| reference, fitted mesh H/40, 58 772 unknowns | 218.25 Pa | 11.40 N/m (coefficient 9.14) | within 0.004 U of H/80 | about 6 s | — |
-| finite volumes, 320 × 80 cells (the coarsest for 5 %) | 212.01 Pa (−2.86 %) | 10.94 N/m (−4.03 %) | 0.26 U, beside the staircase | about 16 s | — |
-| PINN, 4 × 32, stream function, 2000 points | 217.22 Pa (−0.48 %) | 11.28 N/m (−1.00 %) | 0.02 U | 0.01 s | about 2.5 min |
-
-The inverse problem returns ν_eff = 5.14 × 10⁻⁴ m²/s against the true
-5.00 × 10⁻⁴, 2.70 % high, in about two minutes, from twelve readings of u with
-noise of 1 % of the mean speed and a start twice too high; with it the
-pressure drop is 2.11 % and the drag 0.76 % from the reference.
-
-**Two things that cost time and are not obvious.** The inverse problem's
-residuals are **divided by the trainable viscosity**: without that, on some
-starts ν_eff runs to zero (it did, to 6.5 × 10⁻⁸ m²/s, with a loss that looked
-healthy), because an almost inviscid flow fits twelve probes as well. With the
-division three seeds gave +2.1 to +3.3 %. And the reference's velocity must be
-evaluated with its own quadratic shape functions: linear interpolation between
-its nodes is wrong by 0.02 U beside the walls, which is as large as the
-network's error.
+The electrode sees 0.106 percentage points more steam than the mean at every
+position and speed: the channel mixes across within a millimetre. The march
+meets 0.1 percentage point at 401 × 41 in about 5 ms; the network is within
+1.1 to 1.6e-04 of the steam fraction at every speed after about four minutes
+of training. Neither gets the Sherwood number to better than 10 %, because it
+measures a tenth of a per cent of the field. Online both take about 5 ms per
+speed; the network's gain is the speed as an input. Newton through autograd
+finds 0.3173 m/s for 25 % hydrogen at the electrode, against the exact
+0.3174.
 
 ## Files
 
 | | |
 |---|---|
-| `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
-| `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
-| `problem.py` | **this** problem — the data, the samplers, the finite-element reference (`reference`, `reference_at`), the finite-volume solver (`finite_volumes`), the drag and pressure drop of a network, the probe readings |
+| `course_core.py` | shared by the whole course |
+| `pinn_core.py` | the Part 2 helpers |
+| `channel.py` | **this** problem — the gas, the channel, the exact solution, the march |
+| `MiniProject_Turbulence.md` | an outline for an L13 project on turbulence closure, kept from the earlier set |
 
-The first two are generated. Edit `tools/pinn/*.py` and run
-`python3 tools/pinn/sync_cores.py`; never edit a copy.
-
-**The notebook is generated too**, both forms from one source,
-`tools/exercises/ex092/build_ex092.py`, with the cells every one-notebook set
-shares in `tools/exercises/part2_notebook.py`. Edit the builder and rerun it
-rather than editing a notebook, or the two forms drift apart.
-
-**On Colab nothing needs uploading**: the first code cell fetches the three
-modules from the public course repository, afresh on every run.
-
-See also `MiniProject_Turbulence.md`, the earlier outline of an L13 project
-on learned closures; mini project MP9.2B below is its first track, with a
-ground truth.
+The first two are generated: edit `tools/pinn/*.py` and run
+`python3 tools/pinn/sync_cores.py`. **The notebook is generated too**, from
+`tools/exercises/ex092/build_ex092.py`.
 
 ## Expected runtime
 
-CPU only; a GPU is slower on problems this small. About six minutes in all,
-most of it the two trainings of sections 5 and 6.
+About six minutes on a CPU, most of it the network's training.
 
 ## Reference texts
 
-Pope, S.B., *Turbulent Flows* (2000), ch. 4, 7, 10.
-Liu, G.R., *PINN with Python: An Introduction* (2025).
-Raissi, Perdikaris & Karniadakis, *Physics-informed neural networks*,
-J. Comput. Phys. **378** (2019) 686–707.
+Shah and London, *Laminar Flow Forced Convection in Ducts* (1978), for the
+Sherwood number of a channel with one wall exchanging; Liu, *PINN with Python:
+An Introduction* (2025).
 
 These are the works to read for the theory. **The code, the problem and the
 exposition in this exercise set are original to this course.**
 
 ## Before this is assigned
 
-The light version has been executed end to end on a local CPU; the exercise
-version stops at its TODO cells. Still to do, as for every set (C8): a run from
-a fresh Colab runtime, and a review by someone other than the author.
+Executed end to end on a local CPU on 3 October 2026; the exercise version
+stops at its TODO cells. Still to do: a run from a fresh Colab runtime and a
+review by someone other than the author.
+
+It replaced, on 5 October 2026, the notebook on the mean flow past a tube in a
+duct with one eddy viscosity.
 
 ## Mini project proposal
 
-The set ends with two mini projects (section 9). Each student chooses one
+The set ends with two mini projects (section 9 of the notebook). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex092_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP9.2A · The wake starts to shed** | the Schäfer & Turek cylinder at Re = 100: an unsteady, shedding wake | a PINN in (x, y, t) with the stream function, over several shedding periods | the published benchmark values (St 0.30, cD max 3.23, cL max 1.00); the course solver's fields, first order, St 0.272 at D/40 | St within 3 %, drag within 5 %, lift within 10 % |
-| **MP9.2B · The eddy viscosity from measurements** | this set's channel; the eddy viscosity hidden; u at 12 probes, noise 0.01 | an inverse PINN: the flow and ν_t(x, y), fitted to the mean-flow equations and the probes | the steady flow by the course solver, 320 × 80; worked example: ν_t adds 8 % to the drag and moves the probes 0.025-0.70 | ν_t peak within 25 % and 0.2 units; probes within 0.02 |
+| **MP9.2A · The SOEC steam channel** | the same channel as an electrolyser: 90 % steam fed, the wall flux reversed; the feed speed for 70 % conversion | the notebook's parametric PINN retrained with the sign and feed changed; the conversion by a gradient through it | the exact solution with the sign reversed; worked example: 0.362 m/s for 70 %, 73.13 % hydrogen at the electrode | speed within 1 %, electrode fraction within 0.1 point, one training |
+| **MP9.2B · The air channel** | the SOFC's air channel: oxygen taken and not returned, stoichiometry 5, D four times smaller | a PINN with the Stefan term in the equation and the wall condition, against the exact solution without it | the exact solution with the air's numbers; worked example: 16.58 % oxygen at the electrode at the outlet, Stefan velocity 0.6 % of D/h | electrode fraction within 0.1 point, the Stefan question answered with a number, the speed for 15 % by a gradient |

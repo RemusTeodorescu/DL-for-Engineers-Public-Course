@@ -49,7 +49,7 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L08.1-stationary-heat/` - [slides](lectures/L08.1-stationary-heat/L8.1_Stationary_Heat.pdf)
 - `lectures/L08.2-dynamic-heat-transfer/` - [slides](lectures/L08.2-dynamic-heat-transfer/L8.2_Dynamic_Heat_Transfer.pdf)
 - `lectures/L09.1-laminar-flow/` - [slides](lectures/L09.1-laminar-flow/L9.1_Laminar_Flow.pdf)
-- `lectures/L09.2-turbulent-flow/` - [slides](lectures/L09.2-turbulent-flow/L9.2_Turbulent_Flow.pdf)
+- `lectures/L09.2-gas-flow/` - [slides](lectures/L09.2-gas-flow/L9.2_Gas_Flow.pdf)
 - `lectures/L10.1-ionic-diffusion/` - [slides](lectures/L10.1-ionic-diffusion/L10.1_Ionic_Diffusion_Charge_Conservation.pdf)
 - `lectures/L10.2-solid-oxide-cells/` - [slides](lectures/L10.2-solid-oxide-cells/L10.2_Solid_Oxide_Cells_Optimisation.pdf)
 - `lectures/L11.1-vision-based-navigation/` - [slides](lectures/L11.1-vision-based-navigation/L11.1_Vision_Based_Navigation.pdf)

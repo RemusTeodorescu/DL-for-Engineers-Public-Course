@@ -243,14 +243,14 @@ def turbulence_2d(n=128, nu=4e-4, t_end=5.0, dt=4e-3, snapshots=(0.0, 1.5, 5.0),
     return np.array(times), np.array(snaps), u_last
 
 
-def draw_regime_sections(axes, pattern, intensity=0.12):
+def draw_regime_sections(axes, pattern, intensity=0.15):
     """Three round cross-sections of the 6 mm tube at the same mean flow, in
     units of the mean: laminar (the parabola, exact and steady), turbulent at
     one instant, and turbulent averaged in time (the 1/7 power law, a fit to
     measurements).  The instantaneous picture is an ILLUSTRATION: the time
     mean plus fluctuations whose pattern is borrowed from the 2-D periodic
     simulation (``pattern``, its vorticity field: Navier-Stokes, but not the
-    tube), scaled to a turbulence intensity of 12 % of the mean, typical of the
+    tube), scaled to a turbulence intensity of 15 % of the mean, typical of the
     region near a wall, and damped to zero at the wall itself.
     No one can compute the real one in a notebook."""
     n = pattern.shape[0]
@@ -264,7 +264,7 @@ def draw_regime_sections(axes, pattern, intensity=0.12):
     vmax = 2.0
     for ax, field, title in zip(axes, (lam, tur_inst, tur_mean),
                                 ("laminar: the parabola (exact)", "turbulent, one instant (illustration)", "turbulent, time mean (1/7 power law)")):
-        im = ax.imshow(field, cmap="viridis", vmin=0, vmax=vmax, origin="lower", extent=[-3, 3, -3, 3])
+        im = ax.imshow(field, cmap="turbo", vmin=0, vmax=vmax, origin="lower", extent=[-3, 3, -3, 3])
         ax.add_patch(__import__("matplotlib").patches.Circle((0, 0), 3.0, fill=False, color="k", lw=2))
         ax.set_xticks([-3, 0, 3]); ax.set_yticks([-3, 0, 3]); ax.set_xlabel("mm"); ax.set_title(title, fontsize=10)
     return im

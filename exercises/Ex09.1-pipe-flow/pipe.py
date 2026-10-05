@@ -151,6 +151,125 @@ def flow_meter(c_true, t_end_record=1.0, every=0.05, noise=0.01, seed=7):
     return t, exact_mean(t, c=c_true) + noise * 0.5 * rng.standard_normal(len(t))
 
 
+# ── beyond the laminar regime (MP9.1B's higher speeds) ───────────────────
+RE_LAMINAR, RE_TURBULENT = 2300.0, 4000.0   #: pipe flow is laminar below the first, turbulent above the second; between, neither law is reliable
+
+
+def reynolds(q):
+    """The Reynolds number at the flow ``q`` (m^3/s) in this tube."""
+    return q / AREA * D_TUBE / NU
+
+
+def friction_factor(re):
+    """Darcy's friction factor against the Reynolds number: 64/Re while laminar
+    (Hagen-Poiseuille, exact), Blasius's 0.316 Re^-1/4 once turbulent (a fit to
+    measurements, smooth pipes, Re up to 1e5), and a straight blend across the
+    transition band, where no law is reliable.  Typical, from memory."""
+    re = np.asarray(re, dtype=float)
+    lam, tur = 64.0 / re, 0.316 * re ** -0.25
+    w = np.clip((re - RE_LAMINAR) / (RE_TURBULENT - RE_LAMINAR), 0.0, 1.0)
+    return (1 - w) * lam + w * tur
+
+
+def pressure_drop(q, length):
+    """Pa, the pressure drop over ``length`` m at the flow ``q`` (m^3/s), by the
+    friction factor of whichever regime the flow is in: dp = f (L/D) rho u^2 / 2."""
+    u = q / AREA
+    return friction_factor(reynolds(q)) * length / D_TUBE * RHO * u ** 2 / 2
+
+
+def profile_turbulent(eta, n=7):
+    """The time-mean velocity across a turbulent pipe, over its mean, by the
+    power law u/u_max = (1 - r/R)^(1/n), n = 7 near Re 1e4 (an empirical fit,
+    not a solution of anything); ``eta`` is r/R."""
+    eta = np.asarray(eta, dtype=float)
+    u_over_max = (1 - np.abs(eta)) ** (1 / n)
+    mean_over_max = 2 * n ** 2 / ((n + 1) * (2 * n + 1))
+    return u_over_max / mean_over_max
+
+
+def turbulence_2d(n=128, nu=4e-4, t_end=5.0, dt=4e-3, snapshots=(0.0, 1.5, 5.0), seed=3):
+    """Navier-Stokes itself, turbulent, in the one setting that fits a notebook:
+    a doubly periodic square box in two dimensions, solved pseudo-spectrally
+    in the vorticity form  w_t + (u . grad) w = nu lap w,  u = (psi_y, -psi_x),
+    lap psi = -w.  No walls, no pressure (it is eliminated), only the inertia
+    term against viscosity, started from a few random large eddies with a
+    root-mean-square speed of about 1 in a box of side 2 pi: Re = U L / nu is
+    about 1e4.  Returns the times, the vorticity snapshots and the x-velocity
+    at the last time, on the n x n grid.  RK4 in time with the viscous term by
+    an integrating factor, 2/3-rule dealiasing.  About ten seconds at n = 128."""
+    rng = np.random.default_rng(seed)
+    k = np.fft.fftfreq(n, 1.0 / n)
+    kx, ky = np.meshgrid(k, k, indexing="ij")
+    k2 = kx ** 2 + ky ** 2
+    k2[0, 0] = 1.0
+    dealias = (np.abs(kx) < n / 3) & (np.abs(ky) < n / 3)
+    # a random field with energy at the largest scales (|k| about 2 to 4)
+    amp = np.exp(-((np.sqrt(k2) - 3.0) / 1.2) ** 2)
+    w_hat = amp * (rng.standard_normal((n, n)) + 1j * rng.standard_normal((n, n)))
+    w_hat[0, 0] = 0.0
+    w = np.real(np.fft.ifft2(w_hat))
+    # scale so the velocity's root mean square is 1
+    def velocity(w_hat):
+        psi_hat = w_hat / k2
+        u = np.real(np.fft.ifft2(1j * ky * psi_hat))
+        v = np.real(np.fft.ifft2(-1j * kx * psi_hat))
+        return u, v
+    u, v = velocity(np.fft.fft2(w))
+    w *= 1.0 / np.sqrt(np.mean(u ** 2 + v ** 2))
+    w_hat = np.fft.fft2(w)
+
+    def rhs(w_hat):
+        u, v = velocity(w_hat)
+        wx = np.real(np.fft.ifft2(1j * kx * w_hat)); wy = np.real(np.fft.ifft2(1j * ky * w_hat))
+        return -np.fft.fft2(u * wx + v * wy) * dealias
+
+    decay = np.exp(-nu * k2 * dt); half = np.exp(-nu * k2 * dt / 2)
+    times, snaps, t = [], [], 0.0
+    want = list(snapshots)
+    steps = int(round(t_end / dt))
+    for i in range(steps + 1):
+        if want and t >= want[0] - 1e-9:
+            times.append(t); snaps.append(np.real(np.fft.ifft2(w_hat))); want.pop(0)
+        if i == steps:
+            break
+        k1 = rhs(w_hat)
+        k2_ = rhs(half * (w_hat + dt / 2 * k1))
+        k3 = rhs(half * w_hat + dt / 2 * k2_)
+        k4 = rhs(decay * w_hat + dt * half * k3)
+        w_hat = decay * w_hat + dt / 6 * (decay * k1 + 2 * half * (k2_ + k3) + k4)
+        t += dt
+    u_last, _ = velocity(w_hat)
+    return np.array(times), np.array(snaps), u_last
+
+
+def draw_regime_sections(axes, pattern, intensity=0.12):
+    """Three round cross-sections of the 6 mm tube at the same mean flow, in
+    units of the mean: laminar (the parabola, exact and steady), turbulent at
+    one instant, and turbulent averaged in time (the 1/7 power law, a fit to
+    measurements).  The instantaneous picture is an ILLUSTRATION: the time
+    mean plus fluctuations whose pattern is borrowed from the 2-D periodic
+    simulation (``pattern``, its vorticity field: Navier-Stokes, but not the
+    tube), scaled to a turbulence intensity of 12 % of the mean, typical of the
+    region near a wall, and damped to zero at the wall itself.
+    No one can compute the real one in a notebook."""
+    n = pattern.shape[0]
+    y, z = np.meshgrid(np.linspace(-1, 1, n), np.linspace(-1, 1, n), indexing="ij")
+    eta = np.sqrt(y ** 2 + z ** 2)
+    inside = eta <= 1.0
+    lam = np.where(inside, 2 * (1 - eta ** 2), np.nan)
+    tur_mean = np.where(inside, profile_turbulent(np.minimum(eta, 1.0)), np.nan)
+    fluct = (pattern - pattern.mean()) / pattern.std()
+    tur_inst = np.where(inside, tur_mean + intensity * np.sqrt(np.clip(1 - eta ** 2, 0, 1)) * fluct * tur_mean, np.nan)
+    vmax = 2.0
+    for ax, field, title in zip(axes, (lam, tur_inst, tur_mean),
+                                ("laminar: the parabola (exact)", "turbulent, one instant (illustration)", "turbulent, time mean (1/7 power law)")):
+        im = ax.imshow(field, cmap="viridis", vmin=0, vmax=vmax, origin="lower", extent=[-3, 3, -3, 3])
+        ax.add_patch(__import__("matplotlib").patches.Circle((0, 0), 3.0, fill=False, color="k", lw=2))
+        ax.set_xticks([-3, 0, 3]); ax.set_yticks([-3, 0, 3]); ax.set_xlabel("mm"); ax.set_title(title, fontsize=10)
+    return im
+
+
 def describe_problem() -> None:
     """Print the data and the numbers it implies."""
     print("  values are TYPICAL, typed from memory - check before quoting")

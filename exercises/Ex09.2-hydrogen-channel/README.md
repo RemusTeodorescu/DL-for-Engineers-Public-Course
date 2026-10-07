@@ -20,9 +20,12 @@ y = 3 % at the inlet                     97 % hydrogen fed
 ```
 
 Three facts reduce the gas to this: the Mach number is about 1e-03, so the
-gas is incompressible here; the exchange is equimolar, so the molar
-concentration and the velocity do not change; and Re = 1.3, so the velocity
-is Poiseuille's profile from the inlet on. **Diffusion along the channel is
+driving pressure does not change the density; the exchange is equimolar, so
+the molar concentration and the velocity do not change (the mass density
+does, 2.5 times along the channel at 1 m/s, which is why the balance is in
+moles); and Re = 1.3, where the entrance length settles at about 0.6
+hydraulic diameters, 1 % of the channel, so the velocity is Poiseuille's
+profile from the inlet on. **Diffusion along the channel is
 dropped** (Péclet 125 along it), which makes the equation parabolic in $x$:
 it marches from the inlet and needs no outlet condition. Beyond the first
 millimetre its solution is **exact**: linear along the channel and a quartic
@@ -56,15 +59,16 @@ differences (FDM), marched from the inlet with Crank–Nicolson and two
 implicit steps first (without them the wall condition is held only on
 average and the error on the electrode node oscillates from step to step),
 converge at second order and meet 0.1 percentage point at 401 × 41 in a few
-milliseconds; the PINN is within 1.4 to 2.1e-04 of the steam fraction
-after about two minutes of training on a CPU. Neither gets the Sherwood
-number to better than 8 %, because it measures a tenth of a per cent of the
-field. Online, at the same accuracy (1 m/s), FDM on 401 × 41 takes about
-3.4 ms a march on a laptop CPU, where the trained PINN gives the field in
-about 1.5 ms and the outlet value in about 0.1 ms - two and thirty to forty
-times faster, inference only; its larger gain is the speed as an input. Newton through autograd
-finds 0.3173 m/s for 25 % hydrogen at the electrode, against the exact
-0.3174.
+milliseconds; the PINN, with its flow-weighted mean held at the hand
+calculation by a loss term, is within 2 to 6e-06 after some minutes of
+training on a CPU, 25 to 120 times more exact. Both find the Sherwood
+number to 0.3 % once the wall and the mean are read from the same computed
+column (an earlier version mixed a computed wall with the exact mean and
+reported 8 to 31 % errors that were the bookkeeping's). Online, no grid
+tested is as exact as the PINN; against the finest the PINN returns the field
+a few times faster and one number hundreds of times faster, inference only;
+its larger gain is the speed as an input. Newton through autograd finds
+0.3174 m/s for 25 % hydrogen at the electrode, the exact value.
 
 ## Files
 

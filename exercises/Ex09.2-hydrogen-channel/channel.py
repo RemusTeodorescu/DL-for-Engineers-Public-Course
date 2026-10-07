@@ -38,7 +38,8 @@ Three facts from the lecture make this the whole model. The gas is ideal and
 the Mach number is 1e-03, so it is incompressible; the exchange at the wall
 is one molecule for one, so the molar concentration ``c = p/RT`` and the
 velocity field are unchanged by the reaction, and the species is written in
-mole fractions; and Re is about 1 with an entrance length of 0.07 mm, so the
+mole fractions; and Re is about 1 with an entrance length of about a millimetre
+(the low-Re limit, 0.6 hydraulic diameters), 1 % of the channel, so the
 velocity is Poiseuille's parabola from the inlet.
 
 ## Scaled units
@@ -115,7 +116,13 @@ Y_SCALE = N_WALL * L_CHANNEL / (U_REF * H_CHANNEL * C_TOT)   #: the rise of the 
 PE_H = U_REF * H_CHANNEL / D_GAS                      #: Peclet across the channel at U_REF, 1.25
 PE_L = U_REF * L_CHANNEL / D_GAS                      #: Peclet along the channel at U_REF, 125
 RE = RHO_IN * U_REF * H_CHANNEL / MU_GAS              #: Reynolds number at U_REF, about 1.3
-ENTRANCE_MM = 0.05 * RE * H_CHANNEL * 1e3             #: mm, the hydrodynamic entrance length at U_REF
+# The hydrodynamic entrance length. The textbook 0.05 Re h would give 0.06 mm and
+# is a rule for Re in the hundreds; at Re of order one the entrance stops shrinking
+# and settles at about 0.6 hydraulic diameters (Durst et al. 2005, parallel plates:
+# L/D_h = [0.631^1.6 + (0.0442 Re_Dh)^1.6]^(1/1.6), typed from memory and flagged).
+# J. Khazaei pointed this out, 6 October.
+RE_DH = 2 * RE                                        #: Reynolds number on the hydraulic diameter 2h
+ENTRANCE_MM = 2 * H_CHANNEL * 1e3 * (0.631 ** 1.6 + (0.0442 * RE_DH) ** 1.6) ** (1 / 1.6)   #: mm, about 1.3 at U_REF
 SHERWOOD = 2 * 35.0 / 13.0                            #: on the hydraulic diameter 2h: 5.385
 
 
@@ -137,6 +144,28 @@ def pressure_drop(s):
 def poiseuille(Z):
     """u(z)/u_mean = 6 Z (1 - Z)."""
     return 6.0 * Z * (1.0 - Z)
+
+
+def mixing_cup(T, Z):
+    """The flow-weighted (mixing-cup) mean of a column T(Z) on the nodes Z:
+    the integral of 6 Z (1 - Z) T over the height, divided by the integral of
+    6 Z (1 - Z) taken by the SAME quadrature. The division matters: the
+    trapezoid rule on 41 nodes integrates 6 Z (1 - Z) to 1 - 1/1600, and that
+    error, a tenth of a per cent of the mean, is as large as the wall's whole
+    excess over it. Normalised, a constant column returns itself exactly, and
+    the Sherwood number of the exact column is 5.384 (J. Khazaei, 6 October)."""
+    T = np.asarray(T, dtype=float); Z = np.asarray(Z, dtype=float)
+    w = poiseuille(Z)
+    return np.trapezoid(w * T, Z) / np.trapezoid(w, Z)
+
+
+def sherwood(T_col, Z):
+    """The Sherwood number a computed column T(Z) implies, on the hydraulic
+    diameter 2h: 2 / (wall excess over the mixing-cup mean, in units of G).
+    Both the wall value and the mean are taken from the SAME column, so a
+    small drift of the whole field cancels; the exact column gives 5.385."""
+    T_col = np.asarray(T_col, dtype=float)
+    return 2.0 / ((T_col[0] - mixing_cup(T_col, Z)) / G)
 
 
 def phi(Z):

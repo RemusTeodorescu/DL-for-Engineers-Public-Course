@@ -295,9 +295,12 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
     """The discharge at ``crate`` C played in ``seconds``: both electrodes of
     an LFP cell - this set's graphite emptying while an LFP particle fills -
     on ONE lithiation colour scale (0 to 1, the same at every rate), the two
-    states of charge falling, and the terminal voltage read from the two
-    open-circuit curves at the two surfaces (Butler-Volmer overpotentials and
-    ohmic drops left out). The flux scales with the rate and the window is
+    states of charge falling, and two traces drawn in as the film plays: the
+    lithiation of the two electrodes on one axis (the lithium leaving the
+    graphite arriving in the LFP; the graphite line read on the right axis
+    is the bulk SOC), and the terminal voltage from the two open-circuit
+    curves at the two surfaces (Butler-Volmer overpotentials and ohmic drops
+    left out). The flux scales with the rate and the window is
     ``T_END / crate``, so the same charge moves; when the voltage dives to
     the 2.0 V cut-off before the bulk is drained (above about 1.25C here,
     because the graphite surface runs empty ahead of the mean), the film
@@ -320,9 +323,15 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
         taus, sto_n, sto_p, volt = taus[: cut + 1], sto_n[: cut + 1], sto_p[: cut + 1], volt[: cut + 1]
         frames = len(taus) + int(round(1.5 * fps))
     t_s = taus * T_END / crate                               # time in seconds
+    sn0, sn1 = C_START / C_MAX, (C_START - 3.0 * C_REF) / C_MAX   # graphite lithiation at SOC 1 and 0
+    mean_n = sn0 - (sn0 - sn1) * taus                        # mean lithiations: the mass balance, straight lines
+    mean_p = STO_P0 + (STO_P1 - STO_P0) * taus
     norm = colors.Normalize(0.0, 1.0)                        # one lithiation scale for both particles
     cmap = plt.get_cmap("viridis")
-    fig, (axL, axV) = plt.subplots(1, 2, figsize=(11.2, 4.4), gridspec_kw=dict(width_ratios=[1.55, 1.0]))
+    fig = plt.figure(figsize=(11.8, 4.6))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.35, 1.0], left=0.005, right=0.92,
+                          top=0.96, bottom=0.13, wspace=0.34, hspace=0.16)
+    axL = fig.add_subplot(gs[:, 0]); axC = fig.add_subplot(gs[0, 1]); axV = fig.add_subplot(gs[1, 1], sharex=axC)
     rings_n, rings_p = [], []
     for cx, rings in ((2.0, rings_n), (6.4, rings_p)):       # the two particles, in rings, surface drawn first
         for k in range(n_r - 1, 0, -1):
@@ -343,14 +352,30 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
              fontsize=10, va="bottom")
     t_cut = axL.text(0.15, -0.35, "", fontsize=10, va="top", color="tab:red")
     axL.set_xlim(-0.1, 8.8); axL.set_ylim(-1.3, 7.6); axL.set_aspect("equal"); axL.axis("off")
+    # the lithium, moving from one electrode to the other (means solid, surfaces dashed)
+    for full, style in ((mean_n, "-"), (sto_n[:, -1], "--")):
+        axC.plot(t_s, full, style, color="0.45", lw=1.0, alpha=0.3)
+    for full, style in ((mean_p, "-"), (sto_p[:, -1], "--")):
+        axC.plot(t_s, full, style, color="tab:orange", lw=1.0, alpha=0.3)
+    ln_n, = axC.plot([], [], "-", color="0.45", lw=1.8, label="graphite")
+    ls_n, = axC.plot([], [], "--", color="0.45", lw=1.2)
+    ln_p, = axC.plot([], [], "-", color="tab:orange", lw=1.8, label="LFP")
+    ls_p, = axC.plot([], [], "--", color="tab:orange", lw=1.2)
+    d_n, = axC.plot([], [], "o", color="0.45", ms=4)
+    d_p, = axC.plot([], [], "o", color="tab:orange", ms=4)
+    axC.set_ylim(0, 1); axC.set_ylabel("lithiation  c / c$_{max}$")
+    axC.legend(frameon=False, fontsize=8, loc="center right")
+    axC.tick_params(labelbottom=False)
+    soc_axis = axC.secondary_yaxis("right", functions=(lambda s: 100 * (s - sn1) / (sn0 - sn1),
+                                                       lambda q: sn1 + q / 100 * (sn0 - sn1)))
+    soc_axis.set_ylabel("bulk SOC  [%]  (the graphite line)", fontsize=8)
     # the voltage panel: the whole curve in grey, the film drawing it in
     axV.plot(t_s, volt, color="0.8", lw=1.2)
     v_line, = axV.plot([], [], color="tab:green", lw=1.8)
     v_dot, = axV.plot([], [], "o", color="tab:green", ms=5)
-    v_text = axV.text(0.03, 0.06, "", transform=axV.transAxes, fontsize=10)
+    v_text = axV.text(0.03, 0.08, "", transform=axV.transAxes, fontsize=10)
     axV.set_xlabel("t  [s]"); axV.set_ylabel("cell voltage  [V]")
     axV.set_xlim(0, T_END / crate); axV.set_ylim(1.9, 3.5)
-    fig.tight_layout()
 
     def frame(i):
         i = min(i, len(taus) - 1)                            # past the cut-off the last frame is held
@@ -360,12 +385,16 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
         for soc, bar, txt in zip((1.0 - taus[i], 1.0 - Un[i, -1] / 3.0), bars, pcts):
             bar.set_width(4.0 * max(soc, 0.0))
             txt.set_text(f"{100 * soc:.0f} %")
-        v_line.set_data(t_s[: i + 1], volt[: i + 1])
+        j = i + 1
+        ln_n.set_data(t_s[:j], mean_n[:j]); ls_n.set_data(t_s[:j], sto_n[:j, -1])
+        ln_p.set_data(t_s[:j], mean_p[:j]); ls_p.set_data(t_s[:j], sto_p[:j, -1])
+        d_n.set_data([t_s[i]], [mean_n[i]]); d_p.set_data([t_s[i]], [mean_p[i]])
+        v_line.set_data(t_s[:j], volt[:j])
         v_dot.set_data([t_s[i]], [volt[i]])
         v_text.set_text(f"t = {t_s[i]:.0f} s,  V = {volt[i]:.2f} V")
         if cut is not None and i == len(taus) - 1:
             t_cut.set_text(f"cut-off at 2.0 V: the graphite surface is nearly empty -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
-        return rings_n + rings_p + bars + pcts + [v_line, v_dot, v_text, t_cut]
+        return rings_n + rings_p + bars + pcts + [ln_n, ls_n, ln_p, ls_p, d_n, d_p, v_line, v_dot, v_text, t_cut]
 
     anim = animation.FuncAnimation(fig, frame, frames=frames, interval=1000.0 / fps, blit=False)
     plt.close(fig)                                           # the animation carries the figure; no still copy

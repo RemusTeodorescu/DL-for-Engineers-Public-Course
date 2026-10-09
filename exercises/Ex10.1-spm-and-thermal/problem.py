@@ -61,7 +61,7 @@ __all__ = [
     "FARADAY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
     "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "C_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
-    "surface_readings", "describe_problem", "draw_particle",
+    "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
 ]
 
 # ----------------------------------------------------------------- the data
@@ -183,11 +183,14 @@ def draw_particle(ax=None):
     import matplotlib.pyplot as plt
     if ax is None:
         _, ax = plt.subplots(figsize=(9.0, 3.8))
-    # the electrode: a slab of particles, one of which stands for all
+    # the electrode: a slab of identical, evenly spaced particles - the model's
+    # own assumption - one of which stands for all
     ax.add_patch(plt.Rectangle((0, 0), 2.0, 4.0, fill=False, lw=1.2, ec="0.4"))
-    rng = np.random.default_rng(3)
-    for cx, cy in zip(rng.uniform(0.25, 1.75, 24), rng.uniform(0.25, 3.75, 24)):
-        ax.add_patch(plt.Circle((cx, cy), 0.2, fc="0.85", ec="0.5", lw=0.6))
+    for i, cx in enumerate((0.4, 1.0, 1.6)):
+        for k, cy in enumerate(np.linspace(0.35, 3.65, 7)):
+            if i == 1 and k == 3:
+                continue                                     # the representative particle goes here
+            ax.add_patch(plt.Circle((cx, cy), 0.2, fc="0.85", ec="0.5", lw=0.6))
     ax.add_patch(plt.Circle((1.0, 2.0), 0.24, fc="tab:orange", ec="k", lw=1.0))
     ax.text(1.0, -0.25, f"negative electrode,\n{L_ELECTRODE * 1e6:.0f} µm of graphite", ha="center", va="top", fontsize=10)
     ax.plot([1.24, 4.0], [2.0, 3.9], color="0.5", lw=0.8, ls="--")
@@ -208,4 +211,58 @@ def draw_particle(ax=None):
     ax.text(8.7, 1.9, f"surface {c[-1]:.0f} mol/m³\ncentre {c[0]:.0f} mol/m³\nafter the hour", fontsize=10, va="center")
     ax.text(8.7, 0.5, "centre: symmetry", fontsize=10, va="center")
     ax.set_xlim(-0.2, 11.6); ax.set_ylim(-1.2, 4.6); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure
+
+
+def draw_sandwich(ax=None):
+    """The whole cell and the mesh of the full (Doyle-Fuller-Newman) model:
+    collector, electrode, separator, electrode, collector, the electrolyte
+    filling the pores, and one representative particle at every node of the
+    thickness. Drawn on an LFP cell (A123, 2.3 Ah; PyBaMM's Prada2013
+    parameters): graphite R = 5 µm in 34 µm, separator 25 µm, LFP R = 50 nm
+    in 80 µm. Lengths along the thickness are to scale; the LFP particle in
+    the magnifier is drawn 120 times its size."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10.5, 3.9))
+    x_an, x_sep, x_cat = 34.0, 25.0, 80.0                    # µm, Prada2013
+    x0, x1, x2, x3 = 0.0, x_an, x_an + x_sep, x_an + x_sep + x_cat
+    H = 30.0                                                 # µm of cross-section shown
+    # the electrolyte is the continuous phase: it fills both electrodes and the separator
+    ax.add_patch(plt.Rectangle((x0, 0), x3, H, fc="#dceaf5", ec="none"))
+    ax.add_patch(plt.Rectangle((x1, 0), x_sep, H, fc="#c3d6e8", ec="none", hatch="///"))
+    # the collectors
+    ax.add_patch(plt.Rectangle((-10, 0), 10, H, fc="#c88a5a", ec="0.3", lw=0.8))
+    ax.add_patch(plt.Rectangle((x3, 0), 10, H, fc="0.75", ec="0.3", lw=0.8))
+    ax.text(-5, H / 2, "Cu", rotation=90, ha="center", va="center", fontsize=9)
+    ax.text(x3 + 5, H / 2, "Al", rotation=90, ha="center", va="center", fontsize=9)
+    for x in (x0, x1, x2, x3):
+        ax.plot([x, x], [0, H], color="0.3", lw=0.8)
+    # the mesh: dashed node boundaries, one representative particle per node
+    for k in range(1, 3):                                    # 3 nodes in the graphite
+        ax.plot([x0 + k * x_an / 3] * 2, [0, H], color="0.45", lw=0.7, ls="--")
+    for k in range(1, 5):                                    # 5 nodes in the LFP
+        ax.plot([x2 + k * x_cat / 5] * 2, [0, H], color="0.45", lw=0.7, ls="--")
+    for k in range(3):                                       # graphite particles, R = 5 µm, to scale
+        cx = x0 + (2 * k + 1) * x_an / 6
+        for rr, fc in ((5.0, "0.80"), (3.3, "0.86"), (1.7, "0.92")):
+            ax.add_patch(plt.Circle((cx, H / 2), rr, fc=fc, ec="0.45", lw=0.6))
+    cat_nodes = [x2 + (2 * k + 1) * x_cat / 10 for k in range(5)]
+    for cx in cat_nodes:                                     # LFP particles, R = 0.05 µm: dots at this scale
+        ax.add_patch(plt.Circle((cx, H / 2), 0.5, fc="tab:orange", ec="none"))
+    # one LFP particle magnified, so its radial mesh can be seen at all
+    mx, my, mr = cat_nodes[2], 44.0, 6.0
+    ax.plot([cat_nodes[2], mx - mr * 0.5], [H / 2 + 0.6, my - mr * 0.85], color="0.45", lw=0.7, ls=":")
+    for rr, fc in ((mr, "#f5b16a"), (mr * 2 / 3, "#f8c68f"), (mr / 3, "#fbdbb5")):
+        ax.add_patch(plt.Circle((mx, my), rr, fc=fc, ec="0.35", lw=0.7))
+    ax.text(mx + mr + 2, my, "LFP particle,\nR = 50 nm (drawn ×120)", fontsize=9, va="center")
+    # where the lithium goes on discharge
+    ax.annotate("", xy=(x2 + 10, H + 6), xytext=(x1 - 10, H + 6), arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1.2))
+    ax.text((x1 + x2) / 2, H + 8, "Li$^+$ in the electrolyte", color="tab:blue", fontsize=9, ha="center", va="bottom")
+    ax.annotate("", xy=(-12, H + 6), xytext=(16, H + 6), arrowprops=dict(arrowstyle="->", color="0.35", lw=1.0))
+    ax.text(2, H + 8, "e$^-$ through the solid", fontsize=9, ha="center", va="bottom")
+    ax.text(x_an / 2, -2, "graphite, 34 µm\nR = 5 µm", fontsize=9, ha="center", va="top")
+    ax.text((x1 + x2) / 2, -2, "separator,\n25 µm", fontsize=9, ha="center", va="top")
+    ax.text(x2 + x_cat / 2, -2, "LFP, 80 µm\nR = 50 nm", fontsize=9, ha="center", va="top")
+    ax.set_xlim(-14, 156); ax.set_ylim(-12, 52); ax.set_aspect("equal"); ax.axis("off")
     return ax.figure

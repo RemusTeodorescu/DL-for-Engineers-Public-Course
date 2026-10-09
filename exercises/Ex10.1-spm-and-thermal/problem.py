@@ -269,22 +269,32 @@ def draw_sandwich(ax=None):
     return ax.figure
 
 
-def animate_discharge(seconds=10.0, fps=24):
-    """The hour of the 1C discharge played in ``seconds``: the particle
-    coloured by the exact concentration on ONE colour scale fixed for the
-    whole discharge, and the two states of charge falling beside it - the
-    bulk SOC (the mass balance: exactly 1 - tau, a coulomb counter) and the
-    SOC the surface shows, low because the surface runs ahead of the mean.
-    Returns a ``matplotlib.animation.FuncAnimation``; in a notebook, show it
-    with ``HTML(anim.to_html5_video())``."""
+def animate_discharge(crate=1.0, seconds=10.0, fps=24):
+    """The discharge at ``crate`` C played in ``seconds``: the particle
+    coloured by the exact concentration on ONE colour scale fixed for every
+    rate (empty to full), and the two states of charge falling beside it -
+    the bulk SOC (the mass balance: exactly 1 - tau, a coulomb counter) and
+    the SOC the surface shows, low because the surface runs ahead of the
+    mean. The flux scales with the rate and the window is ``T_END / crate``,
+    so the same charge is drained; if the surface empties before the bulk
+    (above about 2.6C here), the film stops at the cut-off and says how much
+    charge was left undelivered. Returns a
+    ``matplotlib.animation.FuncAnimation``; in a notebook, show it with
+    ``HTML(anim.to_html5_video())``."""
     import matplotlib.pyplot as plt
     from matplotlib import animation, cm, colors
     n_r, frames = 41, int(round(seconds * fps))
     rho = np.linspace(0.0, 1.0, n_r)
-    taus = np.linspace(0.0, 1.0, frames)
-    U = np.array([exact(rho, t) for t in taus])              # the solved field at every frame
-    C = concentration(U)                                     # ... in mol/m^3
-    norm = colors.Normalize(C[-1].min(), C_START)            # one colour scale: start full, end empty
+    taus = np.linspace(0.0, 1.0, frames)                     # time over the window T_END / crate
+    c_w = C_SCALED / crate                                   # the scaled diffusivity over that window
+    U = np.array([exact(rho, t, c=c_w) for t in taus])       # the solved field at every frame
+    C = concentration(U)                                     # ... in mol/m^3 (c_ref is the same at every rate)
+    empty = np.nonzero(C[:, -1] <= 0.0)[0]                   # frames where the surface has run empty
+    cut = int(empty[0]) if len(empty) else None
+    if cut is not None:                                      # stop at the cut-off, hold the last frame a moment
+        taus, U, C = taus[: cut + 1], U[: cut + 1], C[: cut + 1]
+        frames = len(taus) + int(round(1.5 * fps))
+    norm = colors.Normalize(0.0, C_START)                    # one colour scale, the same at every rate
     cmap = plt.get_cmap("viridis")
     fig, ax = plt.subplots(figsize=(8.8, 4.0))
     rings = []
@@ -302,17 +312,22 @@ def animate_discharge(seconds=10.0, fps=24):
     ax.text(4.9, 3.15, "SOC, bulk: the coulomb counter", fontsize=10, va="bottom")
     ax.text(4.9, 1.95, "SOC the surface shows (a voltage reading)", fontsize=10, va="bottom")
     t_time = ax.text(4.9, 0.7, "", fontsize=11, va="center")
-    ax.text(0.1, 4.15, "a 1C discharge: the hour in ten seconds", fontsize=10, va="bottom")
+    t_cut = ax.text(4.9, 0.42, "", fontsize=10, va="top", color="tab:red")
+    ax.text(0.1, 4.15, f"a {crate:g}C discharge: {T_END / crate:.0f} s played in {seconds:.0f} s",
+            fontsize=10, va="bottom")
     ax.set_xlim(-0.1, 9.7); ax.set_ylim(-0.1, 4.5); ax.set_aspect("equal"); ax.axis("off")
 
     def frame(i):
+        i = min(i, len(taus) - 1)                            # past the cut-off the last frame is held
         for k, ring in zip(range(n_r - 1, 0, -1), rings):    # recolour the rings on the fixed scale
-            ring.set_facecolor(cmap(norm(C[i, k])))
+            ring.set_facecolor(cmap(norm(max(C[i, k], 0.0))))
         for soc, bar, txt in zip((1.0 - taus[i], 1.0 - U[i, -1] / 3.0), bars, texts):
             bar.set_width(3.0 * max(soc, 0.0))
             txt.set_text(f"{100 * soc:.0f} %")
-        t_time.set_text(f"t = {taus[i] * T_END:.0f} s")
-        return rings + bars + texts + [t_time]
+        t_time.set_text(f"t = {taus[i] * T_END / crate:.0f} s")
+        if cut is not None and i == len(taus) - 1:
+            t_cut.set_text(f"cut-off: the surface is empty -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
+        return rings + bars + texts + [t_time, t_cut]
 
     anim = animation.FuncAnimation(fig, frame, frames=frames, interval=1000.0 / fps, blit=False)
     plt.close(fig)                                           # the animation carries the figure; no still copy

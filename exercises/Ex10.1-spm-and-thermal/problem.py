@@ -62,6 +62,7 @@ __all__ = [
     "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "C_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
     "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
+    "animate_discharge",
 ]
 
 # ----------------------------------------------------------------- the data
@@ -266,3 +267,53 @@ def draw_sandwich(ax=None):
     ax.text(x2 + x_cat / 2, -2, "LFP, 80 µm\nR = 50 nm", fontsize=9, ha="center", va="top")
     ax.set_xlim(-14, 156); ax.set_ylim(-12, 52); ax.set_aspect("equal"); ax.axis("off")
     return ax.figure
+
+
+def animate_discharge(seconds=10.0, fps=24):
+    """The hour of the 1C discharge played in ``seconds``: the particle
+    coloured by the exact concentration on ONE colour scale fixed for the
+    whole discharge, and the two states of charge falling beside it - the
+    bulk SOC (the mass balance: exactly 1 - tau, a coulomb counter) and the
+    SOC the surface shows, low because the surface runs ahead of the mean.
+    Returns a ``matplotlib.animation.FuncAnimation``; in a notebook, show it
+    with ``HTML(anim.to_html5_video())``."""
+    import matplotlib.pyplot as plt
+    from matplotlib import animation, cm, colors
+    n_r, frames = 41, int(round(seconds * fps))
+    rho = np.linspace(0.0, 1.0, n_r)
+    taus = np.linspace(0.0, 1.0, frames)
+    U = np.array([exact(rho, t) for t in taus])              # the solved field at every frame
+    C = concentration(U)                                     # ... in mol/m^3
+    norm = colors.Normalize(C[-1].min(), C_START)            # one colour scale: start full, end empty
+    cmap = plt.get_cmap("viridis")
+    fig, ax = plt.subplots(figsize=(8.8, 4.0))
+    rings = []
+    for k in range(n_r - 1, 0, -1):                          # the particle, in rings, surface drawn first
+        rings.append(plt.Circle((2.0, 2.0), 1.9 * k / (n_r - 1), ec="none"))
+        ax.add_patch(rings[-1])
+    ax.add_patch(plt.Circle((2.0, 2.0), 1.9, fill=False, ec="k", lw=1.2))
+    fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, fraction=0.045, pad=0.02,
+                 label="lithium  [mol/m³]")
+    bars, texts = [], []
+    for y, colour in ((2.55, "tab:blue"), (1.35, "tab:orange")):   # the two SOC gauges
+        bars.append(ax.add_patch(plt.Rectangle((4.9, y), 0.0, 0.45, fc=colour)))
+        ax.add_patch(plt.Rectangle((4.9, y), 3.0, 0.45, fill=False, ec="0.4", lw=0.8))
+        texts.append(ax.text(8.05, y + 0.22, "", va="center", fontsize=11))
+    ax.text(4.9, 3.15, "SOC, bulk: the coulomb counter", fontsize=10, va="bottom")
+    ax.text(4.9, 1.95, "SOC the surface shows (a voltage reading)", fontsize=10, va="bottom")
+    t_time = ax.text(4.9, 0.7, "", fontsize=11, va="center")
+    ax.text(0.1, 4.15, "a 1C discharge: the hour in ten seconds", fontsize=10, va="bottom")
+    ax.set_xlim(-0.1, 9.7); ax.set_ylim(-0.1, 4.5); ax.set_aspect("equal"); ax.axis("off")
+
+    def frame(i):
+        for k, ring in zip(range(n_r - 1, 0, -1), rings):    # recolour the rings on the fixed scale
+            ring.set_facecolor(cmap(norm(C[i, k])))
+        for soc, bar, txt in zip((1.0 - taus[i], 1.0 - U[i, -1] / 3.0), bars, texts):
+            bar.set_width(3.0 * max(soc, 0.0))
+            txt.set_text(f"{100 * soc:.0f} %")
+        t_time.set_text(f"t = {taus[i] * T_END:.0f} s")
+        return rings + bars + texts + [t_time]
+
+    anim = animation.FuncAnimation(fig, frame, frames=frames, interval=1000.0 / fps, blit=False)
+    plt.close(fig)                                           # the animation carries the figure; no still copy
+    return anim

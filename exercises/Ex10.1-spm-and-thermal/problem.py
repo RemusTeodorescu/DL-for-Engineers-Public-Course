@@ -266,16 +266,42 @@ def draw_sandwich(ax=None):
     return ax.figure
 
 
+# ------------------------------------------- the second electrode, for the film
+R_LFP = 5.0e-8           #: m, radius of an LFP particle (PyBaMM, Prada 2013)
+D_LFP = 5.9e-18          #: m^2/s, diffusivity of lithium in LFP (PyBaMM, Prada 2013)
+C_MAX_LFP = 22806.0      #: mol/m^3, the most lithium the LFP can hold (PyBaMM, Prada 2013)
+CP_SCALED = D_LFP * T_END / R_LFP ** 2                               #: the LFP scaled diffusivity, 8.50
+STO_P0, STO_P1 = 0.05, 0.95   #: the LFP lithiation window over the discharge (chosen)
+
+
+def ocp_graphite(sto):
+    """Open-circuit potential of the LG M50 graphite against lithiation,
+    the fit of Chen et al. (2020), as distributed with PyBaMM."""
+    sto = np.maximum(np.asarray(sto, float), 1e-4)
+    return (1.9793 * np.exp(-39.3631 * sto) + 0.2482
+            - 0.0909 * np.tanh(29.8538 * (sto - 0.1234))
+            - 0.04478 * np.tanh(14.9159 * (sto - 0.2769))
+            - 0.0205 * np.tanh(30.4444 * (sto - 0.6103)))
+
+
+def ocp_lfp(sto):
+    """Open-circuit potential of LFP against lithiation, the fit of
+    Afshar et al. (2017), as distributed with PyBaMM's Prada 2013 set."""
+    sto = np.asarray(sto, float)
+    return 3.4077 - 0.020269 * sto + 0.5 * np.exp(-150 * sto) - 0.9 * np.exp(-30 * (1 - sto))
+
+
 def animate_discharge(crate=1.0, seconds=10.0, fps=24):
-    """The discharge at ``crate`` C played in ``seconds``: the particle
-    coloured by the exact concentration on ONE colour scale fixed for every
-    rate (empty to full), and the two states of charge falling beside it -
-    the bulk SOC (the mass balance: exactly 1 - tau, a coulomb counter) and
-    the SOC the surface shows, low because the surface runs ahead of the
-    mean. The flux scales with the rate and the window is ``T_END / crate``,
-    so the same charge is drained; if the surface empties before the bulk
-    (above about 2.6C here), the film stops at the cut-off and says how much
-    charge was left undelivered. Returns a
+    """The discharge at ``crate`` C played in ``seconds``: both electrodes of
+    an LFP cell - this set's graphite emptying while an LFP particle fills -
+    on ONE lithiation colour scale (0 to 1, the same at every rate), the two
+    states of charge falling, and the terminal voltage read from the two
+    open-circuit curves at the two surfaces (Butler-Volmer overpotentials and
+    ohmic drops left out). The flux scales with the rate and the window is
+    ``T_END / crate``, so the same charge moves; when the voltage dives to
+    the 2.0 V cut-off before the bulk is drained (above about 1.25C here,
+    because the graphite surface runs empty ahead of the mean), the film
+    stops there and says how much charge was left undelivered. Returns a
     ``matplotlib.animation.FuncAnimation``; in a notebook, show it with
     ``HTML(anim.to_html5_video())``."""
     import matplotlib.pyplot as plt
@@ -283,48 +309,63 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
     n_r, frames = 41, int(round(seconds * fps))
     rho = np.linspace(0.0, 1.0, n_r)
     taus = np.linspace(0.0, 1.0, frames)                     # time over the window T_END / crate
-    c_w = C_SCALED / crate                                   # the scaled diffusivity over that window
-    U = np.array([exact(rho, t, c=c_w) for t in taus])       # the solved field at every frame
-    C = concentration(U)                                     # ... in mol/m^3 (c_ref is the same at every rate)
-    empty = np.nonzero(C[:, -1] <= 0.0)[0]                   # frames where the surface has run empty
-    cut = int(empty[0]) if len(empty) else None
+    Un = np.array([exact(rho, t, c=C_SCALED / crate) for t in taus])    # the graphite field
+    Up = np.array([exact(rho, t, c=CP_SCALED / crate) for t in taus])   # the LFP field (lithium coming IN)
+    sto_n = (C_START - C_REF * Un) / C_MAX                   # lithiation of the graphite, falling
+    sto_p = STO_P0 + (STO_P1 - STO_P0) * Up / 3.0            # lithiation of the LFP, rising
+    volt = ocp_lfp(sto_p[:, -1]) - ocp_graphite(sto_n[:, -1])   # the voltage, from the two surfaces
+    low = np.nonzero((volt <= 2.0) | (sto_n[:, -1] <= 1e-3))[0]  # the 2.0 V cut-off: the graphite surface is nearly empty
+    cut = int(low[0]) if len(low) else None
     if cut is not None:                                      # stop at the cut-off, hold the last frame a moment
-        taus, U, C = taus[: cut + 1], U[: cut + 1], C[: cut + 1]
+        taus, sto_n, sto_p, volt = taus[: cut + 1], sto_n[: cut + 1], sto_p[: cut + 1], volt[: cut + 1]
         frames = len(taus) + int(round(1.5 * fps))
-    norm = colors.Normalize(0.0, C_START)                    # one colour scale, the same at every rate
+    t_s = taus * T_END / crate                               # time in seconds
+    norm = colors.Normalize(0.0, 1.0)                        # one lithiation scale for both particles
     cmap = plt.get_cmap("viridis")
-    fig, ax = plt.subplots(figsize=(8.8, 4.0))
-    rings = []
-    for k in range(n_r - 1, 0, -1):                          # the particle, in rings, surface drawn first
-        rings.append(plt.Circle((2.0, 2.0), 1.9 * k / (n_r - 1), ec="none"))
-        ax.add_patch(rings[-1])
-    ax.add_patch(plt.Circle((2.0, 2.0), 1.9, fill=False, ec="k", lw=1.2))
-    fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, fraction=0.045, pad=0.02,
-                 label="lithium  [mol/m³]")
-    bars, texts = [], []
-    for y, colour in ((2.55, "tab:blue"), (1.35, "tab:orange")):   # the two SOC gauges
-        bars.append(ax.add_patch(plt.Rectangle((4.9, y), 0.0, 0.45, fc=colour)))
-        ax.add_patch(plt.Rectangle((4.9, y), 3.0, 0.45, fill=False, ec="0.4", lw=0.8))
-        texts.append(ax.text(8.05, y + 0.22, "", va="center", fontsize=11))
-    ax.text(4.9, 3.15, "SOC, bulk: the coulomb counter", fontsize=10, va="bottom")
-    ax.text(4.9, 1.95, "SOC the surface shows (a voltage reading)", fontsize=10, va="bottom")
-    t_time = ax.text(4.9, 0.7, "", fontsize=11, va="center")
-    t_cut = ax.text(4.9, 0.42, "", fontsize=10, va="top", color="tab:red")
-    ax.text(0.1, 4.15, f"a {crate:g}C discharge: {T_END / crate:.0f} s played in {seconds:.0f} s",
-            fontsize=10, va="bottom")
-    ax.set_xlim(-0.1, 9.7); ax.set_ylim(-0.1, 4.5); ax.set_aspect("equal"); ax.axis("off")
+    fig, (axL, axV) = plt.subplots(1, 2, figsize=(11.2, 4.4), gridspec_kw=dict(width_ratios=[1.55, 1.0]))
+    rings_n, rings_p = [], []
+    for cx, rings in ((2.0, rings_n), (6.4, rings_p)):       # the two particles, in rings, surface drawn first
+        for k in range(n_r - 1, 0, -1):
+            rings.append(plt.Circle((cx, 4.6), 1.9 * k / (n_r - 1), ec="none"))
+            axL.add_patch(rings[-1])
+        axL.add_patch(plt.Circle((cx, 4.6), 1.9, fill=False, ec="k", lw=1.2))
+    axL.text(2.0, 2.45, "graphite - emptying", fontsize=10, ha="center", va="top")
+    axL.text(6.4, 2.45, "LFP - filling", fontsize=10, ha="center", va="top")
+    fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=axL, fraction=0.045, pad=0.02,
+                 label="lithiation  c / c$_{max}$")
+    bars, pcts = [], []
+    for y, colour, name in ((1.15, "tab:blue", "SOC, bulk"), (0.30, "tab:orange", "SOC, surface")):
+        axL.text(0.15, y + 0.21, name, fontsize=9, va="center")
+        bars.append(axL.add_patch(plt.Rectangle((2.7, y), 0.0, 0.42, fc=colour)))
+        axL.add_patch(plt.Rectangle((2.7, y), 4.0, 0.42, fill=False, ec="0.4", lw=0.8))
+        pcts.append(axL.text(6.85, y + 0.21, "", va="center", fontsize=10))
+    axL.text(0.15, 7.0, f"a {crate:g}C discharge: {T_END / crate:.0f} s played in {seconds:.0f} s",
+             fontsize=10, va="bottom")
+    t_cut = axL.text(0.15, -0.35, "", fontsize=10, va="top", color="tab:red")
+    axL.set_xlim(-0.1, 8.8); axL.set_ylim(-1.3, 7.6); axL.set_aspect("equal"); axL.axis("off")
+    # the voltage panel: the whole curve in grey, the film drawing it in
+    axV.plot(t_s, volt, color="0.8", lw=1.2)
+    v_line, = axV.plot([], [], color="tab:green", lw=1.8)
+    v_dot, = axV.plot([], [], "o", color="tab:green", ms=5)
+    v_text = axV.text(0.03, 0.06, "", transform=axV.transAxes, fontsize=10)
+    axV.set_xlabel("t  [s]"); axV.set_ylabel("cell voltage  [V]")
+    axV.set_xlim(0, T_END / crate); axV.set_ylim(1.9, 3.5)
+    fig.tight_layout()
 
     def frame(i):
         i = min(i, len(taus) - 1)                            # past the cut-off the last frame is held
-        for k, ring in zip(range(n_r - 1, 0, -1), rings):    # recolour the rings on the fixed scale
-            ring.set_facecolor(cmap(norm(max(C[i, k], 0.0))))
-        for soc, bar, txt in zip((1.0 - taus[i], 1.0 - U[i, -1] / 3.0), bars, texts):
-            bar.set_width(3.0 * max(soc, 0.0))
+        for k, rn, rp in zip(range(n_r - 1, 0, -1), rings_n, rings_p):
+            rn.set_facecolor(cmap(norm(max(sto_n[i, k], 0.0))))
+            rp.set_facecolor(cmap(norm(min(sto_p[i, k], 1.0))))
+        for soc, bar, txt in zip((1.0 - taus[i], 1.0 - Un[i, -1] / 3.0), bars, pcts):
+            bar.set_width(4.0 * max(soc, 0.0))
             txt.set_text(f"{100 * soc:.0f} %")
-        t_time.set_text(f"t = {taus[i] * T_END / crate:.0f} s")
+        v_line.set_data(t_s[: i + 1], volt[: i + 1])
+        v_dot.set_data([t_s[i]], [volt[i]])
+        v_text.set_text(f"t = {t_s[i]:.0f} s,  V = {volt[i]:.2f} V")
         if cut is not None and i == len(taus) - 1:
-            t_cut.set_text(f"cut-off: the surface is empty -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
-        return rings + bars + texts + [t_time, t_cut]
+            t_cut.set_text(f"cut-off at 2.0 V: the graphite surface is nearly empty -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
+        return rings_n + rings_p + bars + pcts + [v_line, v_dot, v_text, t_cut]
 
     anim = animation.FuncAnimation(fig, frame, frames=frames, interval=1000.0 / fps, blit=False)
     plt.close(fig)                                           # the animation carries the figure; no still copy

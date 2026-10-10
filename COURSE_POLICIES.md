@@ -143,8 +143,17 @@ policies under each; `--full` adds the review history behind every one.
 - No superlatives, no absolutes, no dismissive asides.
 - None of the words on the struck-word list (`JARGON` in `slide_policies.py`).
 - Takeaways and questions say what is, what follows and what to check.
+- **Explicit, never implicit (D25, 10 October 2026 — very important).** Clear,
+  moderate academic language, with no jargon and no shorthand. Name the
+  quantity, where it lives and what it depends on: not "learn the lithium
+  inside a particle" but "learn the concentration of lithium inside the
+  particle along the radius"; not "the pascals that drive the flow" but "the
+  pressure drop driving the flow". A substance, a unit or a device never
+  stands in for a quantity. It holds on the slides, in the narration and in
+  the notebooks; `IMPLICIT` in `slide_policies.py` checks the shorthand struck
+  so far on the slides, and the rest is read by review.
 
-*Replaces P5, D18, E9.*
+*Replaces P5, D18, E9; D25 added 10 October 2026.*
 
 ## C6 · Visual consistency
 

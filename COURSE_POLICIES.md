@@ -51,8 +51,9 @@ policies under each; `--full` adds the review history behind every one.
   `3 – 4 · TOPIC`. Each is a `[question, answer, reference]` triple:
   - the **question** in bold, at most 125 characters, the most general one the
     topic can be asked - about a concept, not a detail;
-  - the **answer** beside it in two or three plain sentences (60 to 320
-    characters), written as it should be said at the oral examination;
+  - the **answer** beside it, rich enough to fill the slide (60 to 520
+    characters, three to five sentences), written as it should be said at the
+    oral examination;
   - the **reference** to read, in italics after the answer: the book chapter
     and, where there is one, the notebook that works through it.
   It was ten questions with references and no answers. Students found 24
@@ -62,6 +63,17 @@ policies under each; `--full` adds the review history behind every one.
   notebooks' question tags (`→ L8.1 Q3`) run from Q1 to Q4.
   `slide_policies.py` checks the count, the halves, the lengths, the
   references, that the answers are drawn, and that each box holds its text.
+- **What the four ask (10 October 2026, L10.1 the pattern).** Part 1 asks
+  the general deep-learning questions. A Part 2 lecture's four ask **how deep
+  learning solves that lecture's physics, with that physics' own
+  difficulties**: what the network takes and returns, what is built in rather
+  than learned, what the training must be told that the equation does not
+  enforce by itself, what a parameter estimated with a network needs from
+  the measurements, when the network pays against the classical solver. They
+  are qualitative - the concept, not a formula - and in explicit language
+  (C5, D25): "the concentration of lithium inside the particle along the
+  radius", never "the lithium". The physics is the setting, not the subject;
+  the answers may carry a number where it makes the point.
 - Every Key Takeaway answers an objective and is reproduced in a notebook.
 
 *Replaces D3, D4, D6, D7, D8, D10, D13, D15, D16, D21, D24, P7, E4, E6.*

@@ -38,8 +38,8 @@ Radius over R, time over the hour, and the concentration lost over
 ``c_ref = j t_end / R``, the scale the mass balance sets:
 
     u = (c_0 - c) / c_ref,    rho = r / R,    tau = t / t_end
-    u_tau = C (u_rr + (2/rho) u_rho),    C u_rho = 1 at rho = 1,    u = 0 at tau = 0
-    C = D_s t_end / R^2 = 1.50
+    u_tau = D_hat (u_rr + (2/rho) u_rho),    D_hat u_rho = 1 at rho = 1,    u = 0 at tau = 0
+    D_hat = D_s t_end / R^2 = 1.50
 
 The mean of ``u`` over the sphere is exactly ``3 tau``, whatever the
 diffusivity: what has left the particle is the current times the time.
@@ -67,7 +67,7 @@ import numpy as np
 
 __all__ = [
     "FARADAY", "CAPACITY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
-    "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "C_SCALED", "NOISE",
+    "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "D_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
     "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
     "animate_discharge",
@@ -92,7 +92,7 @@ T_END = 3600.0           #: s, the length of the discharge
 A_SPECIFIC = 3.0 * EPS_ACTIVE / R_PARTICLE                           #: 1/m, particle surface per volume of electrode
 J_SURFACE = CURRENT / (FARADAY * A_SPECIFIC * AREA * L_ELECTRODE)    #: mol/(m^2 s), lithium leaving the surface
 C_REF = J_SURFACE * T_END / R_PARTICLE                               #: mol/m^3, the concentration scale
-C_SCALED = D_SOLID * T_END / R_PARTICLE ** 2                         #: the scaled diffusivity, 1.50
+D_SCALED = D_SOLID * T_END / R_PARTICLE ** 2                         #: the scaled diffusivity, 1.50
 
 #: Noise of the surface readings of section 6, mol/m^3.
 NOISE = 50.0
@@ -126,8 +126,8 @@ _ROOTS = _roots()
 def exact(rho, tau, c=None):
     """The exact scaled loss ``u(rho, tau)``: a sphere with a constant flux
     through its surface (Crank, *The Mathematics of Diffusion*). ``c`` is the
-    scaled diffusivity; :data:`C_SCALED` unless given. NumPy in, NumPy out."""
-    c = C_SCALED if c is None else c
+    scaled diffusivity; :data:`D_SCALED` unless given. NumPy in, NumPy out."""
+    c = D_SCALED if c is None else c
     rho, tau = np.broadcast_arrays(np.asarray(rho, float), np.asarray(tau, float))
     safe = np.where(rho < 1e-9, 1e-9, rho)
     t = c * tau
@@ -186,7 +186,7 @@ def describe_problem() -> None:
     print(f"  surface flux     : j = I / (F a_s A L) = {J_SURFACE:.2e} mol/(m^2 s) leaving the particle")
     print(f"  start            : {C_START:.0f} mol/m^3 everywhere ({C_START / C_MAX:.2f} of the maximum {C_MAX:.0f})")
     print(f"  diffusion time   : R^2 / D_s = {R_PARTICLE ** 2 / D_SOLID:.0f} s")
-    print(f"  scales           : c_ref = j t_end / R = {C_REF:.0f} mol/m^3;  C = D_s t_end / R^2 = {C_SCALED:.2f}")
+    print(f"  scales           : c_ref = j t_end / R = {C_REF:.0f} mol/m^3;  D_hat = D_s t_end / R^2 = {D_SCALED:.2f}")
     print(f"  mass balance     : the mean concentration falls by 3 c_ref = {3 * C_REF:.0f} mol/m^3 over the hour")
 
 
@@ -336,7 +336,7 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
     n_r, frames = 41, int(round(seconds * fps))
     rho = np.linspace(0.0, 1.0, n_r)
     taus = np.linspace(0.0, 1.0, frames)                     # time over the window T_END / crate
-    Un = np.array([exact(rho, t, c=C_SCALED / k) for t in taus])    # the graphite field
+    Un = np.array([exact(rho, t, c=D_SCALED / k) for t in taus])    # the graphite field
     Up = np.array([exact(rho, t, c=CP_SCALED / k) for t in taus])   # the LFP field (lithium coming IN)
     sto_n = (C_START - C_REF * Un) / C_MAX                   # lithiation of the graphite, falling
     sto_p = STO_P0 + (STO_P1 - STO_P0) * Up / 3.0            # lithiation of the LFP, rising

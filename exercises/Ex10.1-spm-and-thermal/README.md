@@ -3,7 +3,8 @@
 **Paired with L10.1 · Ionic Diffusion and Charge Conservation · Part 2**
 
 The single particle model in **one notebook** (course policies C11 and C13).
-An LG M50 cell is discharged at 1C; in its negative electrode the lithium has
+The BYD FC4680 cell (LiFePO4/graphite, 15.41 Ah) is discharged at 0.9C; in its
+negative electrode the lithium has
 to diffuse to the surface of a graphite particle before it can leave. Students
 compute the concentration in the particle three ways — an exact series, finite
 volumes, and a physics-informed network with the start built in — and compare
@@ -20,17 +21,28 @@ c_r = 0                          at the centre             (follows from the res
 c = c_0                          at t = 0                  (built into the network)
 ```
 
-Graphite particle of radius 5.86 µm, D_s = 3.3 × 10⁻¹⁴ m²/s, starting at
-29 866 mol/m³; 5 A for an hour gives a surface flux of 1.54 × 10⁻⁵ mol/(m² s).
-In scaled units — radius over R, time over the hour, the concentration lost
-over c_ref = j t_end/R = 9476 mol/m³ — it reads u_τ = C (u_rr + (2/r) u_r),
-C u_r = 1 on the surface, with C = D_s t_end/R² = 3.46. The mean of u over the
+Graphite particle of radius 4.80 µm, D_s = 9.60 × 10⁻¹⁵ m²/s, starting at
+24 994 mol/m³ (stoichiometry 0.796); 13.87 A (0.9C) for an hour gives a surface
+flux of 9.92 × 10⁻⁶ mol/(m² s). In scaled units — radius over R, time over the
+hour, the concentration lost over c_ref = j t_end/R = 7440 mol/m³ — it reads
+u_τ = C (u_rr + (2/r) u_r), C u_r = 1 on the surface, with
+C = D_s t_end/R² = 1.50. At 1C the surface of this one particle would run
+empty 131 s before the hour, hence 0.9C: 13.87 Ah, about the 14.24 Ah the
+reference's bench test delivered at 1C before the knee at 2.8 V. The mean of u over the
 sphere is exactly 3τ: the mass balance, which does not contain the diffusivity.
 
-**The parameter values are those of Chen et al. (2020) as distributed with
-PyBaMM, typed in from memory.** PyBaMM is not needed to run the notebook.
-Check them against `pybamm.ParameterValues("Chen2020")` before the set is
-assigned.
+**The parameter values are Table 1 of Teodorescu et al., *Parameterisation of
+NMC and LFP 4680 cells for electrochemical and thermal modelling* (AAU Energy,
+2026)**, whose geometry is the teardown of Liu et al. (2025), each value with
+its tag there. Two are derived in this set and say so: the sheet area (both
+faces of the 5.37 m × 69.0 mm winding, 0.741 m²) and the graphite fraction,
+0.574, which makes the 54.5 µm coating hold the table's 15.5 Ah over the
+stoichiometry window 0.796 to 0.002. The film's second electrode is the same
+cell's LiFePO4: radius 0.500 µm, diffusion time 4740 s (calibrated, an
+effective value for a two-phase material), window 0.0875 to 0.950. The two
+open-circuit curves are PyBaMM's (Chen 2020 graphite, Afshar 2017 LFP),
+standing in for the About:Energy curves the reference uses. Until 10 October
+2026 the set was the LG M50 21700 of Chen et al. (2020).
 
 ## The notebook
 
@@ -57,15 +69,18 @@ MP10.1A.
 
 | | surface at 3600 s | worst error over the hour | the hour | training |
 |---|---|---|---|---|
-| exact series | 891 mol/m³ (centre 2260) | — | — | — |
-| finite volumes, 40 shells, 144 steps (the coarsest for 30 mol/m³) | 890 mol/m³ | 29 mol/m³ | a few ms | — |
-| PINN, 4 × 32, start built in | 899 mol/m³ | 21 mol/m³ | under 1 ms | about 45 s |
+| exact series | 1684 mol/m³ (centre 4164) | — | — | — |
+| finite volumes, 40 shells, 144 steps (the coarsest for 30 mol/m³) | 1683 mol/m³ | 23 mol/m³ | a few ms | — |
+| PINN, 4 × 32, start built in (500 Adam + 300 L-BFGS) | 1701 mol/m³ | 17 mol/m³ | under 1 ms | about 3 min |
 
-The inverse problem returns D_s = 3.29 × 10⁻¹⁴ m²/s against the true
-3.30 × 10⁻¹⁴, 0.38 % low, in under a minute, from readings with 50 mol/m³ of
-noise and a start at half the true value.
+The inverse problem returns D_s = 9.57 × 10⁻¹⁵ m²/s against the true
+9.60 × 10⁻¹⁵, 0.30 % low, in about a minute and a half, from readings with
+50 mol/m³ of noise and a start at half the true value. The film cuts off at
+2.0 V already at 1C (4 % undelivered, the LiFePO4 surface full) and at 5C
+with 38 % undelivered.
 
-**Three things that cost time and are not obvious.** The surface points must
+**Three things that cost time and are not obvious** (measured on the earlier
+LG M50 set; the mechanisms carry over). The surface points must
 not include τ = 0: there the trial function has no gradient, the flux
 condition cannot be met, and one point in two hundred holds the loss at 0.05.
 The **mass balance has to be a loss term**: without it the network is late
@@ -96,14 +111,15 @@ modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only; a GPU is slower on problems this small. About two minutes in all,
+CPU only; a GPU is slower on problems this small. About six minutes in all,
 nearly all of it the two trainings of sections 5 and 6.
 
 ## Reference texts
 
 Liu, G.R., *PINN with Python: An Introduction* (2025).
-Chen et al., *Development of experimental techniques for parameterization of
-multi-scale lithium-ion battery models*, J. Electrochem. Soc. **167** (2020) 080534.
+Teodorescu, Weinreich, Bilgin, Zhuang & Prochazka, *Parameterisation of NMC
+and LFP 4680 cells for electrochemical and thermal modelling*, AAU Energy (2026).
+Liu et al. (2025), the BYD 4680 teardown the reference takes its geometry from.
 Crank, J., *The Mathematics of Diffusion* (1975).
 
 These are the works to read for the theory. **The code, the problem and the
@@ -113,7 +129,7 @@ exposition in this exercise set are original to this course.**
 
 The light version has been executed end to end on a local CPU; the exercise
 version stops at its TODO cells. Still to do, as for every set (C8): the
-parameter check against PyBaMM named above, a run from a fresh Colab runtime,
+a run from a fresh Colab runtime,
 and a review by someone other than the author.
 
 ## Mini project proposal
@@ -125,5 +141,5 @@ ground truth is given, built by `tools/miniprojects/ex101_truth.py` under policy
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP10.1A · The full model, where the SPMe stops** | the LG M50 at 1C, 2C, 3C: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for electrolyte and particles, the terminal voltage from them | PyBaMM's DFN, mesh ×4; worked example: at 3C the DFN gives 2.335 Ah, the SPMe 0.247 Ah | voltage within 20 mV (1C, 2C) and 50 mV (3C); 3C capacity within 2 % |
-| **MP10.1B · How much has the cell aged?** | an aged M50: slower diffusion and lost lithium, seen only through discharge voltages | an inverse PINN on the SPMe with the two ageing factors trainable | PyBaMM SPMe discharges of the hidden-aged cell; worked example: 5.015 → 4.455 Ah; the two effects correlate at 0.81-0.87 | both factors within 5 %, capacity within 1 % (case 1) |
+| **MP10.1A · The full model, where the SPMe stops** | the energy-format LFP (Prada2013, thicknesses ×3) at 1C, 3C, 5C: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for electrolyte and particles, the terminal voltage from them | PyBaMM's DFN, mesh ×4; worked example: at 5C the DFN gives 2.839 Ah, the SPMe 1.386 Ah | voltage within 20 mV (1C, 3C) and 50 mV (5C); 5C capacity within 2 % |
+| **MP10.1B · How much has the cell aged?** | an aged LG M50 (PyBaMM's Chen2020, not the notebook's cell): slower diffusion and lost lithium, seen only through discharge voltages | an inverse PINN on the SPMe with the two ageing factors trainable | PyBaMM SPMe discharges of the hidden-aged cell; worked example: 5.015 → 4.455 Ah; the two effects correlate at 0.81-0.87 | both factors within 5 %, capacity within 1 % (case 1) |

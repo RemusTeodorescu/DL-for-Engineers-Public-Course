@@ -7,17 +7,22 @@ Noman Khan (nomank@energy.aau.dk).
 **Reference texts.** Liu, *PINN with Python: An Introduction* (2025); Raissi,
 Perdikaris & Karniadakis, *Physics-informed neural networks*, J. Comput. Phys.
 **378** (2019) 686–707; Crank, *The Mathematics of Diffusion* (1975), for the
-series solution; Chen et al., J. Electrochem. Soc. **167** (2020) 080534, for
-the cell's parameters. These are the works to read for the theory. The code,
+series solution; Teodorescu, Weinreich, Bilgin, Zhuang & Prochazka,
+*Parameterisation of NMC and LFP 4680 cells for electrochemical and thermal
+modelling* (AAU Energy, 2026), Table 1, for the cell's parameters, which take
+the BYD cell's geometry from the teardown of Liu et al. (2025). These are the works to read for the theory. The code,
 the problem and the exposition here are original to this course.
 
 ## The problem
 
-The negative electrode of an LG M50 21700 cell is graphite, and in the single
-particle model (L10.1) the whole electrode is one representative particle, a
-sphere of radius 5.86 µm. During a 1C discharge, 5 A for one hour, lithium
-leaves through the particle's surface at a constant rate and the lithium
-inside has to diffuse outwards to replace it:
+The negative electrode of the BYD FC4680 cell (LiFePO4/graphite, 15.41 Ah) is
+graphite, and in the single particle model (L10.1) the whole electrode is one
+representative particle, a sphere of radius 4.80 µm. During a 0.9C discharge,
+13.87 A for one hour, lithium leaves through the particle's surface at a
+constant rate and the lithium inside has to diffuse outwards to replace it.
+(At 1C the surface of this one particle would run empty 131 s before the
+hour; 0.9C delivers 13.87 Ah, about the 14.24 Ah the bench test of the
+reference delivered at 1C before the knee at 2.8 V.)
 
     c_t = D_s (c_rr + (2/r) c_r)          in the particle, 0 < t < 3600 s
     -D_s c_r = j                          on the surface, r = R
@@ -34,16 +39,19 @@ Radius over R, time over the hour, and the concentration lost over
 
     u = (c_0 - c) / c_ref,    rho = r / R,    tau = t / t_end
     u_tau = C (u_rr + (2/rho) u_rho),    C u_rho = 1 at rho = 1,    u = 0 at tau = 0
-    C = D_s t_end / R^2 = 3.46
+    C = D_s t_end / R^2 = 1.50
 
 The mean of ``u`` over the sphere is exactly ``3 tau``, whatever the
 diffusivity: what has left the particle is the current times the time.
 
-## The data are typed in, not read from PyBaMM
+## The data
 
-The parameter values below are those of Chen et al. (2020) as distributed
-with PyBaMM, **written from memory**. Check them against
-``pybamm.ParameterValues("Chen2020")`` before the set is assigned.
+The parameter values are Table 1 of the reference, for the LFP cell, with
+its tags: [M] measured in the teardown, [L] from the literature, [D] derived,
+[E] estimated or calibrated. Two values are derived here, in this course, and
+say so: the electrode area (both faces of the 5.37 m x 69.0 mm winding) and
+the volume fraction of graphite, which makes the electrode hold the cell's
+15.5 Ah over the graphite's stoichiometry window.
 
 ## What is in here
 
@@ -58,7 +66,7 @@ from __future__ import annotations
 import numpy as np
 
 __all__ = [
-    "FARADAY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
+    "FARADAY", "CAPACITY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
     "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "C_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
     "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
@@ -67,20 +75,24 @@ __all__ = [
 
 # ----------------------------------------------------------------- the data
 FARADAY = 96485.0        #: C/mol
-R_PARTICLE = 5.86e-6     #: m, radius of a graphite particle
-D_SOLID = 3.3e-14        #: m^2/s, diffusivity of lithium in the particle
-C_MAX = 33133.0          #: mol/m^3, the most lithium the graphite can hold
-C_START = 29866.0        #: mol/m^3, the concentration in the charged cell
-CURRENT = 5.0            #: A, a 1C discharge of the 5 Ah cell
-L_ELECTRODE = 85.2e-6    #: m, thickness of the negative electrode
-AREA = 0.1027            #: m^2, area of the electrode sheet (1.58 m x 65 mm)
-EPS_ACTIVE = 0.75        #: volume fraction of graphite in the electrode
+# BYD FC4680, Table 1 of the reference (tags in brackets)
+CAPACITY = 15.41         #: Ah, measured (the reference, section 2.2)
+R_PARTICLE = 4.80e-6     #: m, radius of a graphite particle [L]
+D_SOLID = 9.60e-15       #: m^2/s, diffusivity of lithium in the graphite [L]
+C_MAX = 31400.0          #: mol/m^3, the most lithium the graphite can hold [L]
+STO_N0, STO_N1 = 0.796, 0.00163   #: graphite stoichiometry at 100 % and 0 % SOC [E, calibrated] / [L]
+C_START = STO_N0 * C_MAX #: mol/m^3, the concentration in the charged cell, 24 994
+CURRENT = 0.9 * CAPACITY #: A, a 0.9C discharge, 13.87 A (at 1C the surface empties 131 s early)
+L_ELECTRODE = 54.5e-6    #: m, thickness of the negative coating [M]
+AREA = 2 * 5.37 * 0.069  #: m^2, both faces of the 5.37 m x 69.0 mm winding [M], 0.741 (derived here)
+EPS_ACTIVE = 15.5 * 3600.0 / (FARADAY * C_MAX * (STO_N0 - STO_N1) * AREA * L_ELECTRODE)
+#: volume fraction of graphite, 0.574: the coating holds the table's 15.5 Ah over the window (derived here)
 T_END = 3600.0           #: s, the length of the discharge
 
 A_SPECIFIC = 3.0 * EPS_ACTIVE / R_PARTICLE                           #: 1/m, particle surface per volume of electrode
 J_SURFACE = CURRENT / (FARADAY * A_SPECIFIC * AREA * L_ELECTRODE)    #: mol/(m^2 s), lithium leaving the surface
 C_REF = J_SURFACE * T_END / R_PARTICLE                               #: mol/m^3, the concentration scale
-C_SCALED = D_SOLID * T_END / R_PARTICLE ** 2                         #: the scaled diffusivity, 3.46
+C_SCALED = D_SOLID * T_END / R_PARTICLE ** 2                         #: the scaled diffusivity, 1.50
 
 #: Noise of the surface readings of section 6, mol/m^3.
 NOISE = 50.0
@@ -168,8 +180,9 @@ def surface_readings(seed=101):
 
 def describe_problem() -> None:
     """Print the particle and the numbers it implies."""
-    print(f"  particle         : graphite, radius {R_PARTICLE * 1e6:.2f} um, D_s = {D_SOLID:.1e} m^2/s")
-    print(f"  discharge        : {CURRENT:.0f} A (1C) for {T_END:.0f} s")
+    print(f"  particle         : graphite, radius {R_PARTICLE * 1e6:.2f} um, D_s = {D_SOLID:.2e} m^2/s")
+    print(f"  cell             : BYD FC4680, LiFePO4/graphite, {CAPACITY:.2f} Ah")
+    print(f"  discharge        : {CURRENT:.2f} A ({CURRENT / CAPACITY:.1f}C) for {T_END:.0f} s")
     print(f"  surface flux     : j = I / (F a_s A L) = {J_SURFACE:.2e} mol/(m^2 s) leaving the particle")
     print(f"  start            : {C_START:.0f} mol/m^3 everywhere ({C_START / C_MAX:.2f} of the maximum {C_MAX:.0f})")
     print(f"  diffusion time   : R^2 / D_s = {R_PARTICLE ** 2 / D_SOLID:.0f} s")
@@ -193,7 +206,7 @@ def draw_particle(ax=None):
                 continue                                     # the representative particle goes here
             ax.add_patch(plt.Circle((cx, cy), 0.2, fc="0.85", ec="0.5", lw=0.6))
     ax.add_patch(plt.Circle((1.0, 2.0), 0.24, fc="tab:orange", ec="k", lw=1.0))
-    ax.text(1.0, -0.25, f"negative electrode,\n{L_ELECTRODE * 1e6:.0f} µm of graphite", ha="center", va="top", fontsize=10)
+    ax.text(1.0, -0.25, f"negative electrode,\n{L_ELECTRODE * 1e6:.1f} µm of graphite", ha="center", va="top", fontsize=10)
     ax.plot([1.24, 4.0], [2.0, 3.9], color="0.5", lw=0.8, ls="--")
     ax.plot([1.24, 4.0], [2.0, 0.1], color="0.5", lw=0.8, ls="--")
     # the particle, in rings of the exact concentration at the end of the hour
@@ -208,7 +221,7 @@ def draw_particle(ax=None):
                     arrowprops=dict(arrowstyle="->", color="tab:red", lw=1.2))
     ax.annotate("", xy=(cx + Rd * np.cos(2.4), cy + Rd * np.sin(2.4)), xytext=(cx, cy), arrowprops=dict(arrowstyle="->", color="w", lw=1))
     ax.text(cx, cy - 0.45, f"R = {R_PARTICLE * 1e6:.2f} µm", color="w", fontsize=10, ha="center", va="top")
-    ax.text(8.7, 3.4, "lithium leaves\nthrough the surface:\na 1C discharge", color="tab:red", fontsize=10, va="center")
+    ax.text(8.7, 3.4, "lithium leaves\nthrough the surface:\na 0.9C discharge", color="tab:red", fontsize=10, va="center")
     ax.text(8.7, 1.9, f"surface {c[-1]:.0f} mol/m³\ncentre {c[0]:.0f} mol/m³\nafter the hour", fontsize=10, va="center")
     ax.text(8.7, 0.5, "centre: symmetry", fontsize=10, va="center")
     ax.set_xlim(-0.2, 11.6); ax.set_ylim(-1.2, 4.6); ax.set_aspect("equal"); ax.axis("off")
@@ -219,14 +232,15 @@ def draw_sandwich(ax=None):
     """The whole cell and the mesh of the full (Doyle-Fuller-Newman) model:
     collector, electrode, separator, electrode, collector, the electrolyte
     filling the pores, and one representative particle at every node of the
-    thickness. The cell is BYD's 4680 cylindrical LFP cell (15 Ah); the LFP
-    particle radius, 50 nm, is PyBaMM's Prada2013 value. Every particle is
-    drawn at ONE display size so the drawing stays uniform - an LFP particle
-    is a hundred times smaller than section 1's graphite particle."""
+    thickness. The cell is the BYD FC4680 (15.41 Ah), its layers to scale
+    from Table 1 of the reference: graphite 54.5 µm, separator 13.7 µm,
+    LiFePO4 70.0 µm. Every particle is drawn at ONE display size so the
+    drawing stays uniform - an LFP particle, 0.5 µm, is about ten times
+    smaller than section 1's graphite particle, 4.80 µm."""
     import matplotlib.pyplot as plt
     if ax is None:
         _, ax = plt.subplots(figsize=(10.5, 3.6))
-    x_an, x_sep, x_cat = 34.0, 25.0, 80.0                    # drawn proportions of the stack
+    x_an, x_sep, x_cat = 54.5, 13.7, 70.0                    # the stack in µm, Table 1 of the reference
     x0, x1, x2, x3 = 0.0, x_an, x_an + x_sep, x_an + x_sep + x_cat
     H = 30.0
     # the electrolyte is the continuous phase: it fills both electrodes and the separator
@@ -259,24 +273,28 @@ def draw_sandwich(ax=None):
     ax.text(2, H + 8, "e$^-$ through the solid", fontsize=9, ha="center", va="bottom")
     ax.text(x_an / 2, -2, "graphite", fontsize=9, ha="center", va="top")
     ax.text((x1 + x2) / 2, -2, "separator", fontsize=9, ha="center", va="top")
-    ax.text(x2 + x_cat / 2, -2, "LFP, R = 50 nm", fontsize=9, ha="center", va="top")
-    ax.text((x0 + x3) / 2, -8, "particles drawn at one size: an LFP particle is a hundred times\n"
+    ax.text(x2 + x_cat / 2, -2, "LiFePO4, R = 0.5 µm", fontsize=9, ha="center", va="top")
+    ax.text((x0 + x3) / 2, -8, "particles drawn at one size: an LFP particle is about ten times\n"
             "smaller than the graphite particle of section 1", fontsize=9, ha="center", va="top", style="italic")
     ax.set_xlim(-14, 156); ax.set_ylim(-17, 42); ax.set_aspect("equal"); ax.axis("off")
     return ax.figure
 
 
 # ------------------------------------------- the second electrode, for the film
-R_LFP = 5.0e-8           #: m, radius of an LFP particle (PyBaMM, Prada 2013)
-D_LFP = 5.9e-18          #: m^2/s, diffusivity of lithium in LFP (PyBaMM, Prada 2013)
-C_MAX_LFP = 22806.0      #: mol/m^3, the most lithium the LFP can hold (PyBaMM, Prada 2013)
-CP_SCALED = D_LFP * T_END / R_LFP ** 2                               #: the LFP scaled diffusivity, 8.50
-STO_P0, STO_P1 = 0.05, 0.95   #: the LFP lithiation window over the discharge (chosen)
+R_LFP = 0.500e-6         #: m, radius of an LFP particle [L]
+TAU_LFP = 4740.0         #: s, its diffusion time R^2/D_s, calibrated on the bench test [E]
+D_LFP = R_LFP ** 2 / TAU_LFP   #: m^2/s, 5.27e-17: an EFFECTIVE diffusivity - LiFePO4 transforms
+                               #: between two phases, and the reference absorbs that into a Fickian form
+C_MAX_LFP = 21200.0      #: mol/m^3, the most lithium the LFP can hold [L]
+CP_SCALED = D_LFP * T_END / R_LFP ** 2                               #: the LFP scaled diffusivity, 0.76
+STO_P0, STO_P1 = 0.0875, 0.950  #: the LFP stoichiometry at 100 % and 0 % SOC [L]
 
 
 def ocp_graphite(sto):
-    """Open-circuit potential of the LG M50 graphite against lithiation,
-    the fit of Chen et al. (2020), as distributed with PyBaMM."""
+    """Open-circuit potential of graphite against lithiation, the fit of
+    Chen et al. (2020) for the LG M50 graphite, as distributed with PyBaMM.
+    It stands in for the About:Energy graphite curve the reference uses for
+    the BYD cell, which is not reproduced here."""
     sto = np.maximum(np.asarray(sto, float), 1e-4)
     return (1.9793 * np.exp(-39.3631 * sto) + 0.2482
             - 0.0909 * np.tanh(29.8538 * (sto - 0.1234))
@@ -286,7 +304,10 @@ def ocp_graphite(sto):
 
 def ocp_lfp(sto):
     """Open-circuit potential of LFP against lithiation, the fit of
-    Afshar et al. (2017), as distributed with PyBaMM's Prada 2013 set."""
+    Afshar et al. (2017), as distributed with PyBaMM's Prada 2013 set. It
+    stands in for the About:Energy curve of the reference, which ends at a
+    stoichiometry of 0.95 and needs an end-of-lithiation drop added
+    (the reference, section 5.2); this fit has a drop of its own."""
     sto = np.asarray(sto, float)
     return 3.4077 - 0.020269 * sto + 0.5 * np.exp(-150 * sto) - 0.9 * np.exp(-30 * (1 - sto))
 
@@ -301,28 +322,31 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
     is the bulk SOC), and the terminal voltage from the two open-circuit
     curves at the two surfaces (Butler-Volmer overpotentials and ohmic drops
     left out). The flux scales with the rate and the window is
-    ``T_END / crate``, so the same charge moves; when the voltage dives to
-    the 2.0 V cut-off before the bulk is drained (above about 1.25C here,
-    because the graphite surface runs empty ahead of the mean), the film
+    ``T_END / k`` with ``k`` the rate over section 1's 0.9C, so the same
+    13.87 Ah moves; when the voltage dives to
+    the 2.0 V cut-off before the bulk is drained (from about 0.9C here,
+    because the LiFePO4 surface, the slower of the two, fills ahead of its
+    mean), the film
     stops there and says how much charge was left undelivered. Returns a
     ``matplotlib.animation.FuncAnimation``; in a notebook, show it with
     ``HTML(anim.to_html5_video())``."""
     import matplotlib.pyplot as plt
     from matplotlib import animation, cm, colors
+    k = crate * CAPACITY / CURRENT                           # the flux against section 1's 0.9C, so crate is the true C-rate
     n_r, frames = 41, int(round(seconds * fps))
     rho = np.linspace(0.0, 1.0, n_r)
     taus = np.linspace(0.0, 1.0, frames)                     # time over the window T_END / crate
-    Un = np.array([exact(rho, t, c=C_SCALED / crate) for t in taus])    # the graphite field
-    Up = np.array([exact(rho, t, c=CP_SCALED / crate) for t in taus])   # the LFP field (lithium coming IN)
+    Un = np.array([exact(rho, t, c=C_SCALED / k) for t in taus])    # the graphite field
+    Up = np.array([exact(rho, t, c=CP_SCALED / k) for t in taus])   # the LFP field (lithium coming IN)
     sto_n = (C_START - C_REF * Un) / C_MAX                   # lithiation of the graphite, falling
     sto_p = STO_P0 + (STO_P1 - STO_P0) * Up / 3.0            # lithiation of the LFP, rising
     volt = ocp_lfp(sto_p[:, -1]) - ocp_graphite(sto_n[:, -1])   # the voltage, from the two surfaces
-    low = np.nonzero((volt <= 2.0) | (sto_n[:, -1] <= 1e-3))[0]  # the 2.0 V cut-off: the graphite surface is nearly empty
+    low = np.nonzero((volt <= 2.0) | (sto_n[:, -1] <= 1e-3))[0]  # the 2.0 V cut-off: an electrode's surface has run out
     cut = int(low[0]) if len(low) else None
     if cut is not None:                                      # stop at the cut-off, hold the last frame a moment
         taus, sto_n, sto_p, volt = taus[: cut + 1], sto_n[: cut + 1], sto_p[: cut + 1], volt[: cut + 1]
         frames = len(taus) + int(round(1.5 * fps))
-    t_s = taus * T_END / crate                               # time in seconds
+    t_s = taus * T_END / k                               # time in seconds
     sn0, sn1 = C_START / C_MAX, (C_START - 3.0 * C_REF) / C_MAX   # graphite lithiation at SOC 1 and 0
     mean_n = sn0 - (sn0 - sn1) * taus                        # mean lithiations: the mass balance, straight lines
     mean_p = STO_P0 + (STO_P1 - STO_P0) * taus
@@ -348,7 +372,7 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
         bars.append(axL.add_patch(plt.Rectangle((2.7, y), 0.0, 0.42, fc=colour)))
         axL.add_patch(plt.Rectangle((2.7, y), 4.0, 0.42, fill=False, ec="0.4", lw=0.8))
         pcts.append(axL.text(6.85, y + 0.21, "", va="center", fontsize=10))
-    axL.text(0.15, 7.0, f"a {crate:g}C discharge: {T_END / crate:.0f} s played in {seconds:.0f} s",
+    axL.text(0.15, 7.0, f"a {crate:g}C discharge: {T_END / k:.0f} s played in {seconds:.0f} s",
              fontsize=10, va="bottom")
     t_cut = axL.text(0.15, -0.35, "", fontsize=10, va="top", color="tab:red")
     axL.set_xlim(-0.1, 8.8); axL.set_ylim(-1.3, 7.6); axL.set_aspect("equal"); axL.axis("off")
@@ -375,7 +399,7 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
     v_dot, = axV.plot([], [], "o", color="tab:green", ms=5)
     v_text = axV.text(0.03, 0.08, "", transform=axV.transAxes, fontsize=10)
     axV.set_xlabel("t  [s]"); axV.set_ylabel("cell voltage  [V]")
-    axV.set_xlim(0, T_END / crate); axV.set_ylim(1.9, 3.5)
+    axV.set_xlim(0, T_END / k); axV.set_ylim(1.9, 3.5)
 
     def frame(i):
         i = min(i, len(taus) - 1)                            # past the cut-off the last frame is held
@@ -393,7 +417,8 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
         v_dot.set_data([t_s[i]], [volt[i]])
         v_text.set_text(f"t = {t_s[i]:.0f} s,  V = {volt[i]:.2f} V")
         if cut is not None and i == len(taus) - 1:
-            t_cut.set_text(f"cut-off at 2.0 V: the graphite surface is nearly empty -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
+            which = "graphite surface empty" if sto_n[i, -1] <= 1e-3 else "LiFePO4 surface full"
+            t_cut.set_text(f"cut-off at 2.0 V: the {which} -\n{100 * (1.0 - taus[i]):.0f} % of the charge undelivered")
         return rings_n + rings_p + bars + pcts + [ln_n, ls_n, ln_p, ls_p, d_n, d_p, v_line, v_dot, v_text, t_cut]
 
     anim = animation.FuncAnimation(fig, frame, frames=frames, interval=1000.0 / fps, blit=False)

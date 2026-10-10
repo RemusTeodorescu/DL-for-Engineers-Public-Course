@@ -183,8 +183,15 @@ policies under each; `--full` adds the review history behind every one.
 - One maths font throughout: equations and every symbol in text, a table, a
   stack or a chain are set in Cambria Math; a symbol goes between dollars,
   never typed as a maths-italic character (D20, 30 September 2026).
+- **Every symbol and formula on a slide is maths (D26, 10 October 2026).** In a
+  definition, a bullet, a table, a caption, a figure label or a bare text box,
+  a symbol or formula goes between dollars and is set in the equations' Cambria
+  Math: `$x = 0$`, `$t_{end}$`, `$2π^2$`, never `x = 0` in the body face. Units
+  with a superscript (m², mol/m³), powers of ten, chemical formulae and code are
+  not maths. A label in spaced capitals cannot take maths and is reworded. The
+  check reads the concept-figure functions above the first slide as well.
 
-*Replaces D11, D12, D19, D20, E2, E8.*
+*Replaces D11, D12, D19, D20, E2, E8; D26 added 10 October 2026.*
 
 ## C7 · Layout passes the checkers
 

@@ -166,6 +166,63 @@ def describe_problem() -> None:
           f"{U_GAS * H_CHANNEL * W_CELL * C_TOT * Y_IN * 2 * FARADAY:.0f} A")
 
 
+def draw_soec(ax=None):
+    """The whole electrolysis cell in cross-section, not to scale, as Ex_09.2
+    drew it: the hydrogen (fuel) channel of this notebook on top, the porous
+    fuel electrode, the electrolyte (it conducts oxide ions O2- and nothing
+    else), the air electrode and the air channel. A power supply drives
+    electrons into the fuel electrode; steam is split there, the hydrogen goes
+    back into the channel, the oxide ions cross the electrolyte downwards and
+    leave the air electrode as oxygen."""
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10.5, 5.6))
+    layers = [  # (bottom, top, colour, name)
+        (0.0, 1.3, "#eaf3e6", "air channel"),
+        (1.3, 2.1, "#c9d9b9", "air electrode (oxygen side)"),
+        (2.1, 2.5, "#e8d6a8", "electrolyte: conducts O$^{2-}$ only"),
+        (2.5, 3.5, "#b9c3cf", "fuel electrode (porous nickel and ceramic)"),
+        (3.5, 5.5, "#dbe9f6", "hydrogen (fuel) channel: this notebook"),
+        (5.5, 6.1, "0.55", "interconnect"),
+    ]
+
+    def arrow(x0, y0, x1, y1, col, text=None, tx=None, ty=None):
+        ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
+                    arrowprops=dict(arrowstyle="-|>", color=col, lw=2.0, mutation_scale=16))
+        if text:
+            ax.text(tx, ty, text, color=col, fontsize=10.5, va="center", fontweight="bold")
+
+    for y0, y1, col, name in layers:
+        ax.add_patch(mpatches.Rectangle((0, y0), 9.0, y1 - y0, facecolor=col, edgecolor="k", lw=0.8))
+        ax.text(8.9, y1 - 0.2 if "channel" in name else (y0 + y1) / 2, name, ha="right", va="center", fontsize=8.5,
+                color="w" if name == "interconnect" else "0.25")
+    # the gas along the channel, and the air
+    ax.annotate("", xy=(2.2, 5.05), xytext=(0.2, 5.05), arrowprops=dict(arrowstyle="-|>", color="tab:blue", lw=1.5))
+    ax.text(0.2, 4.72, f"{100 * Y_IN:.0f} % H$_2$O, {100 * (1 - Y_IN):.0f} % H$_2$ in", fontsize=9.5, color="tab:blue")
+    ax.annotate("", xy=(8.8, 5.05), xytext=(6.8, 5.05), arrowprops=dict(arrowstyle="-|>", color="tab:blue", lw=1.5))
+    ax.text(6.5, 4.72, "less steam, more H$_2$ out", fontsize=9.5, color="tab:blue")
+    ax.annotate("", xy=(2.2, 0.85), xytext=(0.2, 0.85), arrowprops=dict(arrowstyle="-|>", color="tab:green", lw=1.5))
+    ax.text(0.2, 0.42, "air in: O$_2$ added", fontsize=9.5, color="tab:green")
+    # the exchange at the fuel electrode and through the electrolyte
+    arrow(3.0, 4.3, 3.0, 3.05, "tab:orange", "H$_2$O", tx=2.15, ty=3.95)
+    arrow(4.1, 3.05, 4.1, 4.3, "tab:green", "H$_2$", tx=4.25, ty=3.95)
+    arrow(3.55, 2.95, 3.55, 1.7, "tab:red", "O$^{2-}$", tx=3.7, ty=2.3)
+    arrow(3.55, 1.6, 3.55, 0.95, "tab:green", "O$_2$", tx=3.7, ty=1.1)
+    ax.text(5.0, 3.62, "at the fuel electrode:\nH$_2$O + 2e$^-$ → H$_2$ + O$^{2-}$", fontsize=10.5, va="bottom")
+    ax.text(5.0, 0.1, "at the air electrode:\nO$^{2-}$ → ½O$_2$ + 2e$^-$", fontsize=10.5, va="bottom")
+    # the external circuit: electrons driven into the fuel electrode
+    ax.plot([9.0, 9.9, 9.9, 9.0], [3.0, 3.0, 1.7, 1.7], color="k", lw=1.2)
+    ax.add_patch(mpatches.Rectangle((9.6, 2.05), 0.6, 0.6, facecolor="w", edgecolor="k", lw=1.2))
+    ax.text(10.35, 2.35, f"power supply\n{V_LOW:.2f} to {V_HIGH:.2f} V", fontsize=9.5, va="center")
+    arrow(9.9, 2.75, 9.9, 2.95, "k")
+    ax.text(10.05, 3.15, "e$^-$ into the fuel electrode", fontsize=9)
+    ax.set_title(f"solid oxide electrolysis cell at {T_CELL - 273.15:.0f} °C: steam split, hydrogen returned, "
+                 "power in (layers not to scale)", fontsize=10.5)
+    ax.set_xlim(-0.1, 12.6); ax.set_ylim(-0.1, 6.2); ax.set_axis_off()
+    return ax.figure
+
+
 def draw_cell(ax=None):
     """The steam channel of the electrolysis cell along its length: steam in
     on the left, split at the fuel electrode below it, the oxygen ions through

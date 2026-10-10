@@ -190,8 +190,12 @@ policies under each; `--full` adds the review history behind every one.
   with a superscript (m², mol/m³), powers of ten, chemical formulae and code are
   not maths. A label in spaced capitals cannot take maths and is reworded. The
   check reads the concept-figure functions above the first slide as well.
+- **Every equation at one size (D27, 10 October 2026).** A fraction in an
+  equation is written `\dfrac`, display style: matplotlib sets `\frac` in text
+  style, at about 70 %, so an equation with a fraction read smaller than its
+  neighbours. All 176 in the course were converted on 10 October.
 
-*Replaces D11, D12, D19, D20, E2, E8; D26 added 10 October 2026.*
+*Replaces D11, D12, D19, D20, E2, E8; D26 and D27 added 10 October 2026.*
 
 ## C7 · Layout passes the checkers
 

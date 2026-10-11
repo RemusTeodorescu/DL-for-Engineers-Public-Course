@@ -76,6 +76,11 @@ thermal model returned on 11 October as section 7's lumped balance.
 | finite volumes, 40 shells, 144 steps (the coarsest for 30 mol/m³) | 1683 mol/m³ | 23 mol/m³ | a few ms | — |
 | PINN, 4 × 32, start built in (500 Adam + 300 L-BFGS) | 1701 mol/m³ | 17 mol/m³ | under 1 ms | about 3 min |
 
+Online, with the training disregarded — it is paid once, offline, the
+course's timing rule — the trained network answers the hour about ten times
+faster than the grid's march (0.57 against 6.4 ms on one CPU run); fair only
+for a new case, since a solved grid can be stored and interpolated.
+
 The inverse problem returns D_s = 9.57 × 10⁻¹⁵ m²/s against the true
 9.60 × 10⁻¹⁵, 0.30 % low, in about a minute and a half, from readings with
 50 mol/m³ of noise and a start at half the true value. The design (section 7;

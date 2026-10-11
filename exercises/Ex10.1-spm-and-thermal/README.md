@@ -1,6 +1,6 @@
 # Ex_10.1 — A Particle in a Battery Cell
 
-**Paired with L10.1 · Ionic Diffusion and Charge Conservation · Part 2**
+**Paired with L10.1 · Electrochemical–Thermal Modelling of Battery Cells · Part 2**
 
 The single particle model in **one notebook** (course policies C11 and C13).
 The BYD FC4680 cell (LiFePO4/graphite, 15.41 Ah) is discharged at 0.9C; in its
@@ -10,7 +10,9 @@ compute the concentration in the particle three ways — an exact series, finite
 volumes, and a physics-informed network with the start built in — and compare
 them on accuracy and on time. Then the same network recovers the diffusivity
 from the surface concentration, which is what a battery management system
-could see.
+could see, and closes the way the lecture does, with a design: the charging
+current chosen for lifetime, found by a gradient through the trained network
+(section 7, added 11 October 2026 with the retitling of L10.1).
 
 ## The problem
 
@@ -57,13 +59,14 @@ Ex10.1_pinn_particle_diffusion_light.ipynb   the same notebook with every cell w
 | 4 | the exact series as the reference; finite volumes on shells (Crank–Nicolson), for an agreed 30 mol/m³ |
 | 5 | the PINN: the trial function S τ 𝒩 (TODO 1), the residual multiplied by r (TODO 2), the surface flux and the mass balance as loss terms; the three compared |
 | 6 | the inverse problem: the diffusivity as one more trainable number, found from 37 readings of the surface concentration |
-| 7 | what the notebook says |
-| 8 | the report and its PDF |
-| 9 | mini project proposal |
+| 7 | the design: optimal charging for lifetime — a lumped thermal model and an empirical ageing law (both flagged), the feasible constant rates, and the profile for a deadline no constant rate can meet, by gradient through the trained network |
+| 8 | what the notebook says |
+| 9 | the report and its PDF |
+| 10 | mini project proposal |
 
-The SPMe, the thermal model and the control panel of the earlier six-notebook
-version, which needed PyBaMM, are left to the lecture and to mini project
-MP10.1A.
+The SPMe and the control panel of the earlier six-notebook version, which
+needed PyBaMM, are left to the lecture and to mini project MP10.1A; the
+thermal model returned on 11 October as section 7's lumped balance.
 
 ### What it measures (CPU, seed 88)
 
@@ -75,7 +78,15 @@ MP10.1A.
 
 The inverse problem returns D_s = 9.57 × 10⁻¹⁵ m²/s against the true
 9.60 × 10⁻¹⁵, 0.30 % low, in about a minute and a half, from readings with
-50 mol/m³ of noise and a start at half the true value. The film cuts off at
+50 mol/m³ of noise and a start at half the true value. The design (section 7;
+thermal constants and plating limit ESTIMATED, ageing constants illustrative,
+every lifetime relative to the 1C charge at 25 °C): a 30-minute full charge
+leaves the constant rates 2.00C to 3.08C feasible and the deadline is the
+optimum; an 18-minute charge defeats every constant rate (3.33C ends the
+graphite surface at stoichiometry 0.908, past the 0.90 plating limit), and the
+gradient through the trained network finds 3.35C with a taper to 2.12C in the
+last half minute — the constant-current-then-taper shape of real chargers —
+ending at 0.891 by the exact series, the cell peaking at 35.9 °C. The film cuts off at
 2.0 V already at 1C (4 % undelivered, the LiFePO4 surface full) and at 5C
 with 38 % undelivered.
 
@@ -96,7 +107,7 @@ form gave −1.2 to −1.9 % from starts at half and at twice the true value.
 |---|---|
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
 | `pinn_core.py` | the PDE machinery — `grad`, `d2`, `train_two_stage` |
-| `problem.py` | **this** problem — the data, the series solution, the samplers, the quadrature of the mass balance, the surface readings |
+| `problem.py` | **this** problem — the data, the series solution, the samplers, the quadrature of the mass balance, the surface readings, and section 7's thermal model, ageing law and exact charging surface |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
@@ -111,8 +122,9 @@ modules from the public course repository, afresh on every run.
 
 ## Expected runtime
 
-CPU only; a GPU is slower on problems this small. About six minutes in all,
-nearly all of it the two trainings of sections 5 and 6.
+CPU only; a GPU is slower on problems this small. About seven minutes in all,
+nearly all of it the two trainings of sections 5 and 6; section 7's design
+reuses section 5's network and takes seconds.
 
 ## Reference texts
 
@@ -134,7 +146,7 @@ and a review by someone other than the author.
 
 ## Mini project proposal
 
-The set ends with two mini projects (section 9). Each student chooses one
+The set ends with two mini projects (section 10). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex101_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.

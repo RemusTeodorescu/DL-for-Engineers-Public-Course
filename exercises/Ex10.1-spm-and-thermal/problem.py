@@ -53,12 +53,28 @@ say so: the electrode area (both faces of the 5.37 m x 69.0 mm winding) and
 the volume fraction of graphite, which makes the electrode hold the cell's
 15.5 Ah over the graphite's stoichiometry window.
 
+## The charging design (section 7)
+
+L10.1 closes with a design problem: the charging current chosen for lifetime.
+Section 7 builds it from three ingredients. The surface response to any
+charging profile comes from the trained network by superposition, because the
+diffusion equation is linear. A lumped thermal model gives the cell one
+temperature, heated by ``I^2 R_cell`` and cooled through the can; its four
+constants are ESTIMATED, typical for a 4680 cell in a pack, not Table 1's.
+And an empirical ageing law, ``dQ_loss/dt = A exp(-E_a/(R_g T)) x^beta`` with
+``x`` the C-rate: the form and the activation energy follow the cycle-life
+model Wang et al. (2011) fitted to an LFP cell, written from memory; ``beta``
+and ``A`` are illustrative, ``A`` set so that one full charge at 1C and 25 degC
+costs one unit of life, so every lifetime here is RELATIVE to that charge,
+never a cycle count.
+
 ## What is in here
 
 The data, the exact solution (a series), the points a network is trained on,
-the quadrature of the mass balance, and the synthetic readings of section 6.
-No solver: the finite-volume solver and the network are written in the
-notebook.
+the quadrature of the mass balance, the synthetic readings of section 6, and
+the charging design's constants, thermal model, ageing law and exact surface
+(the truth section 7 checks the network against). No solver: the
+finite-volume solver and the network are written in the notebook.
 """
 
 from __future__ import annotations
@@ -71,6 +87,9 @@ __all__ = [
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
     "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
     "animate_discharge",
+    "T_AMB", "T_MAX", "M_CELL", "CP_CELL", "R_CELL", "HA_CAN", "TAU_THERMAL", "THETA_PLATE",
+    "EA_AGE", "BETA_AGE", "RGAS", "cell_temperature", "ageing_rate", "ageing_per_charge",
+    "life_relative", "surface_sto_charge", "surface_sto_end", "describe_charging",
 ]
 
 # ----------------------------------------------------------------- the data
@@ -310,6 +329,93 @@ def ocp_lfp(sto):
     (the reference, section 5.2); this fit has a drop of its own."""
     sto = np.asarray(sto, float)
     return 3.4077 - 0.020269 * sto + 0.5 * np.exp(-150 * sto) - 0.9 * np.exp(-30 * (1 - sto))
+
+
+# --------------------------------------- the charging design of section 7
+# The thermal model and the ageing law behind L10.1's closing slide, Optimal
+# Charging for Lifetime. The four thermal constants and the plating limit are
+# ESTIMATED - typical values for a 4680 cell sitting in a pack, NOT Table 1 of
+# the reference - and the ageing constants are illustrative: the form and the
+# activation energy follow the LFP cycle-life model of Wang et al. (2011),
+# J. Power Sources 196 (written from memory); beta is illustrative, above 1
+# so that a faster charge costs more per charge, as the source's fitted
+# pre-factor rises with the rate; and A is set so that one full charge at 1C
+# and 25 degC costs one unit of life. Every
+# lifetime computed from these is RELATIVE to that charge, never a cycle count.
+RGAS = 8.314             #: J/(mol K), the gas constant
+T_AMB = 298.15           #: K, the ambient, 25 degC
+T_MAX = 318.15           #: K, the temperature limit, 45 degC [E] ESTIMATED
+M_CELL = 0.355           #: kg, mass of the cell [E] ESTIMATED (typical 4680)
+CP_CELL = 1040.0         #: J/(kg K), specific heat of the cell [E] ESTIMATED
+R_CELL = 2.0e-3          #: ohm, DC resistance of the cell [E] ESTIMATED
+HA_CAN = 0.25            #: W/K, h times the can area, cell in a pack [E] ESTIMATED
+TAU_THERMAL = M_CELL * CP_CELL / HA_CAN   #: s, the thermal time constant, about 1480
+THETA_PLATE = 0.90       #: graphite surface stoichiometry where lithium starts to plate [E] ESTIMATED
+EA_AGE = 31.7e3          #: J/mol, activation energy of the ageing (Wang et al. 2011, from memory)
+BETA_AGE = 1.5           #: exponent of the ageing on the C-rate: illustrative, above 1 so a
+                         #: faster charge costs more PER CHARGE (the source's fitted
+                         #: pre-factor rises with the rate)
+#: 1/s, set so that one full charge at 1C and 25 degC, isothermal, costs 1:
+A_AGE = np.exp(EA_AGE / (RGAS * T_AMB)) / 3600.0
+
+
+def cell_temperature(crate, t):
+    """The cell's one temperature, in K, ``t`` seconds into a constant-current
+    charge at ``crate`` C: the lumped balance
+    ``m c_p dT/dt = I^2 R_cell - hA (T - T_amb)``, solved in closed form. The
+    constants are ESTIMATED (see above). NumPy in, NumPy out."""
+    dT_ss = (crate * CAPACITY) ** 2 * R_CELL / HA_CAN
+    return T_AMB + dT_ss * (1.0 - np.exp(-np.asarray(t, float) / TAU_THERMAL))
+
+
+def ageing_rate(T, crate):
+    """The empirical ageing law: the rate of loss of life, per second, at the
+    temperature ``T`` and the C-rate ``crate``, RELATIVE to the 1C charge at
+    25 degC (which costs exactly 1 over its hour). Illustrative constants."""
+    return A_AGE * np.exp(-EA_AGE / (RGAS * np.asarray(T, float))) * np.abs(crate) ** BETA_AGE
+
+
+def ageing_per_charge(crate, n_t=400):
+    """The life one full charge at a constant ``crate`` C costs, relative to
+    the 1C charge at 25 degC: the ageing rate integrated over the charge, with
+    the temperature from :func:`cell_temperature`."""
+    t = np.linspace(0.0, 3600.0 / crate, n_t)
+    return float(np.trapezoid(ageing_rate(cell_temperature(crate, t), crate), t))
+
+
+def life_relative(crate):
+    """The relative lifetime of a cell always charged at a constant ``crate``
+    C: the 1C charge's cost over this charge's cost. Above 1 is better."""
+    return 1.0 / ageing_per_charge(crate)
+
+
+def surface_sto_charge(tau, crate):
+    """The graphite SURFACE stoichiometry, exact, ``tau`` of the way through a
+    full constant-current charge at ``crate`` C (empty to full, a window of
+    ``3600 / crate`` seconds). On charge the surface runs AHEAD of the mean -
+    section 4's gap with the sign flipped - and lithium plates if it reaches
+    :data:`THETA_PLATE`. NumPy in, NumPy out."""
+    u = exact(1.0, tau, c=D_SCALED / crate)                  # the scaled step response in this window
+    return (STO_N1 * C_MAX + (C_REF / 0.9) * u) / C_MAX      # c_ref of the window is rate-free: the same charge moves
+
+
+def surface_sto_end(crate):
+    """The graphite surface stoichiometry at the END of a full charge at a
+    constant ``crate`` C, where the plating constraint binds."""
+    return float(surface_sto_charge(1.0, crate))
+
+
+def describe_charging() -> None:
+    """Print the charging design's constants and what they imply."""
+    print(f"  thermal (ESTIMATED)   : m = {M_CELL:.3f} kg, c_p = {CP_CELL:.0f} J/(kg K), "
+          f"R_cell = {1e3 * R_CELL:.1f} mohm, hA = {HA_CAN:.2f} W/K  ->  tau_th = {TAU_THERMAL:.0f} s")
+    print(f"  steady self-heating   : {(2 * CAPACITY) ** 2 * R_CELL / HA_CAN:.1f} K at 2C, "
+          f"{(3 * CAPACITY) ** 2 * R_CELL / HA_CAN:.1f} K at 3C; the limit is {T_MAX - 273.15:.0f} degC [E]")
+    print(f"  plating limit [E]     : graphite surface stoichiometry {THETA_PLATE:.2f}; "
+          f"a full charge ends with the mean at {STO_N1 + 3 * C_REF / 0.9 / C_MAX:.3f}")
+    print(f"  ageing (illustrative) : A exp(-E_a/(R_g T)) x^beta, E_a = {EA_AGE / 1e3:.1f} kJ/mol "
+          f"(Wang et al. 2011, from memory), beta = {BETA_AGE:.1f}")
+    print(f"  the unit of life      : one full charge at 1C and 25 degC; every lifetime is relative to it")
 
 
 def animate_discharge(crate=1.0, seconds=10.0, fps=24):

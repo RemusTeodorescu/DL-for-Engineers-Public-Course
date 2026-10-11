@@ -186,12 +186,19 @@ def mass_quadrature(n_r=41, n_t=20):
 
 
 def surface_readings(seed=101):
-    """What a battery management system would have: the surface concentration
-    every 100 s, in mol/m^3, with noise of :data:`NOISE`. Synthetic: the exact
-    solution, sampled. Returns ``(tau, c_surface)``.
+    """What section 6's measurement chain would deliver: the graphite surface
+    concentration every 100 s, in mol/m^3, with noise of :data:`NOISE`.
+    Synthetic: the exact solution, sampled. Returns ``(tau, c_surface)``.
 
-    A real system reads a voltage and gets the surface concentration from it
-    through the open-circuit curve; that step is taken as done here."""
+    The real chain uses measurable data only - the terminal voltage, the
+    current, and a begin-of-life characterisation (the cell resistance from
+    current pulses; the half-cell open-circuit curves aligned to the full
+    cell by differential-voltage analysis). No reference electrode: LFP's
+    plateau is the reference, so after the loss correction every change of
+    the voltage belongs to the graphite, whose curve is inverted. The chain's
+    own links age too (the resistance grows, lost lithium shifts the fitted
+    windows - MP10.1B's subject), so it is re-characterised at each health
+    check. That inversion is taken as done here."""
     rng = np.random.default_rng(seed)
     tau = np.linspace(0.0, 1.0, 37)
     return tau, concentration(exact(1.0, tau)) + rng.normal(0.0, NOISE, len(tau))

@@ -39,8 +39,8 @@ notebook's data table says so. The thermodynamics is standard.
 ## The notebook
 
 ```
-Ex10.2_pinn_steam_channel.ipynb         the exercise: two TODO cells, the answer in the comment above each
-Ex10.2_pinn_steam_channel_light.ipynb   the same notebook with every cell written out
+Ex10.2_soec_multiphysics.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex10.2_soec_multiphysics_light.ipynb   the same notebook with every cell written out
 ```
 
 | section | what the student does |

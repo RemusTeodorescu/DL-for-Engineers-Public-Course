@@ -1,6 +1,6 @@
 # Ex_10.2 — Steam, Charge and Heat in a Solid Oxide Electrolysis Cell
 
-**Paired with L10.2 · Solid Oxide Cells · Part 2**
+**Paired with L10.2 · Electrolysers · Part 2**
 
 A solid oxide electrolysis cell, 100 × 100 mm of electrode, in **one
 notebook** (course policies C11 and C13). Along the fuel channel three

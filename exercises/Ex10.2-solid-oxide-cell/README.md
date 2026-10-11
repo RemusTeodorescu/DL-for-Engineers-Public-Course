@@ -44,7 +44,7 @@ Ex10.2_pinn_steam_channel_light.ipynb   the same notebook with every cell writte
 | 1 – 3 | the problem, its data, its physics: the Nernst potential, the local current, the steam balance, Pe and K |
 | 4 | the reference: SciPy's boundary-value solver, checked at two tolerances; then upwind finite volumes with Newton's method, for an agreed 0.005 in steam fraction |
 | 5 | the PINN: the cell voltage as a second input, the trial function y_in + x 𝒩 (TODO 1), the residual (TODO 2), training; the three compared at 1.29 V and the network checked at four other voltages |
-| 6 | the best cell voltage: the worth of an hour as a function of V, its gradient by autograd through the network, checked against 61 runs of the solver |
+| 6 | the optimal cell voltage: the worth of an hour as a function of V, its gradient by autograd through the network, checked against 61 runs of the solver |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
 | 9 | mini project proposal |
@@ -61,7 +61,7 @@ earlier six-notebook version are left to the lecture and to the mini projects.
 | PINN, 4 × 32, any voltage from 1.10 to 1.40 V | 0.27 | 5.21 g/h | 178 W | 0.0005 | under 1 ms | 20 s |
 
 The same network is within 0.0013 of the reference at 1.10, 1.20, 1.35 and
-1.40 V. The best voltage is 1.30 V by the network's gradient (200 steps, 0.2 s)
+1.40 V. The optimal voltage is 1.30 V by the network's gradient (200 steps, 0.2 s)
 and 1.30 V by 61 runs of the solver (4 s), worth 0.41 cent an hour for this
 one cell; the thermoneutral voltage is 1.29 V.
 

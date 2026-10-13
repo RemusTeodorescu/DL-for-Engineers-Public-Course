@@ -1,7 +1,7 @@
 """
 andes_compare.py — ANDES implementation of the Ex12.1 / Ex12.2 six-bus case.
 
-Drop-in alongside problem.py. Does not modify or replace anything.
+Drop-in alongside problem_12_2.py. Does not modify or replace anything.
 Uses the same BUSES, BRANCHES, and machine parameters so every difference
 in the results is attributable to the simulation engine, not the data.
 
@@ -15,11 +15,11 @@ Usage:
     # One CCT, classical model
     cct = ac.compute_cct(fault_bus=0, trip_line=0, model="classical")
 
-    # Compare with problem.py
-    import problem as pb
+    # Compare with problem_12_2.py
+    import problem_12_2 as pb
     op = np.stack(pb.injections())
     cct_pb = pb.label_case(op, outage=0, fault_bus=0)
-    print(f"problem.py: {cct_pb*1e3:.1f} ms   ANDES classical: {cct*1e3:.1f} ms")
+    print(f"problem_12_2.py: {cct_pb*1e3:.1f} ms   ANDES classical: {cct*1e3:.1f} ms")
 
     # Full dataset comparison
     results = ac.compare_all_contingencies(model="classical")
@@ -39,7 +39,7 @@ except ImportError:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Network data — copied from problem.py so this file is self-contained
+# Network data — copied from problem_12_2.py so this file is self-contained
 # ═══════════════════════════════════════════════════════════════════════
 
 BASE_MVA = 100.0
@@ -64,13 +64,13 @@ BRANCHES = [
 
 N_BUS = len(BUSES)
 
-# Machine parameters — same as problem.py Machines class
+# Machine parameters — same as problem_12_2.py Machines class
 MACHINE_BUSES = [0, 1]
 H_VALUES = [150.0, 4.0]
 D_VALUES = [2.0, 1.2]
-X_D_PRIME = 0.30         # same for both machines in problem.py
+X_D_PRIME = 0.30         # same for both machines in problem_12_2.py
 
-# Timing — same as problem.py Ex12.2
+# Timing — same as problem_12_2.py Ex12.2
 T_FAULT = 0.5
 T_END = 5.0
 CCT_MAX = 0.5
@@ -88,7 +88,7 @@ def _add_network(ss, P_override=None, Q_override=None):
     P_bus = [b[2] for b in BUSES] if P_override is None else list(P_override)
     Q_bus = [b[3] for b in BUSES] if Q_override is None else list(Q_override)
 
-    # Buses (problem.py 0..5 → ANDES 1..6)
+    # Buses (problem_12_2.py 0..5 → ANDES 1..6)
     for idx, (name, *_) in enumerate(BUSES, 1):
         ss.add("Bus", {"idx": idx, "name": name, "Vn": 230, "v0": 1.0})
 
@@ -119,7 +119,7 @@ def _add_network(ss, P_override=None, Q_override=None):
 
 def build_classical(P=None, Q=None):
     """GENCLS — classical model, constant E behind xd'.
-    No exciter, no governor. Fair comparison with problem.py."""
+    No exciter, no governor. Fair comparison with problem_12_2.py."""
     ss = andes.System(default_config=True)
     _add_network(ss, P, Q)
 
@@ -186,7 +186,7 @@ def run_case(fault_bus, trip_line=None, t_clear=None,
 
     t_clear = T_FAULT + 0.1 if t_clear is None else t_clear
 
-    # Fault at the specified bus (problem.py index → ANDES index +1)
+    # Fault at the specified bus (problem_12_2.py index → ANDES index +1)
     ss.add("Fault", {"idx": 1, "bus": fault_bus + 1,
                       "tf": T_FAULT, "tc": t_clear,
                       "xf": 0.0001, "rf": 0.0})
@@ -233,7 +233,7 @@ def is_stable(result, limit=np.pi):
 def compute_cct(fault_bus, trip_line=None, model="classical",
                 P=None, Q=None,
                 lo=0.005, hi=CCT_MAX, tol=CCT_TOL, t_end=T_END):
-    """Bisect on clearing time — same algorithm as problem.py."""
+    """Bisect on clearing time — same algorithm as problem_12_2.py."""
 
     def stable(tc):
         r = run_case(fault_bus, trip_line,
@@ -255,11 +255,11 @@ def compute_cct(fault_bus, trip_line=None, model="classical",
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Contingency list — mirrors problem.py contingencies()
+# Contingency list — mirrors problem_12_2.py contingencies()
 # ═══════════════════════════════════════════════════════════════════════
 
 def contingencies():
-    """Same contingency list as problem.py."""
+    """Same contingency list as problem_12_2.py."""
     # Islanding check: line 5 (bus 3–5) islands bus 5
     islanding = {5}
     out = [{"index": 0, "outage": None, "fault_bus": 1,
@@ -296,24 +296,24 @@ def compare_all_contingencies(model="classical", verbose=True):
 
 
 def compare_with_problem(verbose=True):
-    """Side-by-side: problem.py vs ANDES classical vs ANDES detailed."""
+    """Side-by-side: problem_12_2.py vs ANDES classical vs ANDES detailed."""
     try:
-        import problem as pb
+        import problem_12_2 as pb
     except ImportError:
-        print("problem.py not found — run from the exercise folder")
+        print("problem_12_2.py not found — run from the exercise folder")
         return None
 
     cases = contingencies()
     op = np.stack(pb.injections())
 
     if verbose:
-        print(f"  {'contingency':<46s}{'problem.py':>12s}{'ANDES cls':>11s}"
+        print(f"  {'contingency':<46s}{'problem_12_2.py':>12s}{'ANDES cls':>11s}"
               f"{'ANDES det':>11s}")
         print("  " + "─" * 80)
 
     rows = []
     for c in cases:
-        # problem.py
+        # problem_12_2.py
         cct_pb = pb.label_case(op, c["outage"], c["fault_bus"])
 
         # ANDES classical
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     print("\n=== All Contingencies — Detailed (GENROU+AVR+Gov) ===")
     compare_all_contingencies(model="detailed")
 
-    print("\n=== Side-by-side (if problem.py is available) ===")
+    print("\n=== Side-by-side (if problem_12_2.py is available) ===")
     try:
         compare_with_problem()
     except Exception as e:

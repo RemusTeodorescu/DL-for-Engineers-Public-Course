@@ -353,8 +353,7 @@ run with it.
   (parabolic), the stator slot (elliptic) and the struck panel (hyperbolic).
 - A supplement with nothing to fill in needs no light version.
 - A **hardware set** keeps one hardware notebook beside its study notebook,
-  named `*_on_the_car` (Ex11.1, Ex11.2: the JetRacer) or `*_on_the_board`
-  (Ex12.2: the latency notebook L13 runs on the Thor). It is the procedure
+  named `*_on_the_car` (Ex11: the JetRacer). It is the procedure
   that needs the hardware, it has no light form, and it is not counted. The
   study notebook runs on Colab and says where its numbers are placeholders
   for ones the hardware notebook measures.

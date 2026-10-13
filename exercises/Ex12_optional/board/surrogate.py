@@ -11,9 +11,9 @@ import sys
 import numpy as np
 import torch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # problem.py and grid39.py, one folder up
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # problem_12_2_39.py and grid39.py, one folder up
 
-import problem as pb
+import problem_12_2_39 as pb
 
 
 class GraphLayer(torch.nn.Module):                            # a network: layers in __init__, the computation in forward

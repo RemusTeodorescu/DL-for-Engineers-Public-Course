@@ -53,7 +53,7 @@ Ex12.1_pinn_grid_state_light.ipynb   the same notebook with every cell written o
 | 1 – 3 | the problem, its data, its physics: the state, the three sets of readings, the power flow equations |
 | 4 | the reference (the power flow solved by Newton–Raphson on 300 operating points) and weighted least squares on the full, the thin and the forecast set, for an agreed 0.01 p.u. |
 | 5 | a physics-informed neural network from the 14 measurements to the state - how it differs from the PINNs of L7 to L10, and why a dense network - the power flow in torch (TODO 1), the loss with no true state in it (TODO 2); the two compared; then a line out that neither is told of |
-| 6 | the inverse problem: the inertia of the plant from a recorded disturbance, by shooting and by a physics-informed fit, from two starts, after the fault and before it |
+| 6 | the inverse problem: why the inertia is wanted (not to detect the disturbance, but to use it); the recorded frequency drawn with the short circuit and the two windows; the inertia of the plant by shooting and by a physics-informed fit, from two starts, after the fault and before it |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
 | 9 | mini project proposal |

@@ -38,8 +38,8 @@ S_i = the share of random kicks at bus i (angle anywhere, frequency up to 1 Hz)
 ```
 
 The physics is `grid39.py`, shared with the new Ex12.2. The network and power flow are
-MATPOWER's `case39`; the machines' $H$, $x_d$, $x'_d$, $T'_{d0}$ are Pai (1989), **typed from
-memory and to be checked against the book**. **Assumed, not data**: a load bus has no inertia
+MATPOWER's `case39`; the machines' $H$, $x_d$, $x'_d$, $T'_{d0}$ are Pai (1989), checked on
+13 October 2026 against the IEEE 39-bus case shipped with ANDES. **Assumed, not data**: a load bus has no inertia
 and follows its neighbours within 10 ms; the machines' damping ($D/M$ = 1 1/s); a converter's
 inertia (2 s) and damping ($D/M$ = 1 1/s).
 
@@ -109,8 +109,7 @@ maps by `tools/exercises/grid39/make_snbs_data.py` (about 75 minutes on a laptop
 ### Before this is assigned
 
 The light version has been executed end to end on a CPU. Still to do (C8): a run from a fresh
-Colab T4 runtime (with the GPU timings), a review by someone other than the author, the machine
-data checked against Pai (1989). L12.1 does not yet carry this set's story.
+Colab T4 runtime (with the GPU timings) and a review by someone other than the author. L12.1 does not yet carry this set's story.
 
 ### Reference texts
 
@@ -138,7 +137,7 @@ ground truth is given, built by `tools/miniprojects/ex121_39_edge_optional_truth
 
 **Paired with L12.2 · Prediction of Power Grid Stability · Part 2**
 
-*Optional and solved: the 39-bus, edge-inference extension of the six-bus Ex12.2, written on 13 October 2026. The six-bus set is the one the course assigns; this notebook is the worked start of Ex12.2's two mini projects (MP12.2A the 39-bus grid with more converters, MP12.2B the loop on the Orin and the Thor).*
+*Optional and solved: the 39-bus, edge-inference extension of the six-bus Ex12.2, written on 13 October 2026. The six-bus set is the one the course assigns; this notebook has its own two mini projects (MP12.2A-39 the 39-bus grid with more converters, MP12.2B-39 the loop on the Orin and the Thor).*
 
 N-1 screening in real time on the IEEE 39-bus grid, in **one notebook** (policies C11 and C13).
 Every 20 ms the PMUs send a frame; for each of 35 credible faults, would the grid stay in step?
@@ -163,7 +162,7 @@ insecure  ⇔  some machine more than 180° from the centre of inertia within 3 
 converters): 2 625 cases, 108 insecure (4.1 %). The physics is `grid39.py`, shared with the new
 Ex12.1; **every value marked assumed there is assumed here**: a load bus has no inertia and
 follows its neighbours within 10 ms, the machines' and converters' damping, the converters'
-inertia (2 s). The machines' data (Pai 1989) are typed from memory and must be checked.
+inertia (2 s). The machines' data (Pai 1989) were checked against the IEEE 39-bus case shipped with ANDES.
 
 ### The notebook
 
@@ -210,7 +209,7 @@ of 1 500 frames answered, 1 124 dropped because a newer frame had arrived.
 where RK4 takes 285 after the fault, but does more arithmetic in each step. A CPU's time goes
 into arithmetic; a GPU's goes into the number of steps (each one a chain of kernel launches),
 so the gain should be larger on a GPU. **The GPU numbers have not been measured yet**: the
-first Colab T4 run must fill them in, and the Thor's are MP12.2A-39's to measure.
+first Colab T4 run must fill them in, and the Thor's are MP12.2B-39's to measure.
 
 *The fault itself stays with RK4.* A first version let the surrogate run through the fault too,
 with a flag on the faulted bus: it learned nothing about the fault (3 frames in 60) and caught
@@ -240,7 +239,7 @@ builder and rerun it.
 # on the Thor (screener), from this folder:
 python3 board/screener.py --reply-to <orin-ip> --weights Ex12.2_39_edge_surrogate.pt --device cuda [--half]
 # on the Orin (player):
-python3 board/pmu_player.py --to <thor-ip> --recording MP12.2A-39_recording.npz
+python3 board/pmu_player.py --to <thor-ip> --recording MP12.2B-39_recording.npz
 ```
 
 The player sends on a fixed 20 ms clock and measures every round trip on its own clock; the
@@ -251,7 +250,7 @@ screener always screens the newest frame and counts the ones it drops. Both writ
 
 The light version has been executed end to end on a CPU. Still to do (C8): a run from a fresh
 Colab T4 runtime, which also gives the GPU timings the text asks for; a review by someone other
-than the author; the machine data checked against Pai (1989); the scripts run on the Orin and
+than the author; the scripts run on the Orin and
 the Thor. L12.2 does not yet carry this set's story.
 
 ### Reference texts
@@ -264,10 +263,10 @@ problem and the exposition in this exercise set are original to this course.**
 
 The set ends with two mini projects (section 10). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex122_truth.py` under policy C10
+ground truth is given, built by `tools/miniprojects/ex122_39_edge_optional_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.2A · A bigger grid with more renewable power** | the IEEE 39-bus grid, 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
-| **MP12.2B · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the optional notebook's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |
+| **MP12.2A-39 · A bigger grid with more renewable power** | the IEEE 39-bus grid, 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
+| **MP12.2B-39 · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the set's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |

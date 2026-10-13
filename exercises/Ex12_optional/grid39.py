@@ -67,7 +67,8 @@ N = 39
 WS = 2 * np.pi * 50                      # synchronous speed [rad/s]
 LINES = list(zip(F, T))                  # branch k joins buses F[k] and T[k]
 
-# ── the machines (Pai 1989, 100 MVA base; typed from memory - check) ──────
+# ── the machines (Pai 1989, 100 MVA base; H, x_d, x'_d and T'_d0 checked on
+#    13 October 2026 against ANDES's ieee39_full.xlsx, which is on 1000 MVA) ─
 GEN_BUS = np.array([38, 30, 31, 32, 33, 34, 35, 36, 37, 29])    # machines 1..10
 H_GEN = np.array([500, 30.3, 35.8, 28.6, 26.0, 34.8, 26.4, 24.3, 34.5, 42.0])   # [s]
 XD = np.array([0.02, 0.295, 0.2495, 0.262, 0.67, 0.254, 0.295, 0.290, 0.2106, 0.10])

@@ -64,19 +64,19 @@ time, and the rate of change of frequency on the Nordic record.
 
 | worst bus, mean over 300 operating points | magnitude | angle | one estimate | training |
 |---|---|---|---|---|
-| weighted least squares, full set (14 readings) | 0.0030 p.u. | 0.07° | 1.1 ms | — |
-| weighted least squares, thin set (6 readings, 5 of 11 unknowns) | 0.0248 p.u. | 1.82° | 0.8 ms | — |
-| weighted least squares, forecast set | 0.0050 p.u. | 0.15° | 1.1 ms | — |
-| network, 9995 weights, forecast set, no true state | 0.0043 p.u. | 0.15° | 0.26 ms; 2 µs each in a batch of 300 | 13 s |
+| weighted least squares, full set (14 readings) | 0.0030 p.u. | 0.07° | 2.9 ms | — |
+| weighted least squares, thin set (6 readings, 5 of 11 unknowns) | 0.0240 p.u. | 1.81° | 1.8 ms | — |
+| weighted least squares, forecast set | 0.0050 p.u. | 0.15° | 1.8 ms | — |
+| network, 9995 weights, forecast set, no true state | 0.0043 p.u. | 0.15° | 0.36 ms; 3.5 µs each in a batch of 300 | 36 s |
 
 With line 1–2 out and neither told: least squares 0.0512 p.u., the network
 0.0516 p.u. (least squares told of it: 0.0070 p.u.); the network's own check
-rises from 0.28 to 2.35.
+rises from 0.29 to 2.35.
 
 | inertia (the record was made with 4.00 s) | started at 8 s | started at 2 s |
 |---|---|---|
 | after the fault, shooting and least squares | 7.41 s (misfit 0.451 Hz) | 1.83 s (0.457 Hz) |
-| after the fault, physics-informed | 3.89 s (0.002 Hz) | 3.90 s (0.002 Hz) |
+| after the fault, physics-informed | 3.89 s (0.002 Hz) | 3.89 s (0.002 Hz) |
 | before the fault, shooting and least squares | 50.00 s, the bound | 1.94 s |
 | before the fault, physics-informed | 8.35 s | 2.10 s |
 
@@ -123,8 +123,8 @@ modules from the public course repository, afresh on every run.
 
 ### Expected runtime
 
-CPU only. About a minute and a half: 15 s for the estimator, about a minute
-for the eight inertia fits.
+CPU only. About two minutes: about half a minute for the estimator, a minute
+and a half for the eight inertia fits.
 
 ### Reference texts
 
@@ -154,8 +154,8 @@ ground truth is given, built by `tools/miniprojects/ex121_truth.py` under policy
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.1A · A bigger grid, many machines** | the WSCC 9-bus system, 3 machines; a fault at bus 7 cleared after 0.10 s | a PINN for every machine's angle and speed, coupled swing equations as the residual | RK4 at 0.5 ms on the reduced network; worked example: machine 2 swings to 83.04°, CCT 0.183 s | angles within 1°, speeds within 0.01 Hz |
-| **MP12.1B · The inertia of every machine** | the 9-bus system; H and D of all three machines hidden; frequency after three faults | an inverse PINN with every H and D trainable | RK4 records every 10 ms, noise 1 mHz; worked example: inertias move the records 84-437 mHz, dampings 7-31 | inertias within 5 %, dampings within 20 %, total within 2 % |
+| **MP12.1A · The state of the 39-bus grid** | the IEEE 39-bus grid, 77 unknowns from 90 readings: PMUs, machine meters, forecasts, known zeros | the set's estimator judged by the power flow equations, scaled to 39 buses | true states by pandapower's power flow; worked example: least squares within 0.0041 p.u., 3.3 ms | worst bus within 0.01 p.u.; faster than least squares; the line out seen |
+| **MP12.1B · The inertia of every machine** | the IEEE 39-bus grid; H and D of nine machines hidden; frequency after three faults | the set's inverse problem for ten coupled machines, every H and D trainable | RK4 records every 20 ms, noise 1 mHz; worked example: inertias move the records 25-92 mHz, dampings 1.8-9.4 | inertias within 5 %, dampings within 20 %, total within 2 % |
 
 ---
 
@@ -208,24 +208,24 @@ the relabelling test (no dense network is trained here, so the notebook does
 not show that a graph network beats one), and the hand-computed label.
 
 **Section 5 measures, for the worst contingency (line 0 out, base operating
-point):** the course's simulation 219.7 ms (0.8 s to find), ANDES with the
-classical machine 209.0 ms (18 s), ANDES with GENROU, ESST1A and TGOV1
-162.6 ms (21 s). (`andes_compare.py` is from Shahariya Rasheed's ANDES comparison, whose separate supplement notebook was removed on 13 October 2026 when its essentials moved into section 5.)
+point):** the course's simulation 219.7 ms (0.3 s to find), ANDES with the
+classical machine 209.0 ms (11 s), ANDES with GENROU, ESST1A and TGOV1
+162.6 ms (19 s). (`andes_compare.py` is from Shahariya Rasheed's ANDES comparison, whose separate supplement notebook was removed on 13 October 2026 when its essentials moved into section 5.)
 
 #### What it measures (CPU, seed 88)
 
 | 216 held-out cases | mean error | worst | insecure missed | false alarms | one case | training |
 |---|---|---|---|---|---|---|
-| reference, step 2 ms | — | — | — | — | 1.7 ms | — |
-| simulation, step 5 ms (the coarsest for 5 ms) | 1.66 ms | 4.88 ms | 0 of 26 | 5 | 0.6 ms | — |
-| graph network, 6721 weights | 0.57 ms | 4.31 ms | 0 of 26 | 0 | 3 µs | 11 s |
+| reference, step 2 ms | — | — | — | — | 3.0 ms | — |
+| simulation, step 5 ms (the coarsest for 5 ms) | 1.66 ms | 4.88 ms | 0 of 26 | 5 | 1.1 ms | — |
+| graph network, 6721 weights | 0.58 ms | 4.76 ms | 0 of 26 | 0 | 7 µs | 24 s |
 
 Over all 1080 cases the 5 ms step changes 19 verdicts, the 10 ms step 53.
 
 | line 0 out, 36 held-out cases | mean error | insecure missed |
 |---|---|---|
-| network that has seen line 0 out | 0.69 ms | 0 of 11 |
-| network trained without it | 57.21 ms, all on the unsafe side | 11 of 11 |
+| network that has seen line 0 out | 0.68 ms | 0 of 11 |
+| network trained without it | 56.24 ms, all on the unsafe side | 10 of 11 (11 in an earlier run) |
 
 With the threshold raised from 140 to 185 ms the second network misses none
 and raises no false alarm: its error is a nearly constant offset, so it still
@@ -235,8 +235,8 @@ ranks the cases correctly. The 185 ms was found with the truth in hand.
 
 *The labels are simulated for every case at once.* `pb.build_cases` runs the
 same Runge–Kutta integration and the same bisection as `pb.label_case` with a
-leading case axis, and returns the same 1080 labels to the last bit in 1.7 s
-instead of three minutes. The per-case times in the table are that batched
+leading case axis, and returns the same 1080 labels to the last bit in a few
+seconds instead of three minutes. The per-case times in the table are that batched
 simulation's; one case on its own, by `pb.label_case`, takes about 0.2 s.
 
 *The lecture's four-way table has one row measured here.* L12.2 says of a
@@ -264,8 +264,8 @@ than editing a notebook. Edge inference on the Jetson boards is in the optional
 
 ### Expected runtime
 
-About two minutes on a CPU: two trainings of about ten seconds, four runs of
-the simulation, and about 40 s of ANDES (installed by the notebook on Colab).
+About a minute and a half on a CPU: two trainings of about 25 s, four runs of
+the simulation, and about 30 s of ANDES (installed by the notebook on Colab, about 30 s more).
 
 ### Reference texts
 
@@ -293,5 +293,5 @@ ground truth is given, built by `tools/miniprojects/ex122_truth.py` under policy
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.2A · A bigger grid with more renewable power** | the IEEE 39-bus grid, 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
-| **MP12.2B · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the optional notebook's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |
+| **MP12.2A · Contingency screening on the 39-bus grid** | the IEEE 39-bus grid, 10 classical machines, 35 contingencies, 150 operating points | the set's graph network, scaled to 39 buses | 5250 critical clearing times by RK4 on 2 ms; worked example: 11.4 % insecure, four contingencies carry most | no insecure case missed, at most 5 % false alarms, mean error under 5 ms |
+| **MP12.2B · The same screening with converters** | the grid of MP12.2A with 0 to 5 machines replaced by converters with half the inertia | the graph network with the inertia as a bus input | 5250 critical clearing times with converters; worked example: 22.2 % insecure, 569 hidden from a screen without converters | no insecure case missed, at most 5 % false alarms |

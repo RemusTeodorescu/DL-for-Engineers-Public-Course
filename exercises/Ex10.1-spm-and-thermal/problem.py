@@ -85,7 +85,7 @@ __all__ = [
     "FARADAY", "CAPACITY", "R_PARTICLE", "D_SOLID", "C_MAX", "C_START", "CURRENT", "L_ELECTRODE",
     "AREA", "EPS_ACTIVE", "A_SPECIFIC", "J_SURFACE", "T_END", "C_REF", "D_SCALED", "NOISE",
     "exact", "concentration", "sample_particle", "surface_points", "mass_quadrature",
-    "surface_readings", "describe_problem", "draw_particle", "draw_sandwich",
+    "surface_readings", "describe_problem", "draw_cell", "draw_particle", "draw_sandwich",
     "animate_discharge",
     "T_AMB", "T_MAX", "M_CELL", "CP_CELL", "R_CELL", "HA_CAN", "TAU_THERMAL", "THETA_PLATE",
     "EA_AGE", "BETA_AGE", "RGAS", "cell_temperature", "ageing_rate", "ageing_per_charge",
@@ -214,6 +214,35 @@ def describe_problem() -> None:
     print(f"  diffusion time   : R^2 / D_s = {R_PARTICLE ** 2 / D_SOLID:.0f} s")
     print(f"  scales           : c_ref = j t_end / R = {C_REF:.0f} mol/m^3;  D_hat = D_s t_end / R^2 = {D_SCALED:.2f}")
     print(f"  mass balance     : the mean concentration falls by 3 c_ref = {3 * C_REF:.0f} mol/m^3 over the hour")
+
+
+def draw_cell(ax=None):
+    """The cell itself, to scale beside the two common cylindrical formats:
+    an 18650 (18.6 x 65.2 mm), a 21700 (21.1 x 70.2 mm) and the FC4680
+    (46.3 x 80.2 mm, the specification sheet's dimensions). Drawn, not a
+    photograph, so the public repository carries no copyrighted image; the
+    proportions are true."""
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Ellipse, Rectangle
+    if ax is None:
+        _, ax = plt.subplots(figsize=(7.6, 3.4))
+    cells = [("18650", 18.6, 65.2, "0.82"), ("21700", 21.1, 70.2, "0.78"),
+             ("FC4680", 46.3, 80.2, "#bcd2e8")]
+    x = 0.0
+    for name, d, h, fc in cells:
+        e = d * 0.18                                         # the ellipse of the tilted top
+        ax.add_patch(Rectangle((x, 0), d, h, fc=fc, ec="0.25", lw=1.0))
+        ax.add_patch(Ellipse((x + d / 2, h), d, e, fc=fc, ec="0.25", lw=1.0))
+        ax.add_patch(Ellipse((x + d / 2, h), 0.55 * d, 0.55 * e, fc="0.65", ec="0.35", lw=0.8))   # the positive cap
+        ax.text(x + d / 2, -6, name, ha="center", va="top", fontsize=10,
+                fontweight="bold" if name == "FC4680" else "normal")
+        ax.text(x + d / 2, -14, f"{d:g} × {h:g} mm", ha="center", va="top", fontsize=8)
+        x += d + 26
+    ax.text(x + 2, 60, "BYD FC4680\nLiFePO$_4$ / graphite\n3.2 V · 15 Ah · 48 Wh\n335 g · 143 Wh/kg",
+            fontsize=9.5, va="top")
+    ax.text(x + 2, 18, "drawn to scale,\nnot a photograph", fontsize=8.5, va="top", style="italic", color="0.4")
+    ax.set_xlim(-6, x + 46); ax.set_ylim(-24, 94); ax.set_aspect("equal"); ax.axis("off")
+    return ax.figure
 
 
 def draw_particle(ax=None):

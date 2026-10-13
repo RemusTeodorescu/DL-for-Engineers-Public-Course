@@ -69,7 +69,7 @@ time, and the rate of change of frequency on the Nordic record.
 | weighted least squares, full set (14 readings) | 0.0030 p.u. | 0.07° | 2.9 ms | — |
 | weighted least squares, thin set (6 readings, 5 of 11 unknowns) | 0.0240 p.u. | 1.81° | 1.8 ms | — |
 | weighted least squares, forecast set | 0.0050 p.u. | 0.15° | 1.8 ms | — |
-| neural network, 9995 weights, forecast set, trained with the power flow, no true state | 0.0043 p.u. | 0.15° | 0.36 ms; 3.5 µs each in a batch of 300 | 36 s |
+| network, 9995 weights, forecast set, no true state | 0.0043 p.u. | 0.15° | 0.36 ms; 3.5 µs each in a batch of 300 | 36 s |
 
 With line 1–2 out and neither told: least squares 0.0512 p.u., the network
 0.0516 p.u. (least squares told of it: 0.0070 p.u.); the network's own check
@@ -156,7 +156,7 @@ ground truth is given, built by `tools/miniprojects/ex121_truth.py` under policy
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.1A · The state of the 39-bus grid** | the IEEE 39-bus grid, 77 unknowns from 90 readings: PMUs, machine meters, forecasts, known zeros | the set's neural network trained with the power flow equations, scaled to 39 buses | true states by pandapower's power flow; worked example: least squares within 0.0041 p.u., 3.3 ms | worst bus within 0.01 p.u.; faster than least squares; the line out seen |
+| **MP12.1A · The state of the 39-bus grid** | the IEEE 39-bus grid, 77 unknowns from 90 readings: PMUs, machine meters, forecasts, known zeros | the set's estimator judged by the power flow equations, scaled to 39 buses | true states by pandapower's power flow; worked example: least squares within 0.0041 p.u., 3.3 ms | worst bus within 0.01 p.u.; faster than least squares; the line out seen |
 | **MP12.1B · The inertia of every machine** | the IEEE 39-bus grid; H and D of nine machines hidden; frequency after three faults | the set's inverse problem for ten coupled machines, every H and D trainable | RK4 records every 20 ms, noise 1 mHz; worked example: inertias move the records 25-92 mHz, dampings 1.8-9.4 | inertias within 5 %, dampings within 20 %, total within 2 % |
 
 ---

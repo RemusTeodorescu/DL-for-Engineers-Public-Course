@@ -29,7 +29,7 @@ from grid39 import N, IS_GEN, GEN_BUS, LINES, XY
 
 DATA = "Ex12.1_39_edge_snbs_maps.npz"
 URL = ("https://raw.githubusercontent.com/RemusTeodorescu/DL-for-Engineers-Public-Course/main/"
-       "exercises/Ex12.1_39_edge-basin-stability/" + DATA)
+       "exercises/Ex12.1_39_edge_optional-basin-stability/" + DATA)
 GROUPS = ("train", "test_in", "out_re", "out_line")
 
 

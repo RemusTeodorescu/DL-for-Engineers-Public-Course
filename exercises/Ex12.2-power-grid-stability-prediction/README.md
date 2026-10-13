@@ -37,15 +37,21 @@ Ex12.2_on_the_board.ipynb                      the latency notebook: on Colab, a
 |---|---|
 | 1 – 3 | the problem, its data, its physics: the contingencies, the swing equation, one case cleared 10 ms before and after its critical time |
 | 4 | the reference (RK4 on a 2 ms step, bisected to 2 ms, all 1080 cases) and the same simulation on steps of 5, 10 and 20 ms, for an agreed 5 ms |
-| 5 | a graph network: the graph layer (TODO 1), the loss (TODO 2), trained on 144 operating points and tested on 36 held out; the three compared |
-| 6 | the same network trained without line 0 out and asked about it; the threshold raised until nothing is missed |
-| 7 | what the notebook says |
-| 8 | the report and its PDF |
-| 9 | mini project proposal |
+| 5 | the worst contingency in ANDES, a dedicated stability solver: the classical machine and a machine with exciter and governor (added 13 October 2026) |
+| 6 | a graph network: the graph layer (TODO 1), the loss (TODO 2), trained on 144 operating points and tested on 36 held out; the three compared |
+| 7 | the same network trained without line 0 out and asked about it; the threshold raised until nothing is missed |
+| 8 | what the notebook says |
+| 9 | the report and its PDF |
+| 10 | mini project proposal |
 
 It replaces notebooks 00 to 05. Left to the lecture: the dense baseline and
 the relabelling test (no dense network is trained here, so the notebook does
 not show that a graph network beats one), and the hand-computed label.
+
+**Section 5 measures, for the worst contingency (line 0 out, base operating
+point):** the course's simulation 219.7 ms (0.8 s to find), ANDES with the
+classical machine 209.0 ms (18 s), ANDES with GENROU, ESST1A and TGOV1
+162.6 ms (21 s). The supplement keeps the full ANDES comparison and dataset.
 
 ### What it measures (CPU, seed 88)
 
@@ -99,8 +105,8 @@ by hand; neither has a light form.
 
 ## Expected runtime
 
-CPU only. About forty seconds: two trainings of about ten seconds, and four
-runs of the simulation.
+About two minutes on a CPU: two trainings of about ten seconds, four runs of
+the simulation, and about 40 s of ANDES (installed by the notebook on Colab).
 
 ## Reference texts
 
@@ -122,12 +128,12 @@ its two renames.
 
 ## Mini project proposal
 
-The set ends with two mini projects (section 9). Each student chooses one
+The set ends with two mini projects (section 10). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
 ground truth is given, built by `tools/miniprojects/ex122_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.2A · A bigger grid, and conditions it never saw** | the 9-bus system; 12 fault-and-trip cases at nine loads from 70 to 130 %; trained on 80-120 % | the graph network predicting the critical clearing time, tested outside its training loads | CCT of all 108 cases by bisection, 1 ms; worked example: 0.279 s at 70 % load down to 0.104 s at 130 % | CCT within 10 ms (training) and 20 ms (held out); all unstable cases flagged |
-| **MP12.2B · Which line tripped?** | a line opened; from 2 s of the three machines' frequencies, which one? 30 events | a graph network from records and topology to the tripped line, with a confidence | simulated line trips at five loads, noise 1 mHz; worked example: lines 4-5 and 4-6 come within 21.50 mHz | all 30 events identified; under 10 ms per event |
+| **MP12.2A · A bigger grid with more renewable power** | the IEEE 39-bus grid, 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
+| **MP12.2B · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the optional notebook's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |

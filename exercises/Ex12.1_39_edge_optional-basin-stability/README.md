@@ -1,8 +1,8 @@
-# Ex_12.1_39_edge — Basin Stability of a Grid
+# Ex_12.1_39_edge_optional — Basin Stability of a Grid
 
 **Paired with L12.1 · Power Grid Stability Estimation · Part 2**
 
-*The 39-bus, edge-inference extension of the six-bus Ex12.1, written on 13 October 2026. The six-bus set is the one the course assigns; this one is for students who want the larger grid.*
+*Optional and solved: the 39-bus, edge-inference extension of the six-bus Ex12.1, written on 13 October 2026. The six-bus set is the one the course assigns; this one is for students who want the larger grid.*
 
 Basin stability on the IEEE 39-bus grid, in **one notebook** (policies C11 and C13). After a
 large disturbance, does the grid come back into step, and from which buses is it easiest to
@@ -32,8 +32,8 @@ inertia (2 s) and damping ($D/M$ = 1 1/s).
 ## The notebook
 
 ```
-Ex12.1_39_edge_basin_stability.ipynb         the exercise: two TODO cells, the answer in the comment above each
-Ex12.1_39_edge_basin_stability_light.ipynb   the same notebook with every cell written out
+Ex12.1_39_edge_optional_basin_stability.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex12.1_39_edge_optional_basin_stability_light.ipynb   the same notebook with every cell written out
 Ex12.1_39_edge_snbs_maps.npz                 the maps the network learns from (tools/exercises/grid39/make_snbs_data.py)
 ```
 
@@ -89,7 +89,7 @@ bus, different draws).
 | `grid39.py` | generated: the IEEE 39-bus grid and its model, from `tools/exercises/grid39/grid39_src.py` by `sync.py` |
 | `problem.py` | this set: the maps, the numbers a bus is described by, the graph |
 
-**The notebook is generated**, both forms from `tools/exercises/ex121_39_edge/build_ex121_39_edge.py`; the
+**The notebook is generated**, both forms from `tools/exercises/ex121_39_edge_optional/build_ex121_39_edge_optional.py`; the
 maps by `tools/exercises/grid39/make_snbs_data.py` (about 75 minutes on a laptop CPU, seeded).
 
 ## Before this is assigned
@@ -110,11 +110,10 @@ exposition in this exercise set are original to this course.**
 
 The set ends with two mini projects (section 9). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex121_39_edge_truth.py` under policy C10
+ground truth is given, built by `tools/miniprojects/ex121_39_edge_optional_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
 | **MP12.1A-39 · Where to put grid-forming converters** | six machines replaced by converters; make two of them grid-forming - which two? | the set's graph network with grid-forming as an input, ranking all 15 placements | basin-stability maps of all 16 choices, 300 kicks per bus; worked example: 0.63 at the converters with none, 0.72 with the best pair | maps within 0.05; a pair within 0.02 of the best mean at the converters |
 | **MP12.1B-39 · The inertia of every machine** | H and D/M of the nine local machines hidden; frequency after three branch trips | an inverse physics-informed network with every H and D/M trainable | RK4 records every 20 ms, noise 1 mHz; worked example: inertias move the records 1.22-9.04 mHz, dampings 0.15-1.30 | inertias within 5 %, dampings within 20 %, total within 2 % |
-

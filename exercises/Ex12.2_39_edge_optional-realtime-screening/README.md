@@ -1,8 +1,8 @@
-# Ex_12.2_39_edge — Real-Time Stability Screening on the Edge
+# Ex_12.2_39_edge_optional — Real-Time Stability Screening on the Edge
 
 **Paired with L12.2 · Prediction of Power Grid Stability · Part 2**
 
-*The 39-bus, edge-inference extension of the six-bus Ex12.2, written on 13 October 2026. The six-bus set is the one the course assigns; this one is for students who want the larger grid and the boards.*
+*Optional and solved: the 39-bus, edge-inference extension of the six-bus Ex12.2, written on 13 October 2026. The six-bus set is the one the course assigns; this notebook is the worked start of Ex12.2's two mini projects (MP12.2A the 39-bus grid with more converters, MP12.2B the loop on the Orin and the Thor).*
 
 N-1 screening in real time on the IEEE 39-bus grid, in **one notebook** (policies C11 and C13).
 Every 20 ms the PMUs send a frame; for each of 35 credible faults, would the grid stay in step?
@@ -32,8 +32,8 @@ inertia (2 s). The machines' data (Pai 1989) are typed from memory and must be c
 ## The notebook
 
 ```
-Ex12.2_39_edge_realtime_screening.ipynb         the exercise: two TODO cells, the answer in the comment above each
-Ex12.2_39_edge_realtime_screening_light.ipynb   the same notebook with every cell written out
+Ex12.2_39_edge_optional_realtime_screening.ipynb         the exercise: two TODO cells, the answer in the comment above each
+Ex12.2_39_edge_optional_realtime_screening_light.ipynb   the same notebook with every cell written out
 Ex12.2_39_edge_surrogate.pt                     the trained surrogate (written by the notebook with FULL_TRAINING = True)
 board/pmu_player.py                     the PMU player: the Orin in the mini projects
 board/screener.py                       the screener: the Thor in the mini projects
@@ -95,7 +95,7 @@ work - and what holds explicit RK4 below about 14 ms.
 | `grid39.py` | generated: the IEEE 39-bus grid and its model, from `tools/exercises/grid39/grid39_src.py` by `sync.py` |
 | `problem.py` | this set: operating states, the fault phase, the reference, the verdict, the surrogate's inputs, the PMU recording |
 
-**The notebook is generated**, both forms from `tools/exercises/ex122_39_edge/build_ex122_39_edge.py`. Edit the
+**The notebook is generated**, both forms from `tools/exercises/ex122_39_edge_optional/build_ex122_39_edge_optional.py`. Edit the
 builder and rerun it.
 
 ## On the boards (the mini projects)
@@ -128,11 +128,10 @@ problem and the exposition in this exercise set are original to this course.**
 
 The set ends with two mini projects (section 10). Each student chooses one
 mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex122_39_edge_truth.py` under policy C10
+ground truth is given, built by `tools/miniprojects/ex122_truth.py` under policy C10
 (`COURSE_POLICIES.md`), with a worked example of each.
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP12.2A-39 · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the set's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |
-| **MP12.2B-39 · More renewable power, and what converters do in a fault** | 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
-
+| **MP12.2A · A bigger grid with more renewable power** | the IEEE 39-bus grid, 50 to 80 % converters with low inertia and a current limit in faults | a retrained surrogate with the converters' behaviour, screening on the boards | 20 states x 35 contingencies x two fault behaviours, RK4 on 5 ms; worked example: 18 % insecure if they keep their power, none if they limit it | every insecure case caught, at most 5 % false alarms, within 20 ms |
+| **MP12.2B · The real-time loop on the two boards** | the Orin plays ten minutes of PMU frames, the Thor screens 35 contingencies per frame | the optional notebook's surrogate, made fast on the Thor (half precision, compiled graph) | reference verdicts for one frame a second, RK4 on 10 ms; worked example: two contingencies insecure in every frame | verdicts agree; round trip under 20 ms for 99 % of frames |

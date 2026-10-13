@@ -386,8 +386,16 @@ version, so it holds under C11 as it stands.*
 - Exceptions, where the extra digits are the point: a tolerance or a check
   (`1e-12`), a value quoted from a standard or a datasheet as it is given,
   and a learning rate or other hyperparameter.
+- **No cryptic numbers.** Every number on a slide or in a notebook's output
+  says what it is and in what unit, where it stands: a table's column heads
+  name the quantity and carry the unit in brackets (`error in y [-]`,
+  `error in T [K]`, never a bare `steam` or `kelvin`), and a lone figure in
+  a card or note names its quantity in the same sentence. A number whose
+  meaning must be reconstructed from the narration or the notebook has no
+  place on the slide. (The lecturer, 13 October 2026, at L10.2's
+  grid-refinement table.)
 
-*New, 29 September 2026.*
+*New, 29 September 2026; the no-cryptic-numbers rule 13 October 2026.*
 
 ## C13 · Part 2: a forward-problem notebook tells one story
 

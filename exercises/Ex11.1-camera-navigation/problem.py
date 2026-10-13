@@ -201,3 +201,140 @@ def describe_problem() -> None:
     print(f"  track            : a stadium, straights {STRAIGHT:.1f} m, turns of radius {RADIUS:.1f} m, lap {LAP:.2f} m")
     for v, f in ((1.0, 30.0), (2.0, 20.0), (2.0, 5.0)):
         print(f"  blind distance   : {100 * v / f:.0f} cm at {v:.0f} m/s and {f:.0f} decisions a second")
+
+
+# ------------------------------------------------------- obstacles (Ex_11 sections 5 - 6)
+#: an obstacle blocks the path when it stands in the near part of the frame
+#: (below this depth, 0 the bottom row, 1 the top row) and overlaps the lane
+BLOCK_DEPTH = 0.45
+LANE_HALF = 0.30          #: half the lane the car needs, in the frame's units (1 is half the frame)
+
+
+def obstacle_frames(n, seed=0, p_obstacle=0.8, p_shadow=0.4):
+    """``n`` frames of the line with, on some of them, an obstacle - a box on
+    the floor, dark with a lighter front face and sharp edges, smaller the
+    further away it stands - and on some a shadow, a soft dark patch with no
+    edges, which is NOT an obstacle. Returns ``(images, blocked, where)``:
+    images ``(n, 1, H, W)``, ``blocked`` 1 when an obstacle stands in the lane
+    in the near part of the frame (:data:`BLOCK_DEPTH`, :data:`LANE_HALF`),
+    and ``where`` the obstacle's ``(depth, lateral)`` or ``nan``."""
+    rng = np.random.default_rng(seed)
+    img, _ = frames(n, "off-line", seed=seed + 1000)
+    img = img[:, 0].copy()
+    rows = np.arange(H)[:, None]
+    cols = np.arange(W)[None, :]
+    blocked = np.zeros(n, np.int64)
+    where = np.full((n, 2), np.nan)
+    has_obs = rng.random(n) < p_obstacle
+    has_shadow = rng.random(n) < p_shadow
+    for k in range(n):
+        if has_shadow[k]:                                  # a soft dark patch: not an obstacle
+            sx, sy = rng.uniform(8, W - 8), rng.uniform(H * 0.4, H - 4)
+            img[k] -= 0.22 * np.exp(-((cols - sx) / rng.uniform(5, 9)) ** 2 - ((rows - sy) / rng.uniform(3, 6)) ** 2)
+        if has_obs[k]:
+            depth = rng.uniform(0.05, 0.95)                # 0 near, 1 far
+            lat = rng.uniform(-0.7, 0.7)                   # the obstacle's centre, -1 left edge, +1 right edge
+            scale = 1.0 - 0.7 * depth
+            bw, bh = 14 * scale, 11 * scale                # its size in pixels
+            base = (H - 1) * (1 - depth)                   # the row where it stands on the floor
+            cx = (W - 1) / 2 * (1 + lat)
+            inside = (np.abs(cols - cx) < bw / 2) & (rows <= base) & (rows > base - bh)
+            face = inside & (rows > base - 0.35 * bh)
+            img[k] = np.where(inside, 0.12, img[k])        # the dark box
+            img[k] = np.where(face, 0.30, img[k])          # its lighter front face
+            where[k] = depth, lat
+            blocked[k] = int(depth < BLOCK_DEPTH and abs(lat) < LANE_HALF + bw / W)
+    img = np.clip(img + rng.normal(0, NOISE / 2, img.shape), 0, 1)
+    return img[:, None].astype(np.float32), blocked, where
+
+
+def dark_rule(images, threshold=0.12):
+    """The classical obstacle rule: in the lower half of the frame, in the
+    lane, is anything darker than the floor by ``threshold``? Returns 1 for
+    blocked. A shadow is dark too, which is where it fails."""
+    n, _, h, w = images.shape
+    near = images[:, 0, h // 2:, int(w * (0.5 - LANE_HALF / 2)): int(w * (0.5 + LANE_HALF / 2)) + 1]
+    floor = np.median(images[:, 0, h // 2:, :], axis=(1, 2))
+    dark = (near < (floor[:, None, None] - threshold)).mean(axis=(1, 2))
+    return (dark > 0.04).astype(np.int64)
+
+
+# ---------------------------------------------- the A-to-B course and the avoidance strategies
+#: obstacles on a straight course from A (x = 0) to B (x = COURSE): (x, y, radius) in metres, ASSUMED
+COURSE = 6.0
+OBSTACLES = ((1.5, 0.00, 0.08), (3.0, 0.06, 0.08), (4.5, -0.05, 0.08))
+CAR_HALF = 0.10           #: m, half the car's width, assumed
+RANGE = 0.70              #: m, how far ahead the camera's "blocked" region reaches, assumed
+K_FIELD = 0.03            #: the potential field's strength, m
+
+
+def avoid(strategy, rate_hz=10.0, speed=1.0, p_miss=0.0, p_false=0.0, seed=0, dt=2e-3, t_max=30.0):
+    """Drive from A to B with one avoidance strategy and a decision ``rate_hz``
+    times a second. Every decision sees "blocked" when an obstacle is within
+    :data:`RANGE` ahead and inside the lane, wrongly with the classifier's
+    miss and false-alarm rates. Strategies:
+
+    ``"stop"``   blocked: stand still; free: follow the line;
+    ``"steer"``  blocked: aim at a lane 0.30 m to the side away from the
+                 obstacle, slowed to 60 %, held 0.5 m past it, then back;
+    ``"field"``  one aim distance ahead, aim at the lowest point across the
+                 lane of ``U(y) = y**2 + sum K/d_i(y)``: the pull back to the
+                 line plus a push from every obstacle within range - it needs
+                 where the obstacle is, not only that it is there.
+
+    Returns ``dict(time, clearance, path, reached)``: the time to B (``inf``
+    when B is not reached), the smallest gap between car and obstacle in
+    metres (negative is a collision) and the path."""
+    rng = np.random.default_rng(seed)
+    x, y, th = 0.0, 0.0, 0.0
+    steer, v, y_ref, hold_until = 0.0, speed, 0.0, -1.0
+    next_dec, t, clear, path = 0.0, 0.0, np.inf, [(0.0, 0.0)]
+    obs = np.array(OBSTACLES)
+    while t < t_max and x < COURSE:
+        if t >= next_dec - 1e-12:
+            next_dec += 1.0 / rate_hz
+            rel = obs[:, :2] - [x, y]
+            fwd = rel @ [np.cos(th), np.sin(th)]
+            side = rel @ [-np.sin(th), np.cos(th)]
+            ahead = (fwd > 0) & (fwd < RANGE) & (np.abs(side) < 0.15 + obs[:, 2] + CAR_HALF)
+            seen = bool(ahead.any())
+            if seen and rng.random() < p_miss:
+                seen = False
+            elif not seen and rng.random() < p_false:
+                seen = True
+            if strategy == "stop":
+                v = 0.0 if seen else speed
+                target = (x + AIM, 0.0)
+            elif strategy == "steer":
+                if seen and ahead.any():
+                    i = int(np.argmin(np.where(ahead, fwd, np.inf)))
+                    y_ref = -0.30 if obs[i, 1] >= y else 0.30
+                    hold_until = obs[i, 0] + 0.5
+                v = 0.6 * speed if x < hold_until else speed
+                if x >= hold_until:
+                    y_ref = 0.0
+                target = (x + AIM, y_ref)
+            else:                                          # potential field
+                # U one aim distance ahead, across the lane: the pull back to the
+                # line, (y - 0)^2, plus K/d for every obstacle within range; the
+                # car aims at the lowest point of U.
+                ax = x + AIM
+                ys = np.linspace(-0.6, 0.6, 241)
+                U = ys ** 2
+                for (ox, oy, r) in obs:
+                    if abs(ox - x) < RANGE and ox > x - r:
+                        d = np.maximum(np.hypot(ax - ox, ys - oy) - r - CAR_HALF, 0.01)
+                        U = U + K_FIELD / d
+                v = speed
+                target = (ax, float(ys[np.argmin(U)]))
+            alpha = np.arctan2(target[1] - y, target[0] - x) - th
+            steer = float(np.clip(np.arctan(2 * WHEELBASE * np.sin(alpha) / AIM), -STEER_MAX, STEER_MAX))
+        x += v * np.cos(th) * dt
+        y += v * np.sin(th) * dt
+        th += v / WHEELBASE * np.tan(steer) * dt
+        t += dt
+        gaps = np.hypot(obs[:, 0] - x, obs[:, 1] - y) - obs[:, 2] - CAR_HALF
+        clear = min(clear, float(gaps.min()))
+        if len(path) == 0 or abs(x - path[-1][0]) > 0.02 or abs(y - path[-1][1]) > 0.01:
+            path.append((round(x, 3), round(y, 3)))
+    return dict(time=t if x >= COURSE else np.inf, clearance=clear, path=path, reached=x >= COURSE)

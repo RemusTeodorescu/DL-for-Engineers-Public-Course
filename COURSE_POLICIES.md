@@ -284,6 +284,14 @@ run with it.
   the proposal is written; the full data set is built when a student chooses
   the project. Both follow the rules below. Ex07.1's is
   `tools/miniprojects/ex071_truth.py`.
+- **The ground truth belongs to the mini project, not to the exercise set,
+  and stays in the private repository** (13 October 2026). Its files are
+  written to `tools/miniprojects/data/` and committed there, never into
+  `exercises/` and never to the public repository (`sync_public.py` refuses
+  any file named `MP...`). A student receives the files of the project they
+  chose, from the lecturer. A file that holds what the student must find - the
+  hidden parameters of an inverse problem, such as `MP12.1B_truth.npz` beside
+  `MP12.1B_readings.npz` - is kept for grading and not handed out.
 
 ### Building a mini project's ground truth
 

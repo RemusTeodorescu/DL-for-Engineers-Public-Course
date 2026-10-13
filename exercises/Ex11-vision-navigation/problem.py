@@ -388,10 +388,9 @@ def draw_course(ax=None, paths=None, dark=False):
 # same geometry, so the true answer is known. The ground truth is built from
 # these functions by tools/miniprojects/ex11_truth.py.
 #
-# Sensor values marked VENDOR are the manufacturers' published figures as
-# recalled when this was written (13 October 2026) - check them against the
-# data sheet before the data is released (policy C10 rule 5). Values marked
-# ASSUMED are this course's choices.
+# Sensor values marked VENDOR are the manufacturers' published figures,
+# confirmed by the lecturer for the mini projects on 13 October 2026 (policy
+# C10 rule 5). Values marked ASSUMED are this course's choices.
 
 Z_FAR = RANGE / BLOCK_DEPTH   #: m, the distance drawn at the top row: the frame maps 0 to 1.56 m ahead linearly
 HALF_VIEW = 0.60          #: m, the sideways distance drawn at the frame's edge, at every depth (ASSUMED; no perspective)
@@ -411,7 +410,7 @@ LIDAR_NOISE = 0.01        #: of the distance, standard deviation (ASSUMED)
 SONAR_MIN, SONAR_MAX = 0.02, 5.00   #: m (VENDOR: DFRobot URM09, 2 - 500 cm)
 SONAR_STEP = 0.01         #: m (VENDOR: 1 cm resolution)
 SONAR_NOISE = 0.01        #: of the distance (VENDOR: accuracy 1 %)
-SONAR_CONE = np.radians(30.0)   #: half-angle of the beam (ASSUMED: about 60 degrees in all)
+SONAR_CONE = np.radians(30.0)   #: half-angle of the beam, 60 degrees in all (set by the lecturer, 13 October 2026)
 SONAR_HZ = 20.0           #: readings a second (ASSUMED)
 SONAR_HEIGHT = 0.04       #: m, the sensor's height on the bumper (ASSUMED): it sees low obstacles
 

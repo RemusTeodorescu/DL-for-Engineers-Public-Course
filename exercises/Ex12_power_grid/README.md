@@ -71,9 +71,11 @@ time, and the rate of change of frequency on the Nordic record.
 | weighted least squares, forecast set | 0.0050 p.u. | 0.15° | 1.8 ms | — |
 | neural network, 9995 weights, forecast set, trained with the power flow, no true state | 0.0043 p.u. | 0.15° | 0.36 ms; 3.5 µs each in a batch of 300 | 36 s |
 
+Over all buses and operating points (RMSE, forecast set): least squares 0.0042 p.u. and 0.084°, the network 0.0034 p.u. and 0.089°; the angle error is largest at bus 5, the end of the grid.
+
 With line 1–2 out and neither told: least squares 0.0512 p.u., the network
 0.0516 p.u. (least squares told of it: 0.0070 p.u.); the network's own check
-rises from 0.29 to 2.35.
+rises from a median of 0.23 (the expected 3/14 with the right model) to 1.31.
 
 | inertia (the record was made with 4.00 s) | started at 8 s | started at 2 s |
 |---|---|---|

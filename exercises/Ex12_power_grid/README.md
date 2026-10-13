@@ -16,19 +16,21 @@ inference on the Jetson boards is optional and solved, in `exercises/Ex12_option
 **Paired with L12.1 · Power Grid Stability Estimation · Part 2**
 
 State estimation on a six-bus transmission grid, in **one notebook** (course
-policies C11 and C13). A control room sees a few meters and has to say what
-the voltage is at every bus. Students do that with the estimator every
-utility runs, weighted least squares, and with a network that proposes the
-state and is judged by the power flow equations, and compare the two on
-accuracy and on time. Then a line faults, the local plant swings, and its
-inertia is found from the frequency it recorded.
+policies C11 and C13). The state of the grid - the voltage magnitude and
+phase angle at every bus - is computed from a small number of noisy
+measurements and the power flow equations. Students do it with weighted least
+squares, the method used in control centres, and with a neural network that
+returns the state and is trained with the power flow equations, and compare
+the two on accuracy and computing time. Then a short circuit on a line makes
+the rotor angle of the local generator oscillate, and the generator's inertia
+constant is estimated from the frequency recorded at its terminals.
 
 ### The problem
 
 ```
 P_i = V_i Σ_k V_k (G_ik cos θ_ik + B_ik sin θ_ik)        the power flow equations,
 Q_i = V_i Σ_k V_k (G_ik sin θ_ik − B_ik cos θ_ik)        at every bus
-z_j = h_j(V, θ) + noise                                   every reading is a function of the state
+z_j = h_j(V, θ) + noise                                   every measurement is a function of the state
 dδ/dt = ω − ω_s                                           the swing equation of the plant
 (2H/ω_s) dω/dt = P_m − P_e(δ) − D (ω − ω_s)/ω_s
 ```

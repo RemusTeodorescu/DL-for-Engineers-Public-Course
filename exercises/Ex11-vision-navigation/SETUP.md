@@ -1,4 +1,4 @@
-# Ex_11.1 — Setup Guide
+# Ex_11 — Setup Guide for the JetRacer (mini projects)
 
 **Print this and keep it on the bench.** Everything here happens before any
 machine learning.
@@ -78,7 +78,7 @@ is a wasted afternoon.
 
 ## 6 · Then, and only then
 
-Open `Ex_11.1_00_hardware_check.ipynb` from this exercise.
+Open `Ex11_on_the_car.ipynb` from this exercise.
 
 ---
 

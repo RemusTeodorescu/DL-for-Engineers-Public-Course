@@ -167,13 +167,15 @@ ground truth is given, built by `tools/miniprojects/ex121_truth.py` under policy
 
 **Paired with L12.2 · Prediction of Power Grid Stability · Part 2**
 
-N-1 screening on the six-bus grid of Ex_12.1, in **one notebook** (course
-policies C11 and C13). A line faults and the protection needs 140 ms to clear
-it: does the local plant stay in step? The answer is the critical clearing
-time, and finding it takes a simulation in time for every line and every
-operating point. Students compute it by simulation and by a graph network
-trained on simulations, compare the two on accuracy and on time, and then ask
-the network about a line it has never seen out.
+Contingency screening on the six-bus grid of Ex_12.1, in **one notebook**
+(course policies C11 and C13). After a short circuit on a line the protection
+opens the line within 140 ms; the question is whether the local generator
+stays in synchronism with the rest of the grid. The answer is the critical
+clearing time - the longest short circuit the generator withstands - and
+finding it takes a simulation in time for every line and every operating
+point. Students compute it by simulation and by a graph neural network trained
+on simulated results, compare the two on accuracy and computing time, and then
+test the network on a line outage it has never seen.
 
 ### The problem
 
@@ -199,10 +201,10 @@ Ex12.2_gnn_contingency_screening_light.ipynb   the same notebook with every cell
 | section | what the student does |
 |---|---|
 | 1 – 3 | the problem, its data, its physics: the contingencies, the swing equation, one case cleared 10 ms before and after its critical time |
-| 4 | the reference (RK4 on a 2 ms step, bisected to 2 ms, all 1080 cases) and the same simulation on steps of 5, 10 and 20 ms, for an agreed 5 ms |
+| 4 | why a simulation in time (no closed form); the reference (RK4 on a 2 ms step, bisection to 2 ms, all 1080 cases) and the same simulation on steps of 5, 10 and 20 ms, for an agreed 5 ms; the four methods and their roles |
 | 5 | the worst contingency in ANDES, a dedicated stability solver: the classical machine and a machine with exciter and governor (added 13 October 2026) |
-| 6 | a graph network: the graph layer (TODO 1), the loss (TODO 2), trained on 144 operating points and tested on 36 held out; the three compared |
-| 7 | the same network trained without line 0 out and asked about it; the threshold raised until nothing is missed |
+| 6 | a graph neural network - why a graph network, why it is not a PINN, its architecture and training in a table - the graph layer (TODO 1), the loss (TODO 2); mean error, RMSE, missed cases and false alarms, the errors drawn per contingency |
+| 7 | why test an unseen line; the same network trained without line 0 out and asked about it, drawn against the simulation; the threshold raised until nothing is missed, drawn |
 | 8 | what the notebook says |
 | 9 | the report and its PDF |
 | 10 | mini project proposal |
@@ -222,7 +224,9 @@ classical machine 209.0 ms (11 s), ANDES with GENROU, ESST1A and TGOV1
 |---|---|---|---|---|---|---|
 | reference, step 2 ms | — | — | — | — | 3.0 ms | — |
 | simulation, step 5 ms (the coarsest for 5 ms) | 1.66 ms | 4.88 ms | 0 of 26 | 5 | 1.1 ms | — |
-| graph network, 6721 weights | 0.58 ms | 4.76 ms | 0 of 26 | 0 | 7 µs | 24 s |
+| graph neural network, 6721 weights | 0.58 ms | 4.76 ms | 0 of 26 | 0 | 4 µs | 23 s |
+
+RMSE: the 5 ms simulation 2.19 ms, the network 0.86 ms.
 
 Over all 1080 cases the 5 ms step changes 19 verdicts, the 10 ms step 53.
 

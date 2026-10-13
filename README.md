@@ -117,17 +117,14 @@ to see the library files and the set's README.
   - Ex11_vision_navigation - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex11-vision-navigation/Ex11_vision_navigation.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex11-vision-navigation/Ex11_vision_navigation_light.ipynb)
 - `exercises/Ex12.1-power-grid-stability-estimation/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12.1-power-grid-stability-estimation)
   - Ex12.1_pinn_grid_state - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.1-power-grid-stability-estimation/Ex12.1_pinn_grid_state.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.1-power-grid-stability-estimation/Ex12.1_pinn_grid_state_light.ipynb)
-- `exercises/Ex12.1_39_edge_optional-basin-stability/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12.1_39_edge_optional-basin-stability)
-  - Ex12.1_39_edge_optional_basin_stability - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.1_39_edge_optional-basin-stability/Ex12.1_39_edge_optional_basin_stability.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.1_39_edge_optional-basin-stability/Ex12.1_39_edge_optional_basin_stability_light.ipynb)
 - `exercises/Ex12.2-power-grid-stability-prediction/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12.2-power-grid-stability-prediction)
   - Ex12.2_gnn_contingency_screening - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_gnn_contingency_screening.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_gnn_contingency_screening_light.ipynb)
   - Ex12.2_on_the_board - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2-power-grid-stability-prediction/Ex12.2_on_the_board.ipynb)
-- `exercises/Ex12.2_39_edge_optional-realtime-screening/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12.2_39_edge_optional-realtime-screening)
-  - Ex12.2_39_edge_optional_realtime_screening - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2_39_edge_optional-realtime-screening/Ex12.2_39_edge_optional_realtime_screening.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12.2_39_edge_optional-realtime-screening/Ex12.2_39_edge_optional_realtime_screening_light.ipynb)
+- `exercises/Ex12_optional/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12_optional)
 
 ## Licence
 
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 27 lecture PDFs, 18 recordings and 18 exercise sets.
+Synced from the development repository; 27 lecture PDFs, 18 recordings and 17 exercise sets.

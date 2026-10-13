@@ -351,8 +351,7 @@ run with it.
   - is one notebook **per problem**, each standing alone with its own report
   and its own mini project. Ex07.2, *Benchmark PDEs*, is the one: the die
   (parabolic), the stator slot (elliptic) and the struck panel (hyperbolic).
-- A supplement with nothing to fill in needs no light version (Ex12.2's
-  comparison with ANDES).
+- A supplement with nothing to fill in needs no light version.
 - A **hardware set** keeps one hardware notebook beside its study notebook,
   named `*_on_the_car` (Ex11.1, Ex11.2: the JetRacer) or `*_on_the_board`
   (Ex12.2: the latency notebook L13 runs on the Thor). It is the procedure

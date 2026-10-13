@@ -29,7 +29,6 @@ classical machine model's: no exciter, no governor, first swing only.
 ```
 Ex12.2_gnn_contingency_screening.ipynb         the exercise: two TODO cells, the answer in the comment above each
 Ex12.2_gnn_contingency_screening_light.ipynb   the same notebook with every cell written out
-Ex12.2_supplement_andes_comparison.ipynb       optional supplement: the labels checked against ANDES (contributed by Shahariya Rasheed)
 Ex12.2_on_the_board.ipynb                      the latency notebook: on Colab, and on the Jetson Thor in L13
 ```
 
@@ -51,7 +50,7 @@ not show that a graph network beats one), and the hand-computed label.
 **Section 5 measures, for the worst contingency (line 0 out, base operating
 point):** the course's simulation 219.7 ms (0.8 s to find), ANDES with the
 classical machine 209.0 ms (18 s), ANDES with GENROU, ESST1A and TGOV1
-162.6 ms (21 s). The supplement keeps the full ANDES comparison and dataset.
+162.6 ms (21 s). (`andes_compare.py` is from Shahariya Rasheed's ANDES comparison, whose separate supplement notebook was removed on 13 October 2026 when its essentials moved into section 5.)
 
 ### What it measures (CPU, seed 88)
 
@@ -93,14 +92,14 @@ than a dense one would do. The physics-informed graph network is not built.
 | `course_core.py` | shared by the whole course — `set_seed`, `MLP`, `to_tensor`, `check` |
 | `pinn_core.py` | the Part 2 helpers — `train_two_stage` |
 | `problem.py` | **this** problem — the grid, the machines, the fault model, the contingencies, the operating points, the labels (`label_case`, `build_cases`), the features and the adjacency |
-| `andes_compare.py`, `andes_dataset.py` | used only by the supplement |
+| `andes_compare.py` | the six-bus grid in ANDES, used by section 5 |
 
 The first two are generated. Edit `tools/pinn/*.py` and run
 `python3 tools/pinn/sync_cores.py`; never edit a copy.
 
 **The study notebook is generated too**, both forms from one source,
 `tools/exercises/ex122/build_ex122.py`. Edit the builder and rerun it rather
-than editing a notebook. The supplement and the latency notebook are edited
+than editing a notebook. The latency notebook is edited
 by hand; neither has a light form.
 
 ## Expected runtime
@@ -123,8 +122,7 @@ exposition in this exercise set are original to this course.**
 The light version of the study notebook has been executed end to end on a
 local CPU; the exercise version stops at its TODO cells. Still to do: a run
 from a fresh Colab runtime, a review by someone other than the author, and a
-run of the latency notebook on the Thor. The supplement was not rerun after
-its two renames.
+run of the latency notebook on the Thor.
 
 ## Mini project proposal
 

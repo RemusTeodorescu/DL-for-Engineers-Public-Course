@@ -2,7 +2,7 @@
 answers. Runs on the Jetson AGX Orin in the mini project; in the notebook it
 runs in a thread on the same machine as the screener (the virtual board).
 
-    python3 pmu_player.py --to 192.168.1.20 --port 4712 --recording Ex12.2_recording.npz
+    python3 pmu_player.py --to 192.168.1.20 --port 4712 --recording Ex12.2_39_edge_recording.npz
 
 The recording is written by the notebook (section 7): a minute of the grid
 as PMUs see it. Each frame is sent on a fixed 20 ms clock whether or not the
@@ -64,7 +64,7 @@ def play(frames_xy, to=("127.0.0.1", 4712), period=0.02, listen_port=4713, log=N
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--to", default="127.0.0.1"); ap.add_argument("--port", type=int, default=4712)
-    ap.add_argument("--listen", type=int, default=4713); ap.add_argument("--recording", default="Ex12.2_recording.npz")
+    ap.add_argument("--listen", type=int, default=4713); ap.add_argument("--recording", default="Ex12.2_39_edge_recording.npz")
     a = ap.parse_args()
     rec = np.load(a.recording)["frames"]
     r = play(rec, (a.to, a.port), listen_port=a.listen, log="player_log.npz")

@@ -27,9 +27,9 @@ import torch
 from grid39 import *          # noqa: F401,F403
 from grid39 import N, IS_GEN, GEN_BUS, LINES, XY
 
-DATA = "Ex12.1_snbs_maps.npz"
+DATA = "Ex12.1_39_edge_snbs_maps.npz"
 URL = ("https://raw.githubusercontent.com/RemusTeodorescu/DL-for-Engineers-Public-Course/main/"
-       "exercises/Ex12.1N-basin-stability/" + DATA)
+       "exercises/Ex12.1_39_edge-basin-stability/" + DATA)
 GROUPS = ("train", "test_in", "out_re", "out_line")
 
 

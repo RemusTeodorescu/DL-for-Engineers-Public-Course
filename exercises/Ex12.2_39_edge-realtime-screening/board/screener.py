@@ -2,7 +2,7 @@
 with the surrogate, and answers. Runs on the Jetson AGX Thor in the mini
 project; in the notebook it runs in a thread beside the player.
 
-    python3 screener.py --reply-to 192.168.1.10 --weights Ex12.2_surrogate.pt --device cuda
+    python3 screener.py --reply-to 192.168.1.10 --weights Ex12.2_39_edge_surrogate.pt --device cuda
 
 A frame that arrives while the last one is being screened is not queued:
 the screener always takes the newest and drops the older ones, because an
@@ -63,7 +63,7 @@ def serve(net, g, listen_port=4712, reply_to=("127.0.0.1", 4713), stop=None, log
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=4712); ap.add_argument("--reply-to", default="127.0.0.1")
-    ap.add_argument("--reply-port", type=int, default=4713); ap.add_argument("--weights", default="Ex12.2_surrogate.pt")
+    ap.add_argument("--reply-port", type=int, default=4713); ap.add_argument("--weights", default="Ex12.2_39_edge_surrogate.pt")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--half", action="store_true", help="run the surrogate in 16-bit floats")
     a = ap.parse_args()

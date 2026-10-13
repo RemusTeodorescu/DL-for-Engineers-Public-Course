@@ -3,7 +3,7 @@ by 50 ms, and the screen that uses it. The same code runs in the Colab
 notebook (section 7, the virtual board) and on the Jetson AGX Thor.
 
 The network's weights are written by the notebook (section 5) as
-``Ex12.2_surrogate.pt``; the course ships a trained copy beside the notebook.
+``Ex12.2_39_edge_surrogate.pt``; the course ships a trained copy beside the notebook.
 """
 import os
 import sys

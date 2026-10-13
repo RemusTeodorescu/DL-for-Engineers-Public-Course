@@ -17,20 +17,21 @@ current chosen for lifetime, found by a gradient through the trained network
 ## The problem
 
 ```
-c_t = D_s (c_rr + (2/r) c_r)     in the particle, 0 < t < 3600 s
-−D_s c_r = j                     on the surface            (a weighted loss term)
-c_r = 0                          at the centre             (follows from the residual, multiplied by r)
+∂c/∂t = D_s (∂²c/∂r² + (2/r) ∂c/∂r)     in the particle, 0 < t < 3600 s
+−D_s ∂c/∂r = j                   on the surface            (a weighted loss term)
+∂c/∂r = 0                        at the centre             (follows from the residual, multiplied by r)
 c = c_0                          at t = 0                  (built into the network)
 ```
 
 Graphite particle of radius 4.80 µm, D_s = 9.60 × 10⁻¹⁵ m²/s, starting at
 24 994 mol/m³ (stoichiometry 0.796); 13.87 A (0.9C) for an hour gives a surface
 flux of 9.92 × 10⁻⁶ mol/(m² s). In scaled units — radius over R, time over the
-hour, the concentration lost over c_ref = j t_end/R = 7440 mol/m³ — it reads
-u_τ = C (u_rr + (2/r) u_r), C u_r = 1 on the surface, with
-C = D_s t_end/R² = 1.50. At 1C the surface of this one particle would run
+hour, the concentration as the loss since the start over
+c_ref = j t_end/R = 7440 mol/m³ — the scaled loss ĉ (u is reserved for the
+voltage; the code writes it u). It reads ∂ĉ/∂τ = D̂ (∂²ĉ/∂r² + (2/r) ∂ĉ/∂r),
+D̂ ∂ĉ/∂r = 1 on the surface, with D̂ = D_s t_end/R² = 1.50. At 1C the surface of this one particle would run
 empty 131 s before the hour, hence 0.9C: 13.87 Ah, about the 14.24 Ah the
-reference's bench test delivered at 1C before the knee at 2.8 V. The mean of u over the
+reference's bench test delivered at 1C before the knee at 2.8 V. The mean of ĉ over the
 sphere is exactly 3τ: the mass balance, which does not contain the diffusivity.
 
 **The parameter values are Table 1 of Teodorescu et al., *Parameterisation of
@@ -57,7 +58,7 @@ Ex10.1_pinn_particle_diffusion_light.ipynb   the same notebook with every cell w
 |---|---|
 | 1 – 3 | the problem, its data, its physics: diffusion in a sphere, a flux at the surface, the scales, the mass balance |
 | 4 | the exact series as the reference; finite volumes on shells (Crank–Nicolson), for an agreed 30 mol/m³ |
-| 5 | the PINN: the trial function S τ 𝒩 (TODO 1), the residual multiplied by r (TODO 2), the surface flux and the mass balance as loss terms; the three compared |
+| 5 | the PINN: the trial function ĉ = S τ 𝒩 (TODO 1), the residual multiplied by r (TODO 2), the surface flux and the mass balance as loss terms; the three compared |
 | 6 | the inverse problem: the diffusivity as one more trainable number, found from 37 readings of the surface concentration |
 | 7 | the design: optimal charging for lifetime — a lumped thermal model and an empirical ageing law (both flagged), the feasible constant rates, and the profile for a deadline no constant rate can meet, by gradient through the trained network |
 | 8 | what the notebook says |

@@ -24,9 +24,9 @@ constant rate and the lithium inside has to diffuse outwards to replace it.
 hour; 0.9C delivers 13.87 Ah, about the 14.24 Ah the bench test of the
 reference delivered at 1C before the knee at 2.8 V.)
 
-    c_t = D_s (c_rr + (2/r) c_r)          in the particle, 0 < t < 3600 s
-    -D_s c_r = j                          on the surface, r = R
-    c_r = 0                               at the centre (symmetry)
+    dc/dt = D_s (d2c/dr2 + (2/r) dc/dr)   in the particle, 0 < t < 3600 s
+    -D_s dc/dr = j                        on the surface, r = R
+    dc/dr = 0                             at the centre (symmetry)
     c = c_0                               at t = 0
 
 The reaction sees the concentration at the SURFACE, so what matters is how
@@ -34,15 +34,19 @@ far the surface runs ahead of the rest of the particle.
 
 ## Scaled units
 
-Radius over R, time over the hour, and the concentration lost over
-``c_ref = j t_end / R``, the scale the mass balance sets:
+Radius over R, time over the hour, and the concentration as the loss since
+the start, (c_0 - c) over ``c_ref = j t_end / R``, the scale the surface
+flux sets. The scaled loss is written c-hat in the notebook, because u is
+reserved for the instantaneous voltage in electrical engineering; in this
+module's code it is the plain variable ``u``:
 
     u = (c_0 - c) / c_ref,    rho = r / R,    tau = t / t_end
-    u_tau = D_hat (u_rr + (2/rho) u_rho),    D_hat u_rho = 1 at rho = 1,    u = 0 at tau = 0
+    du/dtau = D_hat (d2u/drho2 + (2/rho) du/drho)
+    D_hat du/drho = 1 at rho = 1,    u = 0 at tau = 0
     D_hat = D_s t_end / R^2 = 1.50
 
-The mean of ``u`` over the sphere is exactly ``3 tau``, whatever the
-diffusivity: what has left the particle is the current times the time.
+The mean of the scaled loss over the sphere is exactly ``3 tau``, whatever
+the diffusivity: what has left the particle is the current times the time.
 
 ## The data
 
@@ -523,9 +527,9 @@ def animate_discharge(crate=1.0, seconds=10.0, fps=24):
         axC.plot(t_s, full, style, color="0.45", lw=1.0, alpha=0.3)
     for full, style in ((mean_p, "-"), (sto_p[:, -1], "--")):
         axC.plot(t_s, full, style, color="tab:orange", lw=1.0, alpha=0.3)
-    ln_n, = axC.plot([], [], "-", color="0.45", lw=1.8, label="graphite")
-    ls_n, = axC.plot([], [], "--", color="0.45", lw=1.2)
-    ln_p, = axC.plot([], [], "-", color="tab:orange", lw=1.8, label="LFP")
+    ln_n, = axC.plot([], [], "-", color="0.45", lw=1.8, label="graphite, mean")
+    ls_n, = axC.plot([], [], "--", color="0.45", lw=1.2, label="surface, dashed")
+    ln_p, = axC.plot([], [], "-", color="tab:orange", lw=1.8, label="LFP, mean")
     ls_p, = axC.plot([], [], "--", color="tab:orange", lw=1.2)
     d_n, = axC.plot([], [], "o", color="0.45", ms=4)
     d_p, = axC.plot([], [], "o", color="tab:orange", ms=4)

@@ -85,6 +85,20 @@ up: $\mathbf{h}_i^{(k)}$.
 Physical quantities (temperature, velocity, concentration, voltage) are
 defined on the slide where they appear, with their SI unit.
 
+**Derivatives are written in Leibniz form** (13 October 2026): $\partial c/\partial t$,
+$\partial^2 c/\partial r^2$, in display equations, notebook markdown and prose
+alike — never the subscript shorthand $c_t$, $u_{xx}$. The lecturer asked for
+it at Ex10.1 section 3, as a general policy. Applied to L10.1 and Ex10.1 on
+13 October; the other decks and exercise sets take it at their next pass.
+No machine check: a subscript is often a label ($c_s$, $t_{end}$), so only a
+reader can tell a derivative from a name.
+
+**$u$ is not a concentration in the electrochemistry block** (13 October
+2026): in electrical engineering $u$ is the instantaneous voltage, so L10's
+scaled concentration loss is written $\hat c = (c_0 - c)/c_{ref}$ (mean
+$3\tau$ over the sphere). The generic PINN field $u$ of L7 to L9 stays. In
+code the variable remains ``u``, stated once where it is introduced.
+
 **Units** (2 October 2026) are written in square brackets after the symbol
 they label, $k$ [W/(m·K)]. Two units multiplied are joined by a centred dot
 when the first has no exponent, W/(m·K), J/(kg·K), Pa·s, so that "m K"

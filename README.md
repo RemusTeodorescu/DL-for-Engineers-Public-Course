@@ -54,8 +54,8 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L10.2-solid-oxide-cells/` - [slides](lectures/L10.2-solid-oxide-cells/L10.2_Solid_Oxide_Cells_Optimisation.pdf), [recording](lectures/L10.2-solid-oxide-cells/L10.2_Solid_Oxide_Cells_Optimisation.mp4)
 - `lectures/L11.1-vision-based-navigation/` - [slides](lectures/L11.1-vision-based-navigation/L11.1_Vision_Based_Navigation.pdf)
 - `lectures/L11.2-obstacle-avoidance/` - [slides](lectures/L11.2-obstacle-avoidance/L11.2_Obstacle_Avoidance.pdf)
-- `lectures/L12.1-power-grid-stability-estimation/` - [slides](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.pdf)
-- `lectures/L12.2-power-grid-stability-prediction/` - [slides](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.pdf)
+- `lectures/L12.1-power-grid-stability-estimation/` - [slides](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.pdf), [recording](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.mp4)
+- `lectures/L12.2-power-grid-stability-prediction/` - [slides](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.pdf), [recording](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.mp4)
 
 ## Exercises
 
@@ -127,4 +127,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 27 lecture PDFs, 20 recordings and 16 exercise sets.
+Synced from the development repository; 27 lecture PDFs, 22 recordings and 16 exercise sets.

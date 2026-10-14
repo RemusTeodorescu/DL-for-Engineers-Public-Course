@@ -68,7 +68,11 @@ N_BUS = len(BUSES)
 MACHINE_BUSES = [0, 1]
 H_VALUES = [150.0, 4.0]
 D_VALUES = [2.0, 1.2]
-X_D_PRIME = 0.30         # same for both machines in problem_12_2.py
+# Per machine, as problem_12_2.py's X_D_PRIME = (0.02, 0.30): machine 0 is
+# the stiff Nordic equivalent, machine 1 the local plant. One value for both
+# (0.30) made the ANDES network differ from the course's (Shahariya's
+# review, 14 October 2026).
+X_D_PRIME = (0.02, 0.30)
 
 # Timing — same as problem_12_2.py Ex12.2
 T_FAULT = 0.5
@@ -129,7 +133,7 @@ def build_classical(P=None, Q=None):
             "idx": idx, "bus": bus + 1, "gen": idx,
             "Vn": 230, "Sn": BASE_MVA, "fn": 50,
             "M": 2 * H, "D": D,
-            "xd1": X_D_PRIME,
+            "xd1": X_D_PRIME[idx - 1],
             "ra": 0.003,
         })
     return ss
@@ -142,13 +146,19 @@ def build_detailed(P=None, Q=None):
 
     for idx, (bus, H, D) in enumerate(
             zip(MACHINE_BUSES, H_VALUES, D_VALUES), 1):
+        # Machine 0 is the stiff Nordic equivalent (x'_d = 0.02), so its
+        # GENROU reactances sit just above that value; machine 1 keeps the
+        # typical plant values. One set for both machines gave machine 0 a
+        # plant's reactances (Shahariya's review, 14 October 2026).
+        x = [dict(xd=0.04, xq=0.04, xd1=0.02, xq1=0.03, xd2=0.015, xq2=0.015),
+             dict(xd=1.8, xq=1.7, xd1=0.30, xq1=0.55, xd2=0.25, xq2=0.25)][idx - 1]
         ss.add("GENROU", {
             "idx": idx, "bus": bus + 1, "gen": idx,
             "Vn": 230, "Sn": BASE_MVA, "fn": 50,
             "M": 2 * H, "D": D,
-            "xd": 1.8, "xq": 1.7,
-            "xd1": 0.30, "xq1": 0.55,
-            "xd2": 0.25, "xq2": 0.25,
+            "xd": x["xd"], "xq": x["xq"],
+            "xd1": x["xd1"], "xq1": x["xq1"],
+            "xd2": x["xd2"], "xq2": x["xq2"],
             "Td10": 8.0, "Tq10": 0.4,
             "Td20": 0.03, "Tq20": 0.05,
             "ra": 0.003,
@@ -202,7 +212,7 @@ def run_case(fault_bus, trip_line=None, t_clear=None,
         return None
 
     ss.TDS.config.tf = t_end
-    ss.TDS.config.tstep = 0.005
+    ss.TDS.config.tstep = 0.002   # the course simulation's step (Shahariya, 14 October 2026)
     ss.TDS.init()
     ss.TDS.run()
 

@@ -194,8 +194,15 @@ policies under each; `--full` adds the review history behind every one.
   equation is written `\dfrac`, display style: matplotlib sets `\frac` in text
   style, at about 70 %, so an equation with a fraction read smaller than its
   neighbours. All 176 in the course were converted on 10 October.
+- **A y-axis title is written vertically, beside the axis (14 October 2026).**
+  Rotated 270 degrees, centred on the axis's height, never laid horizontally
+  above the plot. `diagrams.js`'s `plot` option `ylab` already does this; a
+  plot a generator labels by hand follows it (the lecturer, at L10.2's channel
+  plots). The axis itself names its quantity and unit — per cent or p.u. for a
+  fraction, not [–].
 
-*Replaces D11, D12, D19, D20, E2, E8; D26 and D27 added 10 October 2026.*
+*Replaces D11, D12, D19, D20, E2, E8; D26 and D27 added 10 October 2026; the
+vertical y-axis title 14 October 2026.*
 
 ## C7 · Layout passes the checkers
 

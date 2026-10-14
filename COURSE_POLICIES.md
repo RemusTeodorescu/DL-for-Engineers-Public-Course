@@ -147,8 +147,16 @@ policies under each; `--full` adds the review history behind every one.
 - Another lecture is named on at most two slides of a deck.
 - An exercise points to a lecture by its code and the slide title or an
   equation, for example "L4.2, Backpropagation".
+- **As few books as possible (5 October and 14 October 2026).** The books are
+  expensive and hard for students to find, so a lecture's required reading -
+  the objectives slide and the slide footers - names at most one book; the
+  physics reading may be a paper or the exercise itself, which is written to
+  be self-contained. Further books appear only on the Advanced Topics slide,
+  which is optional. L9 cites only White and Liu; L10 only Liu, with the
+  physics on Gu & Wang (2000), Teodorescu et al. (2026) and the exercises.
 
-*Replaces P4, D5, and extends them to the exercises.*
+*Replaces P4, D5, and extends them to the exercises; the minimal-references
+rule added 14 October 2026.*
 
 ## C5 · Plain, moderate language
 

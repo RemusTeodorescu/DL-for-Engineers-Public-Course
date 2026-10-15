@@ -56,6 +56,7 @@ GitHub shows videos in the browser; use *Download raw file* on a video's page to
 - `lectures/L11.2-obstacle-avoidance/` - [slides](lectures/L11.2-obstacle-avoidance/L11.2_Obstacle_Avoidance.pdf), [recording](lectures/L11.2-obstacle-avoidance/L11.2_Obstacle_Avoidance.mp4)
 - `lectures/L12.1-power-grid-stability-estimation/` - [slides](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.pdf), [recording](lectures/L12.1-power-grid-stability-estimation/L12.1_Power_Grid_Stability_Estimation.mp4)
 - `lectures/L12.2-power-grid-stability-prediction/` - [slides](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.pdf), [recording](lectures/L12.2-power-grid-stability-prediction/L12.2_Power_Grid_Stability_Prediction.mp4)
+- `lectures/L13-miniprojects/` - [slides](lectures/L13-miniprojects/L13_MiniProjects.pdf)
 
 ## Exercises
 
@@ -127,4 +128,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 27 lecture PDFs, 24 recordings and 16 exercise sets.
+Synced from the development repository; 28 lecture PDFs, 24 recordings and 16 exercise sets.

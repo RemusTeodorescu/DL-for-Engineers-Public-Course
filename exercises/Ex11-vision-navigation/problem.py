@@ -1076,73 +1076,93 @@ def jetracer_model(x, y, th, delta=0.0, spin=0.0):
     return out
 
 
+def _ellipse(cx_, cy_, a, b, ang, n=24):
+    u = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    ex, ey = a * np.cos(u), b * np.sin(u)
+    return [np.column_stack([cx_ + ex * np.cos(ang) - ey * np.sin(ang), cy_ + ex * np.sin(ang) + ey * np.cos(ang), np.full(n, 0.0008)])]
+
+
+def view3d(x=0.0, y=0.0, th=0.0, ax=None, delta=0.0, spin=0.0, obstacles=OBSTACLES, trail=None, title=""):
+    """The JetRacer in 3-D at the pose ``(x, y, th)`` on the A-to-B course,
+    seen from behind and a little to its left, lit and with its shadow: the
+    model of :func:`jetracer_model` (after the vendor's photograph; a drawing to
+    the twin's own numbers, not a measurement), the floor to the horizon, the
+    tape, the start and finish marks and the obstacles. ``delta`` turns the
+    front wheels (rad), ``trail`` draws a path ``[(x, y), ...]`` on the floor.
+    Draws into a 3-D ``ax`` (``projection="3d", computed_zorder=False``) or a
+    new figure; returns the axes. The film (:func:`film`) is made of these."""
+    import warnings
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from matplotlib.colors import LightSource
+    warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning, "mpl_toolkits")   # the floor behind the viewer, harmless
+    if ax is None:
+        ax = plt.figure(figsize=(5, 5)).add_axes([0, 0, 1, 1], projection="3d", computed_zorder=False)
+    cx, cy = x + 0.30 * np.cos(th), y + 0.30 * np.sin(th)          # the middle of the view, ahead of the car
+    R_ = 0.55                                                      # half the box of the view, m
+    x0, x1 = x - 0.4, x + 5.0                                      # what is drawn on the floor: to the horizon ahead
+    ax.cla()
+    ax.set_facecolor("#DADDE2")                                    # the far wall
+    hx, hy = np.cos(th), np.sin(th)                                # the floor: a rectangle turned with the car, all of it
+    corners = [(-0.45, -2.2), (5.0, -2.2), (5.0, 2.2), (-0.45, 2.2)]   # in front of the viewer, so the perspective holds
+    fl = [[(x + a_ * hx - b_ * hy, y + a_ * hy + b_ * hx, 0) for a_, b_ in corners]]
+    ax.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0), autolim=False)
+    if x1 > 0 and x0 < COURSE:
+        tp = [[(max(x0, 0), -TAPE_HALF, 0.0005), (min(x1, COURSE), -TAPE_HALF, 0.0005),
+               (min(x1, COURSE), TAPE_HALF, 0.0005), (max(x0, 0), TAPE_HALF, 0.0005)]]
+        ax.add_collection3d(Poly3DCollection(tp, facecolor="#F7F7F2", edgecolor="none", zorder=1), autolim=False)
+    for xm, col in ((0.0, "#1565C0"), (COURSE, "#2E7D32")):
+        if x0 < xm < x1:
+            mk = [[(xm - 0.02, -0.5, 0.0006), (xm + 0.02, -0.5, 0.0006), (xm + 0.02, 0.5, 0.0006), (xm - 0.02, 0.5, 0.0006)]]
+            ax.add_collection3d(Poly3DCollection(mk, facecolor=col, edgecolor="none", zorder=1), autolim=False)
+    shadows = _ellipse(x + 0.10 * hx + 0.02, y + 0.10 * hy - 0.02, 0.20, 0.11, th)   # soft shadows, light from above
+    shadows += sum([_ellipse(ox + 0.03, oy - 0.03, r * 1.5, r * 1.3, 0.6) for (ox, oy, r, k) in obstacles if x0 < ox < x1], [])
+    ax.add_collection3d(Poly3DCollection(shadows, facecolor=(0, 0, 0, 0.22), edgecolor="none", zorder=1), autolim=False)
+    if trail is not None and len(trail):
+        tr = np.asarray(trail)
+        tr = tr[(tr[:, 0] > x0) & (tr[:, 0] < x1)]
+        if len(tr):
+            ax.plot(tr[:, 0], tr[:, 1], 0.001, color="#FF8F00", lw=1.5, zorder=2)
+    faces, cols = [], []                                           # car and obstacles in one collection: sorted by depth together
+    for (ox, oy, r, k) in obstacles:
+        if x0 < ox < x1:
+            f = _tube((ox, oy, 0), (ox, oy, KINDS[k]["height"]), r, 24)
+            faces += list(f); cols += [{"box": "#262626", "grey": "#8A8478", "low": "#3E2723"}[k]] * len(f)
+    for f, col in jetracer_model(x, y, th, delta, spin):
+        faces += list(f); cols += [col] * len(f)
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="none", shade=True,
+                                         lightsource=LightSource(azdeg=225, altdeg=50), zorder=3), autolim=False)
+    ax.set_xlim(cx - R_, cx + R_); ax.set_ylim(cy - R_, cy + R_); ax.set_zlim(0, 0.35)
+    ax.set_box_aspect((2 * R_, 2 * R_, 0.35), zoom=1.65)
+    ax.set_proj_type("persp", focal_length=0.35)
+    ax.view_init(elev=16, azim=np.degrees(th) + 180 + 25)          # behind the car and a little to its left
+    ax.set_axis_off()
+    if title:
+        ax.text2D(0.03, 0.95, title, transform=ax.transAxes, fontsize=10, weight="bold")
+    return ax
+
+
 def film(run, title="", fps=25, course=None):
-    """A film of a run of :func:`avoid`: the JetRacer in 3-D, seen from
-    behind and above as it drives from A to B, beside the frame its camera
-    sees at each moment and the course from above. Returns a matplotlib
+    """A film of a run of :func:`avoid`: the JetRacer in 3-D (:func:`view3d`),
+    seen from behind and above as it drives from A to B, beside the frame its
+    camera sees at each moment and the course from above. Returns a matplotlib
     animation; ``anim.save("run.mp4")`` writes it, and in a notebook
     ``HTML(anim.to_html5_video())`` plays it."""
     import matplotlib.pyplot as plt
     from matplotlib import animation
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     obstacles = OBSTACLES if course is None else course
     P = run["poses"]
     fig = plt.figure(figsize=(12.8, 6.0), facecolor="white")
     ax3 = fig.add_axes([0.0, 0.0, 6.0 / 12.8, 1.0], projection="3d", computed_zorder=False)   # square: the floor below, by hand
     axc = fig.add_axes([0.52, 0.38, 0.43, 0.58])
     axt = fig.add_axes([0.51, 0.06, 0.47, 0.26])
-    obst = [(_tube((ox, oy, 0), (ox, oy, KINDS[k]["height"]), r, 24), {"box": "#262626", "grey": "#8A8478", "low": "#3E2723"}[k])
-            for (ox, oy, r, k) in obstacles]
     rng = np.random.default_rng(0)
     pb_path = np.array([(p[1], p[2]) for p in P])
-
-    from matplotlib.colors import LightSource
-    light = LightSource(azdeg=225, altdeg=50)
     spin = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(P[:, 1]), np.diff(P[:, 2])))]) / WHEEL_R   # the wheels' turn, rad
-
-    def ellipse(cx_, cy_, a, b, ang, n=24):
-        u = np.linspace(0, 2 * np.pi, n, endpoint=False)
-        ex, ey = a * np.cos(u), b * np.sin(u)
-        return [np.column_stack([cx_ + ex * np.cos(ang) - ey * np.sin(ang), cy_ + ex * np.sin(ang) + ey * np.cos(ang), np.full(n, 0.0008)])]
 
     def draw(i):
         t, x, y, th, delta, v, seen = P[i]
-        cx, cy = x + 0.30 * np.cos(th), y + 0.30 * np.sin(th)     # the middle of the view, ahead of the car
-        R_ = 0.55                                                  # half the box of the view, m
-        x0, x1, y0, y1 = x - 0.4, x + 5.0, cy - 2.0, cy + 2.0      # what is drawn on the floor: to the horizon ahead
-        ax3.cla()
-        ax3.set_facecolor("#DADDE2")                               # the far wall
-        win = lambda a, b, c_, d: [[(a, c_, 0), (b, c_, 0), (b, d, 0), (a, d, 0)]]
-        hx, hy = np.cos(th), np.sin(th)                            # the floor: a rectangle turned with the car, all of it
-        corners = [(-0.45, -2.2), (5.0, -2.2), (5.0, 2.2), (-0.45, 2.2)]   # in front of the viewer, so the perspective holds
-        fl = [[(x + a_ * hx - b_ * hy, y + a_ * hy + b_ * hx, 0) for a_, b_ in corners]]
-        ax3.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0), autolim=False)
-        if x1 > 0 and x0 < COURSE:
-            tp = [[(max(x0, 0), -TAPE_HALF, 0.0005), (min(x1, COURSE), -TAPE_HALF, 0.0005),
-                   (min(x1, COURSE), TAPE_HALF, 0.0005), (max(x0, 0), TAPE_HALF, 0.0005)]]
-            ax3.add_collection3d(Poly3DCollection(tp, facecolor="#F7F7F2", edgecolor="none", zorder=1), autolim=False)
-        for xm, col in ((0.0, "#1565C0"), (COURSE, "#2E7D32")):
-            if x0 < xm < x1:
-                mk = [[(xm - 0.02, -0.5, 0.0006), (xm + 0.02, -0.5, 0.0006), (xm + 0.02, 0.5, 0.0006), (xm - 0.02, 0.5, 0.0006)]]
-                ax3.add_collection3d(Poly3DCollection(mk, facecolor=col, edgecolor="none", zorder=1), autolim=False)
-        shadows = ellipse(x + 0.10 * np.cos(th) + 0.02, y + 0.10 * np.sin(th) - 0.02, 0.20, 0.11, th)   # soft shadows, light from above
-        shadows += sum([ellipse(ox + 0.03, oy - 0.03, r * 1.5, r * 1.3, 0.6) for (ox, oy, r, k) in obstacles if x0 < ox < x1], [])
-        ax3.add_collection3d(Poly3DCollection(shadows, facecolor=(0, 0, 0, 0.22), edgecolor="none", zorder=1), autolim=False)
-        trail = pb_path[: i + 1]
-        trail = trail[(trail[:, 0] > x0) & (trail[:, 0] < x1)]
-        if len(trail):
-            ax3.plot(trail[:, 0], trail[:, 1], 0.001, color="#FF8F00", lw=1.5, zorder=2)
-        faces, cols = [], []                                       # car and obstacles in one collection: sorted by depth together
-        seen_obs = [(f, col) for (f, col), (ox, oy, r, k) in zip(obst, obstacles) if x0 < ox < x1]
-        for f, col in seen_obs + jetracer_model(x, y, th, delta, spin[i]):
-            faces += list(f); cols += [col] * len(f)
-        ax3.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="none", shade=True,
-                                              lightsource=light, zorder=3), autolim=False)           # lit from above and to one side
-        ax3.set_xlim(cx - R_, cx + R_); ax3.set_ylim(cy - R_, cy + R_); ax3.set_zlim(0, 0.35)
-        ax3.set_box_aspect((2 * R_, 2 * R_, 0.35), zoom=1.65)
-        ax3.set_proj_type("persp", focal_length=0.35)
-        ax3.view_init(elev=16, azim=np.degrees(th) + 180 + 25)                        # behind the car and a little to its left
-        ax3.set_axis_off()
+        view3d(x, y, th, ax3, delta, spin[i], obstacles, trail=pb_path[: i + 1])
         ax3.text2D(0.03, 0.95, title, transform=ax3.transAxes, fontsize=12, weight="bold")
         ax3.text2D(0.03, 0.89, f"t = {t:4.2f} s    speed {v:4.2f} m/s    wheels {np.degrees(delta):+5.1f} deg"
                    + ("    path blocked" if seen else ""), transform=ax3.transAxes, fontsize=10)

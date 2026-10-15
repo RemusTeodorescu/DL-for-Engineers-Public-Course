@@ -1064,18 +1064,18 @@ def film(run, title="", fps=25, course=None):
         hx, hy = np.cos(th), np.sin(th)                            # the floor: a rectangle turned with the car, all of it
         corners = [(-0.45, -2.2), (5.0, -2.2), (5.0, 2.2), (-0.45, 2.2)]   # in front of the viewer, so the perspective holds
         fl = [[(x + a_ * hx - b_ * hy, y + a_ * hy + b_ * hx, 0) for a_, b_ in corners]]
-        ax3.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0))
+        ax3.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0), autolim=False)
         if x1 > 0 and x0 < COURSE:
             tp = [[(max(x0, 0), -TAPE_HALF, 0.0005), (min(x1, COURSE), -TAPE_HALF, 0.0005),
                    (min(x1, COURSE), TAPE_HALF, 0.0005), (max(x0, 0), TAPE_HALF, 0.0005)]]
-            ax3.add_collection3d(Poly3DCollection(tp, facecolor="#F7F7F2", edgecolor="none", zorder=1))
+            ax3.add_collection3d(Poly3DCollection(tp, facecolor="#F7F7F2", edgecolor="none", zorder=1), autolim=False)
         for xm, col in ((0.0, "#1565C0"), (COURSE, "#2E7D32")):
             if x0 < xm < x1:
                 mk = [[(xm - 0.02, -0.5, 0.0006), (xm + 0.02, -0.5, 0.0006), (xm + 0.02, 0.5, 0.0006), (xm - 0.02, 0.5, 0.0006)]]
-                ax3.add_collection3d(Poly3DCollection(mk, facecolor=col, edgecolor="none", zorder=1))
+                ax3.add_collection3d(Poly3DCollection(mk, facecolor=col, edgecolor="none", zorder=1), autolim=False)
         shadows = ellipse(x + 0.10 * np.cos(th) + 0.02, y + 0.10 * np.sin(th) - 0.02, 0.20, 0.11, th)   # soft shadows, light from above
         shadows += sum([ellipse(ox + 0.03, oy - 0.03, r * 1.5, r * 1.3, 0.6) for (ox, oy, r, k) in obstacles if x0 < ox < x1], [])
-        ax3.add_collection3d(Poly3DCollection(shadows, facecolor=(0, 0, 0, 0.22), edgecolor="none", zorder=1))
+        ax3.add_collection3d(Poly3DCollection(shadows, facecolor=(0, 0, 0, 0.22), edgecolor="none", zorder=1), autolim=False)
         trail = pb_path[: i + 1]
         trail = trail[(trail[:, 0] > x0) & (trail[:, 0] < x1)]
         if len(trail):
@@ -1085,7 +1085,7 @@ def film(run, title="", fps=25, course=None):
         for f, col in seen_obs + jetracer_model(x, y, th, delta, spin[i]):
             faces += list(f); cols += [col] * len(f)
         ax3.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="none", shade=True,
-                                              lightsource=light, zorder=3))           # lit from above and to one side
+                                              lightsource=light, zorder=3), autolim=False)           # lit from above and to one side
         ax3.set_xlim(cx - R_, cx + R_); ax3.set_ylim(cy - R_, cy + R_); ax3.set_zlim(0, 0.35)
         ax3.set_box_aspect((2 * R_, 2 * R_, 0.35), zoom=1.65)
         ax3.set_proj_type("persp", focal_length=0.35)

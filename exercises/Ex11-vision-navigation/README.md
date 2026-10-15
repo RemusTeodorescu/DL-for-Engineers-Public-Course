@@ -65,6 +65,10 @@ which an obstacle blocks the path, and the course.
 | network, trained along the line | 0.006 | 0.185 | 0.186 |
 | network, trained deliberately | 0.018 | 0.035 | 0.055 |
 
+As a root mean square in centimetres across the floor 40 cm ahead (L11.1,
+*Steering From a Frame*): detector 0.8 / 4.5 / 14.1, network trained
+deliberately 1.6 / 3.8 / 6.3.
+
 | free or blocked: 800 held-out frames | right | missed | false stops | grey boxes missed |
 |---|---|---|---|---|
 | dark-pixel rule | 85.1 % | 19.7 % | 13.5 % | 70.5 % |

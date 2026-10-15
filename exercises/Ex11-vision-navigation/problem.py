@@ -325,7 +325,7 @@ def steering_frames(n, kind="deliberate", seed=0):
     return out, tgt
 
 
-#: how a person drives the car round the lap to collect training frames
+#: how a person drives the car - round the lap and along the A-to-B line - to collect training frames
 #: (the JetRacer's own way: drive with a gamepad, save a frame, label it):
 #: "smooth" keeps the car within a few cm of the line; "swerving" also aims up
 #: to 30 cm aside on purpose (the car reaches about 22 cm) and back, and drives some of the time with the sun
@@ -334,46 +334,62 @@ def steering_frames(n, kind="deliberate", seed=0):
 DRIVER = {"smooth": dict(swerve=0.0, glare=0.0), "swerving": dict(swerve=0.30, glare=0.3)}
 
 
-def human_drive(n, style="swerving", seed=0, speed=0.8, every=0.1, path=False):
-    """A person drives the virtual JetRacer round the lap at ``speed`` m/s and
-    the camera saves a frame every ``every`` s, each labelled with the true
-    target (:func:`target`). ``style`` is ``"smooth"`` or ``"swerving"``
-    (:data:`DRIVER`). Returns ``(frames, targets)`` as :func:`steering_frames`
-    does, and the car's positions ``(n, 3)`` with ``path=True``."""
+def human_drive(n, style="swerving", seed=0, speed=0.8, every=0.1, path=False, ab_share=0.5):
+    """A person drives the virtual JetRacer at ``speed`` m/s and the camera
+    saves a frame every ``every`` s, each labelled with the true target
+    (:func:`target`): first round the lap, then - for ``ab_share`` of the
+    frames - along the straight A-to-B line of sections 6 and 8, again and
+    again from A, so that the frames show both courses the car will drive.
+    ``style`` is ``"smooth"`` or ``"swerving"`` (:data:`DRIVER`). Returns
+    ``(frames, targets)`` as :func:`steering_frames` does, and the car's
+    positions ``(n, 3)`` with ``path=True`` (on the lap, then on the line)."""
     d = DRIVER[style]
     rng = np.random.default_rng(seed)
-    x, y, th = centreline(rng.uniform(0, LAP), "lap")
-    car = VirtualJetRacer(float(x), float(y), float(th), course="lap", seed=seed)
-    car.v, car.throttle = speed, throttle_for(speed)
     frames, labels = np.empty((n, 3, H, W), np.uint8), np.empty(n, np.float32)
     poses = np.empty((n, 3))
-    dt, t, k, shot = 2e-3, 0.0, 0, 0.0
-    aside, until, wobble = 0.0, 0.0, 0.0
-    while k < n:
-        if d["swerve"] and t >= until:                           # a swerve away from the line, or back to it
-            if aside == 0.0 and rng.random() < 0.7:
-                aside, until = rng.choice([-1, 1]) * rng.uniform(0.08, d["swerve"]), t + rng.uniform(0.4, 1.0)
+    n_lap = n - int(round(ab_share * n))
+    k = 0
+    for course, m in (("lap", n_lap), ("ab", n - n_lap)):
+        if m == 0:
+            continue
+        if course == "lap":
+            x, y, th = centreline(rng.uniform(0, LAP), "lap")
+        else:
+            x, y, th = 0.0, float(rng.uniform(-0.05, 0.05)), 0.0
+        car = VirtualJetRacer(float(x), float(y), float(th), course=course, seed=seed)
+        car.v, car.throttle = speed, throttle_for(speed)
+        dt, t, shot, stop = 2e-3, 0.0, 0.0, k + m
+        aside, until, wobble = 0.0, 0.0, 0.0
+        while k < stop:
+            if course == "ab" and car.x > COURSE - 0.3:              # at B: back to A for another run
+                car.x, car.y, car.th = 0.0, float(rng.uniform(-0.05, 0.05)), 0.0
+            if d["swerve"] and t >= until:                           # a swerve away from the line, or back to it
+                if aside == 0.0 and rng.random() < 0.7:
+                    aside, until = rng.choice([-1, 1]) * rng.uniform(0.08, d["swerve"]), t + rng.uniform(0.4, 1.0)
+                else:
+                    aside, until = 0.0, t + rng.uniform(0.6, 1.5)
+            wobble += (-wobble / 2.0 + 0.012 * rng.standard_normal() / np.sqrt(dt)) * dt   # the hand's wobble, about 1.5 cm
+            if course == "lap":
+                s0 = _S_LAP[int(np.argmin((_XY_LAP[:, 0] - car.x) ** 2 + (_XY_LAP[:, 1] - car.y) ** 2))]
             else:
-                aside, until = 0.0, t + rng.uniform(0.6, 1.5)
-        wobble += (-wobble / 2.0 + 0.012 * rng.standard_normal() / np.sqrt(dt)) * dt   # the hand's wobble, about 1.5 cm
-        s0 = _S_LAP[int(np.argmin((_XY_LAP[:, 0] - car.x) ** 2 + (_XY_LAP[:, 1] - car.y) ** 2))]
-        px, py, pth = centreline(s0 + AIM, "lap")                # where the driver aims: the line ahead, moved aside
-        px, py = px - np.sin(pth) * (aside + wobble), py + np.cos(pth) * (aside + wobble)
-        dx, dy = px - car.x, py - car.y
-        a = (np.arctan2(dy, dx) - car.th + np.pi) % (2 * np.pi) - np.pi
-        wheel = np.arctan(2 * WHEELBASE * np.sin(a) / max(np.hypot(dx, dy), 1e-3))
-        car.steering = wheel / (car.steering_gain * SERVO_ANGLE)  # the gamepad's stick
-        if t >= shot:                                            # the camera saves a frame
-            g = []
-            if rng.random() < d["glare"]:                        # the sun through a window, beside the line ahead
-                a_ = rng.uniform(0.25, 0.7); b_ = rng.choice([-1, 1]) * rng.uniform(0.08, 0.22)
-                g = [(car.x + np.cos(car.th) * a_ - np.sin(car.th) * b_, car.y + np.sin(car.th) * a_ + np.cos(car.th) * b_, rng.uniform(0.04, 0.08))]
-            img = render(car.x, car.y, car.th, "lap", glare=g, rng=rng, light=rng.uniform(0.85, 1.15), slope=rng.uniform(-0.3, 0.3))
-            frames[k], labels[k], poses[k] = img.transpose(2, 0, 1), target(car.x, car.y, car.th, "lap"), (car.x, car.y, car.th)
-            k += 1
-            shot += every
-        car.step(dt)
-        t += dt
+                s0 = car.x
+            px, py, pth = centreline(s0 + AIM, course)                # where the driver aims: the line ahead, moved aside
+            px, py = px - np.sin(pth) * (aside + wobble), py + np.cos(pth) * (aside + wobble)
+            dx, dy = px - car.x, py - car.y
+            a = (np.arctan2(dy, dx) - car.th + np.pi) % (2 * np.pi) - np.pi
+            wheel = np.arctan(2 * WHEELBASE * np.sin(a) / max(np.hypot(dx, dy), 1e-3))
+            car.steering = wheel / (car.steering_gain * SERVO_ANGLE)  # the gamepad's stick
+            if t >= shot:                                            # the camera saves a frame
+                g = []
+                if rng.random() < d["glare"]:                        # the sun through a window, beside the line ahead
+                    a_ = rng.uniform(0.25, 0.7); b_ = rng.choice([-1, 1]) * rng.uniform(0.08, 0.22)
+                    g = [(car.x + np.cos(car.th) * a_ - np.sin(car.th) * b_, car.y + np.sin(car.th) * a_ + np.cos(car.th) * b_, rng.uniform(0.04, 0.08))]
+                img = render(car.x, car.y, car.th, course, glare=g, rng=rng, light=rng.uniform(0.85, 1.15), slope=rng.uniform(-0.3, 0.3))
+                frames[k], labels[k], poses[k] = img.transpose(2, 0, 1), target(car.x, car.y, car.th, course), (car.x, car.y, car.th)
+                k += 1
+                shot += every
+            car.step(dt)
+            t += dt
     return (frames, labels, poses) if path else (frames, labels)
 
 
@@ -1232,19 +1248,23 @@ def race(drivers, course=None, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=20.0, see
     blocked, both for one frame ``(1, 3, 224, 224)``. Both cars use the same
     decision rule: follow the line; when blocked, pass the obstacle ahead in
     a lane :data:`RACE_OFFSET` beside it at 60 % speed, on the side the car is
-    already on (a block seen where none stands sends the car round nothing).
+    already on (a block seen where none stands sends the car round nothing),
+    then steer back towards the line by pure pursuit before following it again.
     Where the obstacle stands is taken from the course for every car alike -
     what differs is what each car sees. A car that touches an obstacle stops
-    there. Returns one ``dict(name, time, crashed, clearance, poses, events)``
-    per driver: ``time`` to B (``inf`` if it did not finish), ``crashed``
-    ``(t, kind, x)`` or ``None``, ``poses`` every 0.04 s as for :func:`film`."""
+    there; one that strays 0.6 m from the line has left the course. Returns
+    one ``dict(name, time, result, crashed, lost, clearance, poses, events)``
+    per driver: ``time`` to B (``inf`` if it did not finish), ``result`` the
+    outcome in words, ``crashed`` ``(t, kind, x)`` or ``None``, ``lost`` the
+    time it left the course or ``None``, ``poses`` every 0.04 s as for
+    :func:`film`."""
     course = RACE_COURSE if course is None else course
     out = []
     for k, d in enumerate(drivers):
         car = VirtualJetRacer(0.0, 0.0, 0.0, "ab", course["obstacles"], course["shadows"], course.get("glare", ()), seed=seed + k)
         car.v = speed
-        y_ref, hold, t, next_dec, next_rec = 0.0, -1.0, 0.0, 0.0, 0.0
-        poses, seen, crashed, clear, events = [], False, None, np.inf, []
+        y_ref, hold, t, next_dec, next_rec, back = 0.0, -1.0, 0.0, 0.0, 0.0, False
+        poses, seen, crashed, clear, events, lost = [], False, None, np.inf, [], None
         while t < t_max and car.x < COURSE:
             if t >= next_rec - 1e-12:                            # for the film
                 poses.append((t, car.x, car.y, car.th, car.wheel_angle(), car.v, int(seen)))
@@ -1264,7 +1284,12 @@ def race(drivers, course=None, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=20.0, see
                 if car.x < hold:                                 # passing: aim at the lane beside it, slowed
                     car.steering = _steer_to(car, car.x + AIM, y_ref)
                     car.throttle = throttle_for(0.6 * speed)
+                    back = True
+                elif back and abs(car.y) > 0.08:                 # passed: steer back towards the line it left
+                    car.steering = _steer_to(car, car.x + AIM, 0.0)
+                    car.throttle = throttle_for(speed)
                 else:                                            # following the line it sees
+                    back = False
                     car.steering = float(np.ravel(d["follow"](frame))[0]) * STEERING_GAIN
                     car.throttle = throttle_for(speed)
             car.step(dt)
@@ -1274,13 +1299,19 @@ def race(drivers, course=None, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=20.0, see
             if g < 0 and crashed is None:                        # it touched an obstacle: it stops there
                 ob = min(course["obstacles"], key=lambda o: np.hypot(o[0] - car.x, o[1] - car.y))
                 crashed = (round(t, 2), ob[3], ob[0])
+            if crashed is None and lost is None and abs(car.y) > 0.6:   # it lost the line and left the course
+                lost = round(t, 2)
+                break
             if crashed is not None:
                 car.v, car.throttle = 0.0, 0.0
                 if t - crashed[0] > 1.0:
                     break
         poses.append((t, car.x, car.y, car.th, car.wheel_angle(), car.v, int(seen)))
-        out.append(dict(name=d["name"], time=t if (car.x >= COURSE and crashed is None) else np.inf,
-                        crashed=crashed, clearance=clear, poses=np.array(poses), events=events))
+        reached = car.x >= COURSE and crashed is None and lost is None
+        how = (f"reached B in {t:.2f} s" if reached else f"hit the {crashed[1]} box at x = {crashed[2]:.1f} m" if crashed
+               else f"left the course at {lost:.1f} s" if lost is not None else f"had not reached B after {t_max:.0f} s")
+        out.append(dict(name=d["name"], time=t if reached else np.inf, crashed=crashed, lost=lost, result=how,
+                        clearance=clear, poses=np.array(poses), events=events))
     return out
 
 
@@ -1362,7 +1393,9 @@ def race_film(results, course=None, fps=25, party=4.0):
         r = results[k]
         if r["crashed"] is not None:
             return f"hit the {r['crashed'][1]} box at {r['crashed'][0]:.1f} s"
-        return f"B in {r['time']:.2f} s" if np.isfinite(r["time"]) else "did not reach B"
+        if np.isfinite(r["time"]):
+            return f"B in {r['time']:.2f} s"
+        return f"left the course at {r['lost']:.1f} s" if r.get("lost") is not None else "did not reach B"
 
     def draw(i):
         if i < n_race:

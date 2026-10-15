@@ -63,18 +63,18 @@ which an obstacle blocks the path, and the course.
 | finding the line: mean error on 300 test frames | car on the line | beside it | with glare |
 |---|---|---|---|
 | classical detector, 112 × 112 | 0.007 | 0.021 | 0.083 |
-| network, smooth drive | 0.012 | 0.192 | 0.188 |
-| network, drive with swerves | 0.014 | 0.034 | 0.045 |
+| network, smooth drive | 0.010 | 0.195 | 0.194 |
+| network, drive with swerves | 0.021 | 0.036 | 0.050 |
 
 As a root mean square in centimetres across the floor 40 cm ahead (L11.1,
 *Steering From a Frame*): detector 0.8 / 4.5 / 14.1, network trained
-on the drive with swerves 1.2 / 3.8 / 4.8.
+on the drive with swerves 1.8 / 3.6 / 5.3.
 
 | free or blocked: 800 held-out frames | right | missed | false stops | grey boxes missed |
 |---|---|---|---|---|
 | dark-pixel rule | 85.1 % | 19.7 % | 13.5 % | 70.5 % |
-| network, threshold 0.5 | 95.1 % | 21.9 % | 0 % | 70.5 % |
-| network, threshold 0.05 (least expected cost) | 94.9 % | 3.9 % | 5.5 % | 11.4 % |
+| network, threshold 0.5 | 96.6 % | 14.6 % | 0.2 % | 43.2 % |
+| network, threshold 0.05 (least expected cost) | 95.4 % | 3.9 % | 4.8 % | 11.4 % |
 
 | strategy, 10 decisions a second | time to B | smallest gap |
 |---|---|---|
@@ -83,7 +83,7 @@ on the drive with swerves 1.2 / 3.8 / 4.8.
 | potential field | 6.30 s | 6.7 cm; none of 20 |
 
 With the network steering the twin round the lap, the car stays within about
-6 cm of the line up to 17 cm blind distance and swings 15 cm at 20 cm. The
+5 cm of the line up to 17 cm blind distance and swings 15 cm at 20 cm. The
 largest safe speed within 0.7 m is 1.93, 2.34 and 2.68 m/s at 5, 10 and 30 Hz.
 One frame is 16.8 million multiply-adds. The steering network keeps its error
 down to 5 bits and loses it at 4; the obstacle network keeps its accuracy down
@@ -98,7 +98,7 @@ L11.1's and L11.2's measured figures and numbers come from the same
 grey box the colour of the floor, a dark box, two shadows, two patches of
 sun): one sees with the classical detector and the dark-pixel rule, one with
 the two networks; both pass obstacles by the same rule. The conventional car
-runs into the grey box; the deep-learning car reaches B in about 8.5 s and
+runs into the grey box; the deep-learning car reaches B in about 8.4 s and
 `pb.race_film` celebrates it on the podium with champagne and confetti.
 
 ### The film

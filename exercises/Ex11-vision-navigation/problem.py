@@ -581,6 +581,60 @@ def round_weights(model, bits):
 
 
 # ====================================================================== pictures and a description
+def show_glare_failure(n=300, seed=102):
+    """The failure of the classical rule, seen whole on one glare frame: the
+    camera's frame with the detector's band of rows, the true column of the
+    tape (green) and the aim the weighted mean actually picks (the orange
+    cross); under it, column for column, the band row's brightness with the
+    floor's threshold. The frame is the 80th percentile of the error over
+    ``n`` held-out glare frames - the same collection section 3 measures
+    (L11.1, *Where Conventional Vision Fails*). Returns the frame's numbers."""
+    import matplotlib.pyplot as plt
+    x, y = steering_frames(n, "glare", seed=seed)
+    cases = []
+    for k in range(n):
+        r = shrink(x[k:k + 1], 1)[0, 0, ROW]                  # the detector's row of the full frame
+        floor = float(np.median(r))                           # the floor's brightness: the median
+        w = np.clip(r - floor - 0.15, 0.0, None)              # the weight: brightness above the floor
+        on = np.concatenate([[0], (w > 0).astype(int), [0]])
+        runs = list(zip(np.where(np.diff(on) == 1)[0], np.where(np.diff(on) == -1)[0]))
+        if len(runs) < 2:                                     # keep frames where tape AND glare are bright
+            continue
+        cols = np.arange(W)
+        x_true = CU + W / 2 * float(y[k])                     # where the tape really crosses the row
+        x_est = float((w * cols).sum() / w.sum())             # the weighted mean over every bright pixel
+        cases.append((abs(x_est - x_true), k, r, floor, x_true, x_est, w))
+    cases.sort(key=lambda c: c[0])
+    e, k, r, floor, x_true, x_est, w = cases[int(0.8 * len(cases))]
+    share = float(w[np.abs(np.arange(W) - x_true) > 6].sum() / w.sum())
+    det = CU + W / 2 * float(detect(shrink(x[k:k + 1], 2))[0])    # the notebook's detector (largest run) on the same frame
+
+    fig, (a0, a1) = plt.subplots(2, 1, figsize=(9.0, 6.4), sharex=True,
+                                 gridspec_kw=dict(height_ratios=[2.1, 1.0]))
+    a0.imshow(np.moveaxis(x[k], 0, -1), extent=(0, W, H, 0))   # the frame is channels-first
+    a0.axhspan(ROW - 3, ROW + 3, color="white", alpha=0.18, lw=0)
+    a0.axvline(x_true, color="tab:green", lw=2)
+    a0.axvline(x_est, color="tab:orange", ls="--", lw=2)
+    a0.plot([x_est], [ROW], marker="+", ms=22, mew=3, color="tab:orange")
+    a0.plot([x_est], [ROW], marker="o", ms=11, mfc="none", mec="tab:orange", mew=2)
+    a0.text(x_true + 4, 14, "the tape", color="tab:green", fontsize=11)
+    a0.text(x_est + 4, ROW - 8, "the aim the rule picks", color="tab:orange", fontsize=11)
+    a0.set_ylabel("row of the frame")
+    a0.set_title("one glare frame, and the band of rows the detector reads")
+    a1.plot(np.arange(W), r, color="0.25", lw=1.2)
+    a1.axhline(floor + 0.15, color="0.55", ls="--", lw=1)
+    a1.axvline(x_true, color="tab:green", lw=2)
+    a1.axvline(x_est, color="tab:orange", ls="--", lw=2)
+    a1.text(2, floor + 0.17, "threshold: the floor + 0.15", color="0.45", fontsize=10)
+    a1.set_xlabel("column of the frame, 0 to 223")
+    a1.set_ylabel("brightness, 0 to 1")
+    fig.tight_layout()
+    print(f"the tape crosses the row at column {x_true:.0f}; the weighted mean of every bright pixel"
+          f" is column {x_est:.0f}, pulled by the glare's {100 * share:.0f} % of the weight;"
+          f" the largest-run detector picks column {det:.0f}")
+    return dict(x_true=x_true, x_est=x_est, share=share, detector=det)
+
+
 def draw_course(ax=None, paths=None, dark=False, poses=(), obstacles=OBSTACLES):
     """The A-to-B course from above: the line, the obstacles with the car's
     half-width round each, and, if given, ``paths`` as ``{label: [(x, y),

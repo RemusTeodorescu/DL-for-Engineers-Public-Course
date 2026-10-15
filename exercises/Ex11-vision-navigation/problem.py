@@ -784,49 +784,189 @@ def run_course(course, perceive, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=30.0, s
 
 
 # ====================================================================== the film of a run
+# The JetRacer Pro in 3-D, after the vendor's photograph (lectures/L11.1-...
+# /assets/jetracer-pro-ai-kit-1.jpg): black chassis plate and foam bumper,
+# four black tyres on white ten-spoke rims, blue-capped shock towers, the
+# battery holder, the expansion board on white standoffs with its blue USB
+# ports, the Jetson's finned heat sink and fan, the green camera bracket with
+# the camera board and lens, the ribbon cable and two antennas. The shapes
+# and sizes are a DRAWING to the twin's own numbers (wheelbase, half-width),
+# not a measurement of the car.
+WHEEL_R, WHEEL_W, TRACK = 0.033, 0.026, 0.085      #: m: wheel radius and width, centre-to-centre half-track (drawn)
+
+
+def _rot(axis, a):
+    c, s = np.cos(a), np.sin(a)
+    if axis == "x":
+        return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+    if axis == "y":
+        return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+
+
 def _box(x0, x1, y0, y1, z0, z1):
-    """The six faces of a box, as lists of corners."""
-    c = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0), (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
-    return [[c[i] for i in f] for f in ((0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 3, 7, 4))]
+    """The six faces of a box, wound outwards."""
+    c = np.array([(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+                  (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)], float)
+    return [c[list(f)] for f in ((0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 4, 7, 3))]
 
 
-def _cylinder(cx, cy, r, z0, z1, n=16):
-    a = np.linspace(0, 2 * np.pi, n + 1)
-    x, y = cx + r * np.cos(a), cy + r * np.sin(a)
-    sides = [[(x[i], y[i], z0), (x[i + 1], y[i + 1], z0), (x[i + 1], y[i + 1], z1), (x[i], y[i], z1)] for i in range(n)]
-    return sides + [[(x[i], y[i], z1) for i in range(n)]]
+def _prism(outline, z0, z1):
+    """A flat shape, ``outline`` anticlockwise from above, from height z0 to z1."""
+    o = np.asarray(outline, float)
+    lo = np.column_stack([o, np.full(len(o), z0)])
+    hi = np.column_stack([o, np.full(len(o), z1)])
+    faces = [hi, lo[::-1]]
+    for i in range(len(o)):
+        k = (i + 1) % len(o)
+        faces.append(np.array([lo[i], lo[k], hi[k], hi[i]]))
+    return faces
 
 
-def _wheel(cx, cy, heading, r=0.04, w=0.03, n=12):
-    """A wheel standing on the floor at (cx, cy), rolling along ``heading``."""
-    a = np.linspace(0, 2 * np.pi, n + 1)
-    along, up = r * np.cos(a), r + r * np.sin(a)
-    out = []
-    for side in (-w / 2, w / 2):
-        out.append([(cx + along[i] * np.cos(heading) - side * np.sin(heading),
-                     cy + along[i] * np.sin(heading) + side * np.cos(heading), up[i]) for i in range(n)])
-    tread = [[out[0][i], out[0][(i + 1) % n], out[1][(i + 1) % n], out[1][i]] for i in range(n)]
-    return out + tread
+def _tube(p0, p1, r, n=12, caps=True):
+    """A round rod from p0 to p1."""
+    p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+    d = (p1 - p0) / np.linalg.norm(p1 - p0)
+    u = np.cross(d, [0, 0, 1.0] if abs(d[2]) < 0.9 else [1.0, 0, 0]); u /= np.linalg.norm(u)
+    v = np.cross(d, u)
+    a = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    ring = np.cos(a)[:, None] * u + np.sin(a)[:, None] * v
+    b, t = p0 + r * ring, p1 + r * ring
+    faces = [np.array([b[i], b[(i + 1) % n], t[(i + 1) % n], t[i]]) for i in range(n)]
+    if caps:
+        faces += [t, b[::-1]]
+    return faces
 
 
-def jetracer_model(x, y, th, delta=0.0):
-    """A JetRacer Pro drawn in 3-D at the pose: ``(faces, colour)`` pairs. The
-    rear axle is at (x, y); the shape is a drawing, not a measurement."""
-    parts = [(_box(-0.07, 0.27, -0.075, 0.075, 0.035, 0.050), "#B22222"),     # the red chassis plate
-             (_box(0.24, 0.29, -0.08, 0.08, 0.020, 0.050), "#222222"),        # the front bumper
-             (_box(-0.02, 0.10, -0.05, 0.05, 0.050, 0.065), "#1E1E1E"),       # the battery holder
-             (_box(0.00, 0.10, -0.045, 0.045, 0.065, 0.075), "#2E7D32"),      # the Jetson board
-             (_box(0.02, 0.08, -0.03, 0.03, 0.075, 0.095), "#9E9E9E"),        # its heat sink and fan
-             (_box(0.11, 0.13, -0.01, 0.01, 0.050, 0.095), "#333333"),        # the camera mast
-             (_box(0.12, 0.15, -0.02, 0.02, 0.088, 0.110), "#111111")]        # the camera
-    c, s = np.cos(th), np.sin(th)
-    out = []
-    for faces, col in parts:
-        out.append(([[(x + c * px - s * py, y + s * px + c * py, pz) for (px, py, pz) in f] for f in faces], col))
+def _spring(p0, p1, r, turns=6, n=10):
+    """A coil spring as a thin band round the axis p0 -> p1."""
+    p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+    d = p1 - p0
+    dh = d / np.linalg.norm(d)
+    u = np.cross(dh, [1.0, 0, 0]); u /= np.linalg.norm(u)
+    v = np.cross(dh, u)
+    k = np.linspace(0, 1, turns * n + 1)
+    pts = p0 + k[:, None] * d + r * (np.cos(2 * np.pi * turns * k)[:, None] * u + np.sin(2 * np.pi * turns * k)[:, None] * v)
+    w = 0.0025 * dh
+    return [np.array([pts[i], pts[i + 1], pts[i + 1] + w, pts[i] + w]) for i in range(len(pts) - 1)]
+
+
+def _wheel_local():
+    """One wheel at the origin, its axle along y, its outer face at +y: (faces, colour) pairs."""
+    R, W, n = WHEEL_R, WHEEL_W, 28
+    out = [(_tube((0, -W / 2, 0), (0, W / 2, 0), R, n, caps=False), "#1A1A1A")]          # the tread
+    a = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    ring = lambda r, y: np.column_stack([r * np.sin(a), np.full(n, y), r * np.cos(a)])
+    for y, sgn in ((W / 2, 1), (-W / 2, -1)):                                            # the side walls
+        o, i_ = ring(R, y), ring(0.024, y)
+        q = [np.array([o[k], o[(k + 1) % n], i_[(k + 1) % n], i_[k]])[:: sgn] for k in range(n)]
+        out.append((q, "#222222"))
+    y = W / 2 + 0.0008                                                                   # the white rim
+    o, i_ = ring(0.024, y), ring(0.019, y)
+    out.append(([np.array([o[k], o[(k + 1) % n], i_[(k + 1) % n], i_[k]]) for k in range(n)], "#F2F2F2"))
+    spokes = []
+    for k in range(10):
+        b = 2 * np.pi * k / 10
+        for (r0, r1, w0, w1) in ((0.006, 0.0195, 0.0028, 0.0016),):
+            c0, c1 = np.array([np.sin(b), 0, np.cos(b)]), np.array([np.cos(b), 0, -np.sin(b)])
+            spokes.append(np.array([r0 * c0 - w0 * c1, r1 * c0 - w1 * c1, r1 * c0 + w1 * c1, r0 * c0 + w0 * c1]) + [0, y, 0])
+    out.append((spokes, "#EDEDED"))
+    out.append(([ring(0.0065, y + 0.0004)], "#2B2B2B"))                                  # the hub nut
+    out.append(([ring(0.019, y - 0.001)], "#3A3A3A"))                                    # behind the spokes
+    return out
+
+
+def _body_local():
+    """Everything but the wheels, in the car's frame (x forward from the rear axle, y left, z up)."""
+    P = []
+    plate = [(-0.07, -0.030), (-0.03, -0.048), (0.24, -0.048), (0.275, -0.030),
+             (0.275, 0.030), (0.24, 0.048), (-0.03, 0.048), (-0.07, 0.030)]
+    P.append((_prism(plate, 0.026, 0.031), "#161616"))                                   # the chassis plate
+    bump = [(0.262 + 0.048 * np.cos(t), 0.088 * np.sin(t)) for t in np.linspace(-1.35, 1.35, 17)]
+    P.append((_prism(bump, 0.014, 0.040), "#1C1C1C"))                                    # the foam bumper, rounded at the front
+    for ax_ in (0.0, WHEELBASE):                                                         # the suspension
+        for sgn in (-1, 1):
+            P.append((_box(ax_ - 0.010, ax_ + 0.010, sgn * 0.075 - 0.008, sgn * 0.075 + 0.008, 0.024, 0.044)
+                      if sgn > 0 else _box(ax_ - 0.010, ax_ + 0.010, -0.083, -0.067, 0.024, 0.044), "#1E5BB8"))   # blue hub carrier
+            P.append((_box(ax_ - 0.004, ax_ + 0.004, min(sgn * 0.035, sgn * 0.070), max(sgn * 0.035, sgn * 0.070), 0.028, 0.034), "#262626"))
+            top = (ax_ - 0.012 * (1 if ax_ else -1), sgn * 0.052, 0.088)
+            bot = (ax_, sgn * 0.066, 0.040)
+            P.append((_tube(bot, top, 0.0045, 10), "#202020"))                           # the damper
+            P.append((_spring(bot, top, 0.008, turns=7), "#303030"))                     # its spring
+            P.append((_tube(top, np.add(top, (0, -sgn * 0.0, 0.008)), 0.0065, 12), "#1565C0"))   # the blue cap
+        P.append((_box(ax_ - 0.02, ax_ + 0.02, -0.05, 0.05, 0.031, 0.040), "#202020"))   # the gearbox and tower
+    P.append((_box(0.020, 0.170, -0.042, 0.042, 0.031, 0.056), "#151515"))               # the battery holder
+    for k in range(4):                                                                   # its four cells
+        y0 = -0.040 + k * 0.020
+        P.append((_tube((0.024, y0 + 0.009, 0.050), (0.166, y0 + 0.009, 0.050), 0.0085, 10, caps=False), "#2A2A2A"))
+    for (sx, sy) in ((0.025, -0.040), (0.025, 0.040), (0.165, -0.040), (0.165, 0.040)):  # the white standoffs
+        P.append((_tube((sx, sy, 0.056), (sx, sy, 0.074), 0.0035, 8), "#EDEDE8"))
+    P.append((_box(0.010, 0.180, -0.048, 0.048, 0.074, 0.077), "#101010"))               # the expansion board
+    P.append((_box(0.012, 0.178, -0.046, 0.046, 0.0771, 0.0773), "#1F2A1F"))             # its copper-free face
+    for k, yy in enumerate((-0.044, -0.026)):                                            # USB 3 ports, blue
+        P.append((_box(0.030, 0.050, yy, yy + 0.015, 0.077, 0.093), "#B9BEC4"))
+        P.append((_box(0.0295, 0.032, yy + 0.002, yy + 0.013, 0.079, 0.091), "#1E5BB8"))
+    P.append((_box(0.012, 0.030, -0.044, -0.026, 0.077, 0.090), "#C8CDD2"))              # the Ethernet socket
+    P.append((_box(0.060, 0.150, -0.035, 0.040, 0.077, 0.082), "#0E3B1E"))               # the Jetson module
+    for k in range(9):                                                                   # the heat sink's fins
+        xx = 0.072 + k * 0.008
+        P.append((_box(xx, xx + 0.003, -0.030, 0.035, 0.082, 0.104), "#1B1B1B"))
+    P.append((_box(0.070, 0.140, -0.030, 0.035, 0.082, 0.086), "#1B1B1B"))
+    P.append((_box(0.075, 0.135, -0.027, 0.032, 0.104, 0.112), "#111111"))               # the fan
+    fa = np.linspace(0, 2 * np.pi, 20, endpoint=False)
+    P.append(([np.column_stack([0.105 + 0.024 * np.cos(fa), 0.0025 + 0.024 * np.sin(fa), np.full(20, 0.1122)])], "#2C2C2C"))
+    P.append(([np.column_stack([0.105 + 0.008 * np.cos(fa), 0.0025 + 0.008 * np.sin(fa), np.full(20, 0.1124)])], "#4A4A4A"))
+    # the green camera bracket: a plate standing on the board, leaning forward
+    br = [(0.150, -0.028), (0.163, -0.028), (0.163, 0.028), (0.150, 0.028)]
+    P.append((_prism(br, 0.077, 0.082), "#5BBF2A"))
+    lean = np.array([[0.150, -0.022, 0.080], [0.160, -0.022, 0.080], [0.190, -0.022, 0.150], [0.180, -0.022, 0.150]])
+    for f in _prism([(0, 0), (1, 0), (1, 1), (0, 1)], 0, 1):                             # a slab between two y planes
+        pts = []
+        for (u, w_, h) in f:
+            base = lean[0] + u * (lean[1] - lean[0]) + w_ * (lean[3] - lean[0])
+            pts.append(base + (0, 0.044 * h, 0))
+        P.append(([np.array(pts)], "#62C730"))
+    cam_c = np.array([0.188, 0.0, 0.147])                                                # the camera board and lens
+    tilt = _rot("y", CAM_PITCH)
+    board = [tilt @ v + cam_c for v in np.array([[0.004, -0.013, -0.013], [0.004, 0.013, -0.013], [0.004, 0.013, 0.013], [0.004, -0.013, 0.013]])]
+    P.append((_prism([(0, 0)], 0, 0)[:0] + [np.array(board)], "#1D63C9"))
+    P.append((_tube(cam_c + tilt @ np.array([0.004, 0, 0]), cam_c + tilt @ np.array([0.016, 0, 0]), 0.0065, 14), "#0D0D0D"))
+    P.append((_tube(cam_c + tilt @ np.array([0.016, 0, 0]), cam_c + tilt @ np.array([0.018, 0, 0]), 0.0045, 14), "#2B4A7A"))
+    rib = [(0.176, 0.141), (0.168, 0.125), (0.160, 0.105), (0.153, 0.090), (0.146, 0.079)]   # the ribbon cable, down the back of the bracket
+    P.append(([np.array([[rib[i][0], -0.008, rib[i][1]], [rib[i + 1][0], -0.008, rib[i + 1][1]],
+                         [rib[i + 1][0], 0.008, rib[i + 1][1]], [rib[i][0], 0.008, rib[i][1]]]) for i in range(len(rib) - 1)], "#D9D9D4"))
+    for (ax_, ay) in ((0.030, -0.046), (-0.030, -0.040)):                                # two antennas
+        P.append((_tube((ax_, ay, 0.077), (ax_, ay, 0.092), 0.004, 10), "#262626"))
+        P.append((_tube((ax_, ay, 0.092), (ax_, ay, 0.205), 0.0028, 8), "#141414"))
+    for (px, py) in ((0.255, -0.022), (0.255, 0.022), (-0.055, -0.020), (-0.055, 0.020)):  # the body posts
+        P.append((_tube((px, py, 0.031), (px, py, 0.095), 0.002, 6), "#121212"))
+    wires = [((0.060, -0.030, 0.083), (0.040, 0.000, 0.100), (0.020, 0.030, 0.090), "#D32F2F"),
+             ((0.062, -0.026, 0.083), (0.045, 0.012, 0.102), (0.030, 0.040, 0.088), "#FBC02D"),
+             ((0.064, -0.022, 0.083), (0.050, 0.020, 0.098), (0.040, 0.042, 0.086), "#1976D2")]
+    for (a0, a1, a2, col) in wires:                                                      # a few coloured wires
+        P.append((_tube(a0, a1, 0.0012, 5, caps=False) + _tube(a1, a2, 0.0012, 5, caps=False), col))
+    return P
+
+
+_BODY = None
+_WHEEL = None
+
+
+def jetracer_model(x, y, th, delta=0.0, spin=0.0):
+    """The JetRacer Pro drawn in 3-D at the pose: ``(faces, colour)`` pairs.
+    The rear axle is at (x, y); ``delta`` turns the front wheels, ``spin``
+    (radians) turns all four as they roll. A drawing, not a measurement."""
+    global _BODY, _WHEEL
+    if _BODY is None:
+        _BODY, _WHEEL = _body_local(), _wheel_local()
+    Rz, t = _rot("z", th), np.array([x, y, 0.0])
+    out = [([f @ Rz.T + t for f in faces], col) for faces, col in _BODY]
     for ax_, steer in ((0.0, 0.0), (WHEELBASE, delta)):
-        for side in (-0.085, 0.085):
-            wx, wy = x + c * ax_ - s * side, y + s * ax_ + c * side
-            out.append((_wheel(wx, wy, th + steer), "#151515"))
+        for sgn in (1, -1):
+            M = _rot("z", steer) @ (np.eye(3) if sgn > 0 else _rot("z", np.pi)) @ _rot("y", spin * sgn)
+            c = np.array([ax_, sgn * TRACK, WHEEL_R])
+            for faces, col in _WHEEL:
+                out.append(([(f @ M.T + c) @ Rz.T + t for f in faces], col))
     return out
 
 
@@ -842,43 +982,60 @@ def film(run, title="", fps=25, course=None):
     obstacles = OBSTACLES if course is None else course
     P = run["poses"]
     fig = plt.figure(figsize=(12.8, 6.0), facecolor="white")
-    ax3 = fig.add_axes([0.0, 0.0, 0.64, 1.0], projection="3d", computed_zorder=False)   # the floor below, by hand
-    axc = fig.add_axes([0.655, 0.40, 0.33, 0.56])
-    axt = fig.add_axes([0.655, 0.05, 0.33, 0.28])
-    obst = [(_cylinder(ox, oy, r, 0, KINDS[k]["height"]), {"box": "#202020", "grey": "#8A8478", "low": "#3E2723"}[k])
+    ax3 = fig.add_axes([0.0, 0.0, 6.0 / 12.8, 1.0], projection="3d", computed_zorder=False)   # square: the floor below, by hand
+    axc = fig.add_axes([0.52, 0.38, 0.43, 0.58])
+    axt = fig.add_axes([0.51, 0.06, 0.47, 0.26])
+    obst = [(_tube((ox, oy, 0), (ox, oy, KINDS[k]["height"]), r, 24), {"box": "#262626", "grey": "#8A8478", "low": "#3E2723"}[k])
             for (ox, oy, r, k) in obstacles]
     rng = np.random.default_rng(0)
     pb_path = np.array([(p[1], p[2]) for p in P])
 
+    from matplotlib.colors import LightSource
+    light = LightSource(azdeg=225, altdeg=50)
+    spin = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(P[:, 1]), np.diff(P[:, 2])))]) / WHEEL_R   # the wheels' turn, rad
+
+    def ellipse(cx_, cy_, a, b, ang, n=24):
+        u = np.linspace(0, 2 * np.pi, n, endpoint=False)
+        ex, ey = a * np.cos(u), b * np.sin(u)
+        return [np.column_stack([cx_ + ex * np.cos(ang) - ey * np.sin(ang), cy_ + ex * np.sin(ang) + ey * np.cos(ang), np.full(n, 0.0008)])]
+
     def draw(i):
         t, x, y, th, delta, v, seen = P[i]
-        cx, cy = x + 0.5 * np.cos(th), y + 0.5 * np.sin(th)       # the middle of the view, ahead of the car
-        R_ = 1.0                                                   # half the view, m: what lies outside is not drawn
-        x0, x1, y0, y1 = cx - R_, cx + R_, cy - R_, cy + R_
+        cx, cy = x + 0.30 * np.cos(th), y + 0.30 * np.sin(th)     # the middle of the view, ahead of the car
+        R_ = 0.55                                                  # half the box of the view, m
+        x0, x1, y0, y1 = x - 0.4, x + 5.0, cy - 2.0, cy + 2.0      # what is drawn on the floor: to the horizon ahead
         ax3.cla()
+        ax3.set_facecolor("#DADDE2")                               # the far wall
         win = lambda a, b, c_, d: [[(a, c_, 0), (b, c_, 0), (b, d, 0), (a, d, 0)]]
-        ax3.add_collection3d(Poly3DCollection(win(x0, x1, y0, y1), facecolor="#8D8A84", edgecolor="none", zorder=0))
-        if x1 > 0 and x0 < COURSE and y0 < TAPE_HALF and y1 > -TAPE_HALF:
-            tp = [[(max(x0, 0), -TAPE_HALF, 0.001), (min(x1, COURSE), -TAPE_HALF, 0.001),
-                   (min(x1, COURSE), TAPE_HALF, 0.001), (max(x0, 0), TAPE_HALF, 0.001)]]
-            ax3.add_collection3d(Poly3DCollection(tp, facecolor="#F5F5F0", edgecolor="none", zorder=1))
+        hx, hy = np.cos(th), np.sin(th)                            # the floor: a rectangle turned with the car, all of it
+        corners = [(-0.45, -2.2), (5.0, -2.2), (5.0, 2.2), (-0.45, 2.2)]   # in front of the viewer, so the perspective holds
+        fl = [[(x + a_ * hx - b_ * hy, y + a_ * hy + b_ * hx, 0) for a_, b_ in corners]]
+        ax3.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0))
+        if x1 > 0 and x0 < COURSE:
+            tp = [[(max(x0, 0), -TAPE_HALF, 0.0005), (min(x1, COURSE), -TAPE_HALF, 0.0005),
+                   (min(x1, COURSE), TAPE_HALF, 0.0005), (max(x0, 0), TAPE_HALF, 0.0005)]]
+            ax3.add_collection3d(Poly3DCollection(tp, facecolor="#F7F7F2", edgecolor="none", zorder=1))
         for xm, col in ((0.0, "#1565C0"), (COURSE, "#2E7D32")):
             if x0 < xm < x1:
-                mk = [[(xm - 0.02, max(y0, -0.5), 0.001), (xm + 0.02, max(y0, -0.5), 0.001),
-                       (xm + 0.02, min(y1, 0.5), 0.001), (xm - 0.02, min(y1, 0.5), 0.001)]]
+                mk = [[(xm - 0.02, -0.5, 0.0006), (xm + 0.02, -0.5, 0.0006), (xm + 0.02, 0.5, 0.0006), (xm - 0.02, 0.5, 0.0006)]]
                 ax3.add_collection3d(Poly3DCollection(mk, facecolor=col, edgecolor="none", zorder=1))
+        shadows = ellipse(x + 0.10 * np.cos(th) + 0.02, y + 0.10 * np.sin(th) - 0.02, 0.20, 0.11, th)   # soft shadows, light from above
+        shadows += sum([ellipse(ox + 0.03, oy - 0.03, r * 1.5, r * 1.3, 0.6) for (ox, oy, r, k) in obstacles if x0 < ox < x1], [])
+        ax3.add_collection3d(Poly3DCollection(shadows, facecolor=(0, 0, 0, 0.22), edgecolor="none", zorder=1))
         trail = pb_path[: i + 1]
-        trail = trail[(trail[:, 0] > x0) & (trail[:, 0] < x1) & (trail[:, 1] > y0) & (trail[:, 1] < y1)]
+        trail = trail[(trail[:, 0] > x0) & (trail[:, 0] < x1)]
         if len(trail):
-            ax3.plot(trail[:, 0], trail[:, 1], 0.002, color="#FF8F00", lw=1.5, zorder=2)
+            ax3.plot(trail[:, 0], trail[:, 1], 0.001, color="#FF8F00", lw=1.5, zorder=2)
         faces, cols = [], []                                       # car and obstacles in one collection: sorted by depth together
-        seen_obs = [(f, col) for (f, col), (ox, oy, r, k) in zip(obst, obstacles) if x0 < ox < x1 and y0 < oy < y1]
-        for f, col in seen_obs + jetracer_model(x, y, th, delta):
-            faces += f; cols += [col] * len(f)
-        ax3.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="black", linewidths=0.2, zorder=3))
-        ax3.set_xlim(x0, x1); ax3.set_ylim(y0, y1); ax3.set_zlim(0, 0.5)
-        ax3.set_box_aspect((2 * R_, 2 * R_, 0.5), zoom=1.35)
-        ax3.view_init(elev=20, azim=np.degrees(th) + 180)
+        seen_obs = [(f, col) for (f, col), (ox, oy, r, k) in zip(obst, obstacles) if x0 < ox < x1]
+        for f, col in seen_obs + jetracer_model(x, y, th, delta, spin[i]):
+            faces += list(f); cols += [col] * len(f)
+        ax3.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="none", shade=True,
+                                              lightsource=light, zorder=3))           # lit from above and to one side
+        ax3.set_xlim(cx - R_, cx + R_); ax3.set_ylim(cy - R_, cy + R_); ax3.set_zlim(0, 0.35)
+        ax3.set_box_aspect((2 * R_, 2 * R_, 0.35), zoom=1.65)
+        ax3.set_proj_type("persp", focal_length=0.35)
+        ax3.view_init(elev=16, azim=np.degrees(th) + 180 + 25)                        # behind the car and a little to its left
         ax3.set_axis_off()
         ax3.text2D(0.03, 0.95, title, transform=ax3.transAxes, fontsize=12, weight="bold")
         ax3.text2D(0.03, 0.89, f"t = {t:4.2f} s    speed {v:4.2f} m/s    wheels {np.degrees(delta):+5.1f} deg"

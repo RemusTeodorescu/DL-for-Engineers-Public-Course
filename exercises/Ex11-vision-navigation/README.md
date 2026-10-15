@@ -89,8 +89,13 @@ L11.1's and L11.2's measured figures and numbers come from the same
 
 ### The film
 
-`pb.film(pb.avoid("field", 10))` films a run: the JetRacer in 3-D seen from
-behind, the frame its camera sees, and the course from above.
+`pb.film(pb.avoid("field", 10))` films a run: the JetRacer in 3-D, modelled on
+the vendor's photograph (chassis and foam bumper, white ten-spoke rims, blue
+shock caps, battery holder, board with USB ports, the Jetson's heat sink and
+fan, the green camera bracket, antennas), lit and with its shadow, followed
+from behind as it drives the course; beside it the frame its camera sees and
+the course from above. The shapes are a drawing to the twin's own numbers, not
+a measurement of the car. About 25 s to draw.
 
 ## The car, for the mini projects
 

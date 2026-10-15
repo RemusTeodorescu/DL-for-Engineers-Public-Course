@@ -53,9 +53,10 @@ which an obstacle blocks the path, and the course.
 | 5 | **TODO 2**, the cross-entropy; the network against the dark-pixel rule; the threshold by the expected cost |
 | 6 | **TODO 3**, the potential field; stop, steer around and the field on the course |
 | 7 | the network driving the twin round the lap at eight loop rates, the stopping distance and the safe speed, multiply-adds and CPU against GPU, the weights in fewer bits |
-| 8 | what the notebook says |
-| 9 | the report and its PDF: four questions per lecture and one to conclude |
-| 10 | the mini project proposals |
+| 8 | the race: a conventional and a deep-learning JetRacer from A to B, each seeing with its own camera, and the winner celebrated |
+| 9 | what the notebook says |
+| 10 | the report and its PDF: four questions per lecture and one to conclude |
+| 11 | the mini project proposals |
 
 ### What it measures (CPU, seed 88; about 5.5 minutes, most of it training)
 
@@ -91,6 +92,15 @@ to 4 bits.
 L11.1's and L11.2's measured figures and numbers come from the same
 `problem.py` with the same seeds (`tools/deck/make_l11_figs.py`).
 
+### The race
+
+`pb.race` sends two virtual JetRacers along `pb.RACE_COURSE` (a dark box, a
+grey box the colour of the floor, a dark box, two shadows, two patches of
+sun): one sees with the classical detector and the dark-pixel rule, one with
+the two networks; both pass obstacles by the same rule. The conventional car
+runs into the grey box; the deep-learning car reaches B in about 8.5 s and
+`pb.race_film` celebrates it on the podium with champagne and confetti.
+
 ### The film
 
 `pb.film(pb.avoid("field", 10))` films a run: the JetRacer in 3-D, modelled on
@@ -120,5 +130,5 @@ ground truth is given, built by `tools/miniprojects/ex11_truth.py` under policy 
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP11A · The camera with a LiDAR, on the JetRacer** | the real JetRacer with an RPLIDAR A1; a taped 6 m course with dark, grey and low obstacles and dark paper | one network, two branches (2-D over the frame, 1-D over the scan), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, the classical rules and perfect perception's 8.76 s; camera OR LiDAR collides on 13 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact, filmed |
-| **MP11B · The camera with an ultrasonic sensor, on the JetRacer** | the real JetRacer with a URM09 on I2C; the course of MP11A | one network: the frame through convolutions, the range joined before the dense layers; twin first, then the car | as MP11A; on the twin the ultrasonic rule is 86 % right and collides on 20 of 20 | as MP11A |
+| **MP11A · Faster from A to B, on the JetRacer** | faster from A to B on the real JetRacer, camera only: better obstacle avoidance and a higher speed | the notebook's network with a position head (blocked and where), feeding the potential field or your own planner | the measured course on the floor; on the twin, perfect perception's 8.76 s (steer around) and 4.24 s (field, 1.5 m/s) | twin: no collision, at most 5.0 s, position within 5 cm; car: five runs without contact, filmed |
+| **MP11B · Camera, LiDAR and ultrasonic in difficult conditions, on the JetRacer** | the real JetRacer with an RPLIDAR A1 and a URM09, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |

@@ -237,8 +237,9 @@ class VirtualJetRacer:
     constant :data:`SPEED_LAG`, and the kinematic bicycle model carries the
     pose. ``car.camera.read()`` is the frame at the current pose."""
 
-    def __init__(self, x=0.0, y=0.0, th=0.0, course="ab", obstacles=(), shadows=(), glare=(), seed=0):
+    def __init__(self, x=0.0, y=0.0, th=0.0, course="ab", obstacles=(), shadows=(), glare=(), seed=0, light=1.0):
         self.x, self.y, self.th, self.v = float(x), float(y), float(th), 0.0
+        self.light = float(light)                                # the room's light: 1 as in the notebook, less in a dim room
         self.course, self.obstacles, self.shadows, self.glare = course, list(obstacles), list(shadows), list(glare)
         self.steering_gain, self.steering_offset, self.throttle_gain = -0.65, 0.0, 0.8
         self._steering = self._throttle = 0.0
@@ -277,7 +278,7 @@ class _Camera:
 
     def read(self):
         c = self.car
-        return render(c.x, c.y, c.th, c.course, c.obstacles, c.shadows, c.glare, c.rng)
+        return render(c.x, c.y, c.th, c.course, c.obstacles, c.shadows, c.glare, c.rng, light=c.light)
 
 
 def throttle_for(speed, gain=0.8):
@@ -760,10 +761,24 @@ SONAR_HZ = 20.0           #: readings a second (ASSUMED)
 SONAR_HEIGHT = 0.04       #: m, the sensor's height on the bumper (ASSUMED): it sees low obstacles
 
 
-def make_course(seed, n=4):
+def make_course(seed, n=4, hard=False):
     """A random A-to-B course: ``n`` obstacles at least 0.9 m apart along it,
     each ``(x, y, radius, kind)``, and two shadows on the floor ``(x, y,
-    size)``, which are not obstacles."""
+    size)``, which are not obstacles. ``hard=True`` makes the difficult
+    conditions of MP11B (ASSUMED): a dim room (light 0.55 to 0.8 of the
+    notebook's), sun on the floor in two to three places near the line, three
+    shadows, and the grey box and the low block twice as likely as the dark
+    box."""
+    if hard:
+        c = make_course(seed + 50000, n)
+        rng = np.random.default_rng(seed)
+        kinds = ["box", "grey", "grey", "low", "low"]
+        c["obstacles"] = [(x, y, r, str(rng.choice(kinds))) for (x, y, r, _) in c["obstacles"]]
+        c["shadows"] = [(float(rng.uniform(0.8, COURSE - 0.5)), float(rng.uniform(-0.3, 0.3)), 0.12) for _ in range(3)]
+        c["glare"] = [(float(rng.uniform(0.8, COURSE - 0.5)), float(rng.choice([-1, 1]) * rng.uniform(0.06, 0.20)),
+                       float(rng.uniform(0.05, 0.09))) for _ in range(int(rng.integers(2, 4)))]
+        c["light"], c["seed"], c["hard"] = float(rng.uniform(0.55, 0.8)), seed, True
+        return c
     rng = np.random.default_rng(seed)
     xs = np.sort(rng.uniform(1.0, COURSE - 0.8, 40))
     pick = [xs[0]]
@@ -856,16 +871,36 @@ def oracle(course):
     return perceive
 
 
-def run_course(course, perceive, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=30.0, seed=0):
+class FieldAround:
+    """The potential field as a decision function for :func:`run_course`:
+    every obstacle the perception has reported is remembered where it was
+    seen, and the car aims at the lowest point of ``U(y) = y**2 + sum
+    K/d_i(y)`` over those ahead within :data:`RANGE` (:func:`field_aim`), at
+    full speed. The faster alternative to :class:`SteerAround` in MP11A."""
+
+    def __init__(self, radius=0.08):
+        self.seen, self.radius = [], radius
+
+    def __call__(self, r):
+        if r["blocked"] and np.isfinite(r["obstacle_x"]):
+            if all(np.hypot(r["obstacle_x"] - a, r["obstacle_y"] - b) > 0.15 for a, b, _ in self.seen):
+                self.seen.append((r["obstacle_x"], r["obstacle_y"], self.radius))
+        near = np.array([o for o in self.seen if -o[2] < o[0] - r["x"] < RANGE]).reshape(-1, 3)
+        return 1.0, float(field_aim(r["x"], near))
+
+
+def run_course(course, perceive, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=30.0, seed=0, decide=None):
     """Drive the virtual car from A to B on ``course``. At every decision
     ``perceive(x, y, th, sensors)`` returns a reading for the steer-around
-    rule; ``sensors`` holds the latest camera frame, LiDAR scan and
-    ultrasonic range, each refreshed at its own rate. Returns ``dict(time,
+    rule (``decide``, :class:`SteerAround` by default, or :class:`FieldAround`);
+    ``sensors`` holds the latest camera frame, LiDAR scan and ultrasonic
+    range, each refreshed at its own rate. Returns ``dict(time,
     clearance, reached, path)``: ``clearance`` the smallest gap in metres,
     negative a collision."""
     rng = np.random.default_rng(seed)
-    decide = SteerAround()
-    car = VirtualJetRacer(0.0, 0.0, 0.0, "ab", course["obstacles"], course["shadows"], seed=seed)
+    decide = SteerAround() if decide is None else decide
+    car = VirtualJetRacer(0.0, 0.0, 0.0, "ab", course["obstacles"], course["shadows"], course.get("glare", ()),
+                          seed=seed, light=course.get("light", 1.0))
     car.v = speed
     t = next_dec = next_lidar = next_sonar = 0.0
     sensors, clear, path = {}, np.inf, [(0.0, 0.0)]
@@ -1177,3 +1212,220 @@ def film(run, title="", fps=25, course=None):
     anim = animation.FuncAnimation(fig, draw, frames=len(P), interval=1000 / fps, blit=False)
     plt.close(fig)
     return anim
+
+
+# ====================================================================== the race
+#: the race course (ASSUMED): the A-to-B line with a dark box, a grey box the
+#: colour of the floor and a dark box, two shadows that are not obstacles and
+#: two patches of sun on the floor - the conditions of L11.1's "Where
+#: Conventional Vision Fails" and L11.2's "Identifying an Obstacle", together
+RACE_COURSE = dict(obstacles=[(1.5, 0.03, 0.08, "box"), (3.0, -0.03, 0.08, "grey"), (4.5, 0.04, 0.08, "box")],
+                   shadows=[(1.0, 0.0, 0.12), (3.7, 0.05, 0.12)], glare=[(2.2, 0.10, 0.08), (5.2, -0.10, 0.08)])
+RACE_OFFSET = 0.35        #: m, from an obstacle's centre to the lane a car passes it in
+
+
+def race(drivers, course=None, rate_hz=10.0, speed=1.0, dt=2e-3, t_max=20.0, seed=0):
+    """Race virtual JetRacers from A to B, each on its own copy of ``course``
+    (:data:`RACE_COURSE`), each deciding only from its own camera.
+    ``drivers`` is a list of ``dict(name, follow, blocked)``: ``follow(frame)``
+    returns the steering target, ``blocked(frame)`` whether the path is
+    blocked, both for one frame ``(1, 3, 224, 224)``. Both cars use the same
+    decision rule: follow the line; when blocked, pass the obstacle ahead in
+    a lane :data:`RACE_OFFSET` beside it at 60 % speed, on the side the car is
+    already on (a block seen where none stands sends the car round nothing).
+    Where the obstacle stands is taken from the course for every car alike -
+    what differs is what each car sees. A car that touches an obstacle stops
+    there. Returns one ``dict(name, time, crashed, clearance, poses, events)``
+    per driver: ``time`` to B (``inf`` if it did not finish), ``crashed``
+    ``(t, kind, x)`` or ``None``, ``poses`` every 0.04 s as for :func:`film`."""
+    course = RACE_COURSE if course is None else course
+    out = []
+    for k, d in enumerate(drivers):
+        car = VirtualJetRacer(0.0, 0.0, 0.0, "ab", course["obstacles"], course["shadows"], course.get("glare", ()), seed=seed + k)
+        car.v = speed
+        y_ref, hold, t, next_dec, next_rec = 0.0, -1.0, 0.0, 0.0, 0.0
+        poses, seen, crashed, clear, events = [], False, None, np.inf, []
+        while t < t_max and car.x < COURSE:
+            if t >= next_rec - 1e-12:                            # for the film
+                poses.append((t, car.x, car.y, car.th, car.wheel_angle(), car.v, int(seen)))
+                next_rec += 0.04
+            if crashed is None and t >= next_dec - 1e-12:
+                next_dec += 1.0 / rate_hz
+                frame = to_net(car.camera.read()[None])          # what this car's camera sees
+                seen = bool(d["blocked"](frame))
+                if seen and car.x >= hold:
+                    ahead = [o for o in course["obstacles"] if 0 < o[0] - car.x < 1.2 and abs(o[1] - car.y) < 0.5]
+                    if ahead:
+                        ox, oy = min(ahead)[:2]
+                    else:                                        # a block seen where none stands
+                        ox, oy = car.x + 0.5, car.y
+                    y_ref, hold = oy + (1.0 if car.y >= oy else -1.0) * RACE_OFFSET, ox + 0.5
+                    events.append((round(t, 2), "obstacle" if ahead else "nothing there"))
+                if car.x < hold:                                 # passing: aim at the lane beside it, slowed
+                    car.steering = _steer_to(car, car.x + AIM, y_ref)
+                    car.throttle = throttle_for(0.6 * speed)
+                else:                                            # following the line it sees
+                    car.steering = float(np.ravel(d["follow"](frame))[0]) * STEERING_GAIN
+                    car.throttle = throttle_for(speed)
+            car.step(dt)
+            t += dt
+            g = car.gap()
+            clear = min(clear, g)
+            if g < 0 and crashed is None:                        # it touched an obstacle: it stops there
+                ob = min(course["obstacles"], key=lambda o: np.hypot(o[0] - car.x, o[1] - car.y))
+                crashed = (round(t, 2), ob[3], ob[0])
+            if crashed is not None:
+                car.v, car.throttle = 0.0, 0.0
+                if t - crashed[0] > 1.0:
+                    break
+        poses.append((t, car.x, car.y, car.th, car.wheel_angle(), car.v, int(seen)))
+        out.append(dict(name=d["name"], time=t if (car.x >= COURSE and crashed is None) else np.inf,
+                        crashed=crashed, clearance=clear, poses=np.array(poses), events=events))
+    return out
+
+
+def race_film(results, course=None, fps=25, party=4.0):
+    """The film of :func:`race`: the two JetRacers in 3-D side by side, each on
+    its own copy of the course, with what each camera sees and the course from
+    above; then, for ``party`` seconds, the winner on the podium at B with
+    champagne and confetti. Returns a matplotlib animation (as :func:`film`)."""
+    import warnings
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+    from matplotlib.colors import LightSource
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning, "mpl_toolkits")
+    course = RACE_COURSE if course is None else course
+    LANES = (0.0, -1.1)                                         # the second copy of the course, 1.1 m to the right
+    COLS = ("#E07B00", "#1F6FD1")
+    finished = [np.isfinite(r["time"]) for r in results]
+    win = int(np.argmin([r["time"] for r in results])) if any(finished) else None
+    n_race = max(len(r["poses"]) for r in results)
+    n_party = int(party * fps) if win is not None else 0
+    rng = np.random.default_rng(0)
+    spin = [np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(r["poses"][:, 1]), np.diff(r["poses"][:, 2])))]) / WHEEL_R for r in results]
+    light = LightSource(azdeg=225, altdeg=50)
+
+    fig = plt.figure(figsize=(12.8, 6.4), facecolor="white")
+    ax3 = fig.add_axes([0.0, 0.0, 0.56, 1.0], projection="3d", computed_zorder=False)
+    axc = [fig.add_axes([0.58 + 0.21 * i, 0.47, 0.20, 0.42]) for i in range(2)]
+    axt = fig.add_axes([0.60, 0.07, 0.38, 0.32])
+    confetti = rng.uniform([-0.6, -0.6, 0.3], [0.6, 0.6, 1.4], (160, 3))
+    conf_col = rng.choice(["#E53935", "#FDD835", "#43A047", "#1E88E5", "#8E24AA", "#FB8C00"], 160)
+    drops = rng.uniform(0, 1, (220, 3))
+
+    def pose(r, i):
+        P = r["poses"]
+        return P[min(i, len(P) - 1)]
+
+    def scene(i, focus, R_, elev, azim, zoom):
+        ax3.cla()
+        ax3.set_facecolor("#DADDE2")
+        fl = [[(-1.0, -2.6, 0), (COURSE + 2.0, -2.6, 0), (COURSE + 2.0, 1.6, 0), (-1.0, 1.6, 0)]]
+        ax3.add_collection3d(Poly3DCollection(fl, facecolor="#BDB8AE", edgecolor="none", zorder=0), autolim=False)
+        faces, cols, flat = [], [], []
+        for k, (r, dy) in enumerate(zip(results, LANES)):
+            tp = [(0, dy - TAPE_HALF, 5e-4), (COURSE, dy - TAPE_HALF, 5e-4), (COURSE, dy + TAPE_HALF, 5e-4), (0, dy + TAPE_HALF, 5e-4)]
+            flat.append((tp, "#F7F7F2", 1.0))
+            for xm, c in ((0.0, "#1565C0"), (COURSE, "#2E7D32")):
+                flat.append(([(xm - 0.02, dy - 0.45, 6e-4), (xm + 0.02, dy - 0.45, 6e-4), (xm + 0.02, dy + 0.45, 6e-4), (xm - 0.02, dy + 0.45, 6e-4)], c, 1.0))
+            for (sx, sy, sz) in course["shadows"]:
+                flat.append((_ellipse(sx, sy + dy, sz, sz * 0.8, 0.0)[0], (0, 0, 0), 0.30))
+            for (gx, gy, gz) in course.get("glare", ()):
+                flat.append((_ellipse(gx, gy + dy, gz * 1.6, gz * 1.2, 0.0)[0], (1, 1, 0.92), 0.85))
+            t, x, y, th, delta, v, seen = pose(r, i)
+            flat.append((_ellipse(x + 0.10 * np.cos(th) + 0.02, y + dy + 0.10 * np.sin(th) - 0.02, 0.20, 0.11, th)[0], (0, 0, 0), 0.22))
+            for (ox, oy, rr, kind) in course["obstacles"]:
+                f = _tube((ox, oy + dy, 0), (ox, oy + dy, KINDS[kind]["height"]), rr, 24)
+                faces += list(f); cols += [{"box": "#262626", "grey": "#8A8478", "low": "#3E2723"}[kind]] * len(f)
+            for f, c in jetracer_model(x, y + dy, th, delta, spin[k][min(i, len(spin[k]) - 1)]):
+                faces += list(f); cols += [c] * len(f)
+        for poly, c, a in flat:
+            ax3.add_collection3d(Poly3DCollection([poly], facecolor=c, alpha=a, edgecolor="none", zorder=1), autolim=False)
+        for k, (r, dy) in enumerate(zip(results, LANES)):
+            P = r["poses"][: i + 1]
+            ax3.plot(P[:, 1], P[:, 2] + dy, 0.001, color=COLS[k], lw=1.8, zorder=2)
+        ax3.add_collection3d(Poly3DCollection(faces, facecolors=cols, edgecolor="none", shade=True, lightsource=light, zorder=3), autolim=False)
+        for k, (r, dy) in enumerate(zip(results, LANES)):           # each car's name above it, and a crash in red
+            t, x, y, *_ = pose(r, i)
+            crashed = r["crashed"] is not None and t >= r["crashed"][0]
+            ax3.text(x, y + dy, 0.30, "CRASH" if crashed else r["name"], color="red" if crashed else COLS[k],
+                     fontsize=11 if crashed else 9, weight="bold", ha="center", zorder=6)
+        fx, fy = focus
+        ax3.set_xlim(fx - R_, fx + R_); ax3.set_ylim(fy - R_, fy + R_); ax3.set_zlim(0, 0.7 * R_)
+        ax3.set_box_aspect((2 * R_, 2 * R_, 0.7 * R_), zoom=zoom)
+        ax3.set_proj_type("persp", focal_length=0.4)
+        ax3.view_init(elev=elev, azim=azim)
+        ax3.set_axis_off()
+
+    def status(k):
+        r = results[k]
+        if r["crashed"] is not None:
+            return f"hit the {r['crashed'][1]} box at {r['crashed'][0]:.1f} s"
+        return f"B in {r['time']:.2f} s" if np.isfinite(r["time"]) else "did not reach B"
+
+    def draw(i):
+        if i < n_race:
+            xs = [pose(r, i)[1] for r in results]
+            scene(i, (max(xs) + 0.2, (LANES[0] + LANES[1]) / 2), 1.25, 24, 180 + 28, 1.45)
+            ax3.text2D(0.03, 0.95, "The race: conventional against deep learning", transform=ax3.transAxes, fontsize=12, weight="bold")
+            ax3.text2D(0.03, 0.90, f"t = {pose(results[0], i)[0] if i < len(results[0]['poses']) else pose(results[1], i)[0]:4.2f} s",
+                       transform=ax3.transAxes, fontsize=10)
+            for k, r in enumerate(results):
+                t, x, y, th, *_ = pose(r, i)
+                axc[k].cla()
+                axc[k].imshow(render(x, y, th, "ab", course["obstacles"], course["shadows"], course.get("glare", ()), rng=rng))
+                axc[k].axis("off")
+                done = i >= len(r["poses"]) - 1
+                axc[k].set_title(r["name"] + ("\n" + status(k) if done else "\nwhat its camera sees"), fontsize=9, color=COLS[k],
+                                 weight="bold" if done else "normal")
+            axt.cla()
+            draw_course(axt, obstacles=course["obstacles"])
+            for k, r in enumerate(results):
+                P = r["poses"][: i + 1]
+                axt.plot(P[:, 1], P[:, 2], color=COLS[k], lw=1.4, label=r["name"])
+                if r["crashed"] is not None and i >= len(r["poses"]) - 1:
+                    axt.plot(P[-1, 1], P[-1, 2], "X", color="red", ms=12)
+            axt.legend(loc="lower left", fontsize=7); axt.set_xlabel(""); axt.set_ylabel(""); axt.tick_params(labelsize=7)
+            return []
+        # the award: the winner on the podium at B, champagne and confetti
+        j = i - n_race
+        u = j / max(n_party - 1, 1)
+        r = results[win]
+        dy = LANES[win]
+        P = r["poses"]
+        last = len(P) - 1
+        scene(last, (COURSE + 0.2, dy), 0.75, 18 + 12 * u, 180 + 28 + 120 * u, 1.5)
+        ax3.add_collection3d(Poly3DCollection(_box(COURSE + 0.05, COURSE + 0.55, dy - 0.25, dy + 0.25, 0.0, 0.06),
+                                              facecolors="#D4AF37", edgecolor="none", shade=True, lightsource=light, zorder=2), autolim=False)
+        bx, by, bz = COURSE + 0.55, dy + 0.30, 0.0                  # the bottle, standing beside the podium, tilted towards the winner
+        bottle = _tube((bx, by, bz), (bx - 0.04, by - 0.03, bz + 0.24), 0.04, 18) + _tube((bx - 0.04, by - 0.03, bz + 0.24), (bx - 0.08, by - 0.06, bz + 0.34), 0.015, 12)
+        ax3.add_collection3d(Poly3DCollection(bottle, facecolors="#1B5E20", edgecolor="none", shade=True, lightsource=light, zorder=4), autolim=False)
+        age = (drops[:, 0] + 3 * u) % 1.0                           # the spray: drops leave the neck and fall in arcs
+        sx = bx - 0.08 - 0.9 * age * (0.6 + 0.4 * drops[:, 1])
+        sy = by - 0.06 - 0.9 * age * (0.5 + 0.5 * drops[:, 2]) * 0.6
+        sz = bz + 0.34 + 1.2 * age - 2.2 * age ** 2
+        ok = sz > 0
+        ax3.scatter(sx[ok], sy[ok], sz[ok], s=10, c="#F5E6A8", edgecolors="#C9A227", linewidths=0.4, depthshade=False, zorder=5)
+        cz = (confetti[:, 2] - 0.5 * u * 1.3) % 1.4                 # confetti falling
+        ax3.scatter(COURSE + 0.3 + confetti[:, 0], dy + confetti[:, 1], cz, s=14, c=conf_col, marker="s", depthshade=False, zorder=5)
+        ax3.text2D(0.5, 0.93, "WINNER", transform=ax3.transAxes, ha="center", fontsize=26, weight="bold", color="#C9A227")
+        ax3.text2D(0.5, 0.86, f"{r['name']}: A to B in {r['time']:.2f} s", transform=ax3.transAxes, ha="center", fontsize=13, weight="bold", color=COLS[win])
+        lines = [f"{q['name']}: {status(k)}" for k, q in enumerate(results) if k != win]
+        ax3.text2D(0.5, 0.06, "   ".join(lines), transform=ax3.transAxes, ha="center", fontsize=10, color="0.25")
+        if True:                                                    # the right side becomes the result board
+            for a in axc + [axt]:
+                a.cla(); a.axis("off")
+            order = sorted(range(len(results)), key=lambda k: results[k]["time"])
+            axt.text(0.5, 1.9, "RESULT", ha="center", fontsize=18, weight="bold", color="#C9A227", transform=axt.transAxes)
+            for n, k in enumerate(order):
+                q = results[k]
+                place = f"{n + 1}." if np.isfinite(q["time"]) else "  -"
+                axt.text(0.05, 1.5 - 0.42 * n, f"{place} {q['name']}: {status(k)}", fontsize=13, color=COLS[k],
+                         weight="bold" if k == win else "normal", transform=axt.transAxes)
+        return []
+
+    anim = animation.FuncAnimation(fig, draw, frames=n_race + n_party, interval=1000 / fps, blit=False)
+    plt.close(fig)
+    return anim
+

@@ -151,3 +151,9 @@ Three symbols carry two meanings; the context separates them.
 | Liu ch. 2.5.2 | $P^*$ | $N^*$ ($P$ is the parameter count) |
 | Liu ch. 2.2 | $\bar{t}$, the Neumann value (a traction) | $\bar{q}$, a flux ($t$ is time) |
 | many texts | $\mathbf{h}^{(l)}$ | $\mathbf{h}_k$, or $\mathbf{h}^{(k)}$ with a second index |
+
+**The decision threshold is $p_{th}$, never $\tau$** (15 October 2026):
+$\tau$ is the scaled time of L8.2 and Ex08 and appears as a time constant
+elsewhere, and $p$ with a subscript is a probability, so the probability
+above which a classifier's verdict flips is written $p_{th}$ (L11.2 and
+Ex11). In code the variable is ``P_TH``.

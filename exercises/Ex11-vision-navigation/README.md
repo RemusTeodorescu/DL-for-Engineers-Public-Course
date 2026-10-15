@@ -49,7 +49,7 @@ which an obstacle blocks the path, and the course.
 | 1 | the JetRacer and its twin; the course from A to B; pure pursuit and the blind distance |
 | 2 | the frames on the course: the car at four places and what its camera sees from each |
 | 3 | the classical line detector at four resolutions, for an agreed mean error of 0.03 |
-| 4 | the convolution of L5.1; **TODO 1**, the network (one network, one output here, two in section 5), trained on frames collected along the line and deliberately; its learned kernels |
+| 4 | the convolution of L5.1; **TODO 1**, the network (one network, one output here, two in section 5), trained on two drives a person makes round the lap, smooth and with swerves; its learned kernels |
 | 5 | **TODO 2**, the cross-entropy; the network against the dark-pixel rule; the threshold by the expected cost |
 | 6 | **TODO 3**, the potential field; stop, steer around and the field on the course |
 | 7 | the network driving the twin round the lap at eight loop rates, the stopping distance and the safe speed, multiply-adds and CPU against GPU, the weights in fewer bits |
@@ -59,15 +59,15 @@ which an obstacle blocks the path, and the course.
 
 ### What it measures (CPU, seed 88; about 5.5 minutes, most of it training)
 
-| finding the line: mean error on 300 held-out frames | along the line | beside it | with glare |
+| finding the line: mean error on 300 test frames | car on the line | beside it | with glare |
 |---|---|---|---|
 | classical detector, 112 × 112 | 0.007 | 0.021 | 0.083 |
-| network, trained along the line | 0.006 | 0.185 | 0.186 |
-| network, trained deliberately | 0.018 | 0.035 | 0.055 |
+| network, smooth drive | 0.012 | 0.192 | 0.188 |
+| network, drive with swerves | 0.014 | 0.034 | 0.045 |
 
 As a root mean square in centimetres across the floor 40 cm ahead (L11.1,
 *Steering From a Frame*): detector 0.8 / 4.5 / 14.1, network trained
-deliberately 1.6 / 3.8 / 6.3.
+on the drive with swerves 1.2 / 3.8 / 4.8.
 
 | free or blocked: 800 held-out frames | right | missed | false stops | grey boxes missed |
 |---|---|---|---|---|

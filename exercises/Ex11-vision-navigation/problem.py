@@ -324,6 +324,58 @@ def steering_frames(n, kind="deliberate", seed=0):
     return out, tgt
 
 
+#: how a person drives the car round the lap to collect training frames
+#: (the JetRacer's own way: drive with a gamepad, save a frame, label it):
+#: "smooth" keeps the car within a few cm of the line; "swerving" also aims up
+#: to 30 cm aside on purpose (the car reaches about 22 cm) and back, and drives some of the time with the sun
+#: reflected on the floor. A simulated driver (pure pursuit with a hand's
+#: wobble), ASSUMED; on the car it is a person.
+DRIVER = {"smooth": dict(swerve=0.0, glare=0.0), "swerving": dict(swerve=0.30, glare=0.3)}
+
+
+def human_drive(n, style="swerving", seed=0, speed=0.8, every=0.1, path=False):
+    """A person drives the virtual JetRacer round the lap at ``speed`` m/s and
+    the camera saves a frame every ``every`` s, each labelled with the true
+    target (:func:`target`). ``style`` is ``"smooth"`` or ``"swerving"``
+    (:data:`DRIVER`). Returns ``(frames, targets)`` as :func:`steering_frames`
+    does, and the car's positions ``(n, 3)`` with ``path=True``."""
+    d = DRIVER[style]
+    rng = np.random.default_rng(seed)
+    x, y, th = centreline(rng.uniform(0, LAP), "lap")
+    car = VirtualJetRacer(float(x), float(y), float(th), course="lap", seed=seed)
+    car.v, car.throttle = speed, throttle_for(speed)
+    frames, labels = np.empty((n, 3, H, W), np.uint8), np.empty(n, np.float32)
+    poses = np.empty((n, 3))
+    dt, t, k, shot = 2e-3, 0.0, 0, 0.0
+    aside, until, wobble = 0.0, 0.0, 0.0
+    while k < n:
+        if d["swerve"] and t >= until:                           # a swerve away from the line, or back to it
+            if aside == 0.0 and rng.random() < 0.7:
+                aside, until = rng.choice([-1, 1]) * rng.uniform(0.08, d["swerve"]), t + rng.uniform(0.4, 1.0)
+            else:
+                aside, until = 0.0, t + rng.uniform(0.6, 1.5)
+        wobble += (-wobble / 2.0 + 0.012 * rng.standard_normal() / np.sqrt(dt)) * dt   # the hand's wobble, about 1.5 cm
+        s0 = _S_LAP[int(np.argmin((_XY_LAP[:, 0] - car.x) ** 2 + (_XY_LAP[:, 1] - car.y) ** 2))]
+        px, py, pth = centreline(s0 + AIM, "lap")                # where the driver aims: the line ahead, moved aside
+        px, py = px - np.sin(pth) * (aside + wobble), py + np.cos(pth) * (aside + wobble)
+        dx, dy = px - car.x, py - car.y
+        a = (np.arctan2(dy, dx) - car.th + np.pi) % (2 * np.pi) - np.pi
+        wheel = np.arctan(2 * WHEELBASE * np.sin(a) / max(np.hypot(dx, dy), 1e-3))
+        car.steering = wheel / (car.steering_gain * SERVO_ANGLE)  # the gamepad's stick
+        if t >= shot:                                            # the camera saves a frame
+            g = []
+            if rng.random() < d["glare"]:                        # the sun through a window, beside the line ahead
+                a_ = rng.uniform(0.25, 0.7); b_ = rng.choice([-1, 1]) * rng.uniform(0.08, 0.22)
+                g = [(car.x + np.cos(car.th) * a_ - np.sin(car.th) * b_, car.y + np.sin(car.th) * a_ + np.cos(car.th) * b_, rng.uniform(0.04, 0.08))]
+            img = render(car.x, car.y, car.th, "lap", glare=g, rng=rng, light=rng.uniform(0.85, 1.15), slope=rng.uniform(-0.3, 0.3))
+            frames[k], labels[k], poses[k] = img.transpose(2, 0, 1), target(car.x, car.y, car.th, "lap"), (car.x, car.y, car.th)
+            k += 1
+            shot += every
+        car.step(dt)
+        t += dt
+    return (frames, labels, poses) if path else (frames, labels)
+
+
 RANGE = 0.70              #: m: an obstacle closer than this, in the lane, blocks the path (ASSUMED)
 LANE = 0.15               #: m: half the lane, from the car's centre line to the obstacle's edge, beyond the car's half-width
 

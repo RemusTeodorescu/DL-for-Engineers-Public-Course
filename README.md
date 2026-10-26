@@ -105,8 +105,10 @@ to see the library files and the set's README.
   - Ex07.2_3_panel_strike - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex07.2-heat-and-wave/Ex07.2_3_panel_strike.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex07.2-heat-and-wave/Ex07.2_3_panel_strike_light.ipynb)
 - `exercises/Ex08-heatsink-cooling/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex08-heatsink-cooling)
   - Ex08_heatsink_cooling - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex08-heatsink-cooling/Ex08_heatsink_cooling.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex08-heatsink-cooling/Ex08_heatsink_cooling_light.ipynb)
+- `exercises/Ex08.1-stationary-heat/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex08.1-stationary-heat)
 - `exercises/Ex09.1-cooling-plate/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex09.1-cooling-plate)
   - Ex09.1_cooling_plate - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex09.1-cooling-plate/Ex09.1_cooling_plate.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex09.1-cooling-plate/Ex09.1_cooling_plate_light.ipynb)
+- `exercises/Ex09.2-channel-flow/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex09.2-channel-flow)
 - `exercises/Ex09.2-hydrogen-channel/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex09.2-hydrogen-channel)
   - Ex09.2_hydrogen_channel - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex09.2-hydrogen-channel/Ex09.2_hydrogen_channel.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex09.2-hydrogen-channel/Ex09.2_hydrogen_channel_light.ipynb)
 - `exercises/Ex10.1-spm-and-thermal/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex10.1-spm-and-thermal)
@@ -116,6 +118,7 @@ to see the library files and the set's README.
 - `exercises/Ex11-vision-navigation/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex11-vision-navigation)
   - Ex11_on_the_car - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex11-vision-navigation/Ex11_on_the_car.ipynb)
   - Ex11_vision_navigation - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex11-vision-navigation/Ex11_vision_navigation.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex11-vision-navigation/Ex11_vision_navigation_light.ipynb)
+- `exercises/Ex12.2-power-grid-stability-prediction/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12.2-power-grid-stability-prediction)
 - `exercises/Ex12_optional/` - [browse set](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/exercises/Ex12_optional)
   - Ex12.1_39_edge_optional_basin_stability - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_optional/Ex12.1_39_edge_optional_basin_stability.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_optional/Ex12.1_39_edge_optional_basin_stability_light.ipynb)
   - Ex12.2_39_edge_optional_realtime_screening - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_optional/Ex12.2_39_edge_optional_realtime_screening.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_optional/Ex12.2_39_edge_optional_realtime_screening_light.ipynb)
@@ -128,4 +131,4 @@ to see the library files and the set's README.
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;
 until then the material is shared for the course's students.
 
-Synced from the development repository; 28 lecture PDFs, 24 recordings and 16 exercise sets.
+Synced from the development repository; 28 lecture PDFs, 24 recordings and 19 exercise sets.

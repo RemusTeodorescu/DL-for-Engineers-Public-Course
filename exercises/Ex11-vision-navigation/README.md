@@ -17,7 +17,7 @@ mini projects.
 Ex11_vision_navigation.ipynb         the notebook: three TODO cells, the answer in the comment inside each
 Ex11_vision_navigation_light.ipynb   the same notebook with every cell written out
 problem.py                           the virtual JetRacer, the courses, the rules, the sensors, the film
-Ex11_on_the_car.ipynb, SETUP.md      the real JetRacer: for the mini projects only
+Ex11_on_the_car.ipynb, SETUP.md      the real JetRacer: for the lab demonstration
 ```
 
 ## The problem
@@ -113,13 +113,22 @@ a measurement of the car. About 25 s to draw.
 
 ## The car, for the mini projects
 
-The JetRacer Pro, the RPLIDAR A1 and the DFRobot URM09 are available for the
-mini projects, which are done on the real car. `SETUP.md` flashes and checks
-the car; `Ex11_on_the_car.ipynb` collects frames, trains, and runs the
-instrumented loop on it. The car has **no encoder**, so speeds on the floor are
-timed, not measured. Code written for the twin runs on the car with the import
-changed: `from jetracer.nvidia_racecar import NvidiaRacecar` and
-`from jetcam.csi_camera import CSICamera`.
+The mini projects run on the lab's **Yahboom ROSMASTER R2**, Superior version
+(26 October 2026): Jetson Orin Nano Super 8 GB, Ackermann steering, 65 mm
+wheels, at most 1.8 m/s, a SLAM A1 LiDAR (Slamtec RPLIDAR A1), an Astra Pro
+Plus depth camera, an IMU and odometry, ROS2 Humble (vendor; see
+`docs/hardware/rosmaster-r2.md` in the course repository for what the vendor
+does and does not state). The DFRobot URM09 ultrasonic sensor is added on the
+Orin Nano's I2C bus for MP11B. The car is driven through ROS2 with Yahboom's
+course materials, not through the JetRacer library, so code written for the
+twin keeps its network and decision rule and changes only how it reads the
+camera and sends the steering and speed. The twin's camera mount, steering and
+speed response are a JetRacer's and assumed: measure the R2's and set them in
+`problem.py` before training on rendered frames.
+
+The JetRacer Pro stays for the lecture's demonstration: `SETUP.md` flashes and
+checks it, and `Ex11_on_the_car.ipynb` collects frames, trains, and runs the
+instrumented loop on it.
 
 ## Mini project proposal
 
@@ -130,5 +139,5 @@ ground truth is given, built by `tools/miniprojects/ex11_truth.py` under policy 
 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
-| **MP11A · Faster from A to B, on the JetRacer** | faster from A to B on the real JetRacer, camera only: better obstacle avoidance and a higher speed | the notebook's network with a position head (blocked and where), feeding the potential field or your own planner | the measured course on the floor; on the twin, perfect perception's 8.76 s (steer around) and 4.24 s (field, 1.5 m/s) | twin: no collision, at most 5.0 s, position within 5 cm; car: five runs without contact, filmed |
-| **MP11B · Camera, LiDAR and ultrasonic in difficult conditions, on the JetRacer** | the real JetRacer with an RPLIDAR A1 and a URM09, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |
+| **MP11A · Faster from A to B, on the ROSMASTER R2** | faster from A to B on the ROSMASTER R2, camera only: better obstacle avoidance and a higher speed | the notebook's network with a position head (blocked and where), feeding the potential field or your own planner | the measured course on the floor; on the twin, perfect perception's 8.76 s (steer around) and 4.24 s (field, 1.5 m/s) | twin: no collision, at most 5.0 s, position within 5 cm; car: five runs without contact, filmed |
+| **MP11B · Camera, LiDAR and ultrasonic in difficult conditions, on the ROSMASTER R2** | the ROSMASTER R2 with its LiDAR and an added URM09, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |

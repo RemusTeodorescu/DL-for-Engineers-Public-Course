@@ -118,8 +118,9 @@ The mini projects run on the lab's **Yahboom ROSMASTER R2**, Superior version
 wheels, at most 1.8 m/s, a SLAM A1 LiDAR (Slamtec RPLIDAR A1), an Astra Pro
 Plus depth camera, an IMU and odometry, ROS2 Humble (vendor; see
 `docs/hardware/rosmaster-r2.md` in the course repository for what the vendor
-does and does not state). The DFRobot URM09 ultrasonic sensor is added on the
-Orin Nano's I2C bus for MP11B. The car is driven through ROS2 with Yahboom's
+does and does not state). Its depth camera and LiDAR are built in; the DFRobot
+URM09 ultrasonic sensor is an optional add-on for MP11B, on the Orin Nano's
+I2C bus. The car is driven through ROS2 with Yahboom's
 course materials, not through the JetRacer library, so code written for the
 twin keeps its network and decision rule and changes only how it reads the
 camera and sends the steering and speed. The twin's camera mount, steering and
@@ -140,4 +141,4 @@ ground truth is given, built by `tools/miniprojects/ex11_truth.py` under policy 
 | | the problem | the deep learning | the ground truth given | required |
 |---|---|---|---|---|
 | **MP11A · Faster from A to B, on the ROSMASTER R2** | faster from A to B on the ROSMASTER R2, camera only: better obstacle avoidance and a higher speed | the notebook's network with a position head (blocked and where), feeding the potential field or your own planner | the measured course on the floor; on the twin, perfect perception's 8.76 s (steer around) and 4.24 s (field, 1.5 m/s) | twin: no collision, at most 5.0 s, position within 5 cm; car: five runs without contact, filmed |
-| **MP11B · Camera, LiDAR and ultrasonic in difficult conditions, on the ROSMASTER R2** | the ROSMASTER R2 with its LiDAR and an added URM09, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |
+| **MP11B · Depth camera and LiDAR in difficult conditions, on the ROSMASTER R2** | the ROSMASTER R2 with its built-in depth camera and LiDAR, a URM09 sonar optional, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |

@@ -123,6 +123,15 @@ to see the library files and the set's README.
   - Ex12.1_pinn_grid_state - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_power_grid/Ex12.1_pinn_grid_state.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_power_grid/Ex12.1_pinn_grid_state_light.ipynb)
   - Ex12.2_gnn_contingency_screening - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_power_grid/Ex12.2_gnn_contingency_screening.ipynb), [light](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/exercises/Ex12_power_grid/Ex12.2_gnn_contingency_screening_light.ipynb)
 
+## Mini projects
+
+Each student chooses one mini project from the Part 2 sets and solves it individually in a month.
+Each is one Colab notebook in five parts - the problem, the data and the physics, the reference
+model and the ground truth (given), the network and the report (yours) - with the project's
+module and ground truth beside it, fetched by the notebook's first cell.
+
+- **MP8.2A · Thermal Cycling with Natural Convection** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.2A/MP8.2A_thermal_cycling.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.2A)
+
 ## Licence
 
 (c) 2026 Remus Teodorescu, Aalborg University. A licence will be added shortly;

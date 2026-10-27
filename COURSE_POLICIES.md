@@ -490,24 +490,25 @@ project's files stay private.*
 version of the same problem or its inverse, without changing the set's topic.
 Everything runs in Colab: no Jetson board, no real car.
 
-**The notebooks**, in `miniprojects/<MP>/`, all public:
+**One notebook**, in `miniprojects/<MP>/`, public, like a Part 2 exercise set (the lecturer, 27 October 2026), in five parts:
 
-| notebook | given | what it holds |
+| part | given | what it holds |
 |---|---|---|
-| `<MP>_00_problem` | solved | the problem formulation: what is computed and why an engineer wants it; the domain with every dimension and material value; every boundary and initial condition and why it holds |
-| `<MP>_01_data_and_physics` | solved | how the data is generated (cases, ranges, sensors, noise and its seed); the physics the network is trained with: the equation, the conditions, the balances, and the loss terms they become |
-| `<MP>_02_reference` | solved | the reference model, the conventional solver at engineering accuracy, run and timed on the Colab runtime; the ground truth, its convergence study and its physics checks |
-| `<MP>_03_pinn` | TODO cells | the student chooses the network and its hyperparameters, the training method, and how to visualise the result |
-| `<MP>_04_report` | TODO cells | the goal metrics against the reference, and the questions |
+| A · the problem | solved | the problem formulation: what is computed and why an engineer wants it; the domain with every dimension and material value; every boundary and initial condition and why it holds |
+| B · the data and the physics | solved | how the data is generated (cases, ranges, sensors, noise and its seed); the physics the network is trained with: the equation, the conditions, the balances, and the loss terms they become |
+| C · the reference | solved | the reference model, the conventional solver at engineering accuracy, run and timed on the Colab runtime; the ground truth, its convergence study and its physics checks |
+| D · the PINN | TODO cells | the student chooses the network and its hyperparameters, the training method, and how to visualise the result |
+| E · the report | TODO cells | the goal metrics against the reference, and the questions |
 
-The given notebooks explain richly: each step says what it does, why, and
+Its first cell fetches every file it imports (the project's module, its ground truth, the exercise's library files); the results pass between parts in memory, so nothing is mounted, saved between sessions or uploaded.
+
+The given parts explain richly: each step says what it does, why, and
 what it rests on, in the plain language of C5.
 
-**A solved version** of notebooks 03 and 04 (`<MP>_03_pinn_solved`,
-`<MP>_04_report_solved`) is written for every mini project before it is
-offered. It proves the requirements can be met, and it is the lecturer's for
-grading. It stays in the private repository: `sync_public.py` refuses any
-file whose name contains `_solved`.
+**A solved version**, `<MP>_<name>_solved.ipynb`, is written for every mini project before it is
+offered: every cell written out, it runs from top to bottom with no intervention. It proves the
+requirements can be met, and it is the lecturer's for grading. It stays in the private repository:
+`sync_public.py` refuses any file whose name contains `_solved`.
 
 **No exact solution as the ground truth.** Exact solutions are rare in real
 engineering. Where the exercise has one, the mini project changes the domain

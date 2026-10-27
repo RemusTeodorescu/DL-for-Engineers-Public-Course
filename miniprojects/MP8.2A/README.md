@@ -2,15 +2,17 @@
 
 **Mini project of Ex08, Heatsink Cooling of a Power Module · Part 2 · course policy C14**
 
-Five Colab notebooks, run in order (GPU runtime, T4):
+One Colab notebook, `MP8.2A_thermal_cycling.ipynb` (GPU runtime, T4), in five parts:
 
-| notebook | given | what it holds |
+| part | given | what it holds |
 |---|---|---|
-| `MP8.2A_00_problem.ipynb` | solved | why the history matters, the heat sink, what is new against Ex08, the domain and its conditions, why there is no exact solution, what is asked |
-| `MP8.2A_01_data_and_physics.ipynb` | solved | the network's inputs and output, the scaled equation, the loss terms and what can be built in, the training points, optional thermocouple data |
-| `MP8.2A_02_reference.ipynb` | solved | the reference model and the ground truth: the scheme step by step, convergence, energy balance, the zero-strength check, the reference's accuracy and time |
-| `MP8.2A_03_pinn.ipynb` | TODO cells | your network, your training, your figures; a given cell evaluates and times it |
-| `MP8.2A_04_report.ipynb` | TODO cells | the goal metrics against the ground truth and the reference, and eighteen questions |
+| A · The problem | solved | why the history matters, the heat sink, what is new against Ex08, the domain and its conditions, why there is no exact solution, what is asked |
+| B · The data and the physics | solved | the network's inputs and output, the scaled equation, the loss terms and what can be built in, the training points, optional thermocouple data |
+| C · The reference model and the ground truth | solved | the scheme step by step, convergence, energy balance, the zero-strength check, the reference model's accuracy and time |
+| D · The physics-informed network | TODO cells | your network, your training, your figures; a given cell evaluates and times it |
+| E · The report | TODO cells | the goal metrics against the ground truth and the reference model, and eighteen questions |
+
+Its first cell fetches `mp82a.py`, the ground truth `MP8.2A_truth.npz` and Ex08's library files. The results pass from part to part in memory: nothing to save, mount or upload.
 
 ## The problem
 
@@ -45,4 +47,4 @@ Peaks of the ten cycles 16.02, 20.44, 22.22, 22.93, 23.21, 23.32, 23.37, 23.39, 
 
 ## What you hand in
 
-The PDF written by notebook 04: the results table, your figures, and the eighteen answers.
+The PDF written at the end of part E: the results table, your figures, and the eighteen answers.

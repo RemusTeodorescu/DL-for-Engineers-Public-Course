@@ -25,6 +25,7 @@ errors in the exercises.
 | C11 | Part 2: one notebook per set | `tools/exercises/check_exercise_policy.py` |
 | C12 | Numbers with at most two decimals | by review |
 | C13 | Part 2: a forward-problem notebook tells one story | by review |
+| C14 | Part 2: a mini project is a series of notebooks, solved in Colab | `tools/exercises/check_exercise_policy.py` |
 
 `python3 tools/deck/slide_policies.py --list` prints the twelve with the old
 policies under each; `--full` adds the review history behind every one.
@@ -299,6 +300,8 @@ run with it.
   the proposal is written; the full data set is built when a student chooses
   the project. Both follow the rules below. Ex07.1's is
   `tools/miniprojects/ex071_truth.py`.
+- *Superseded by C14 on 27 October 2026: the mini projects' notebooks and
+  data are public; only their `_solved` notebooks stay private.*
 - **The ground truth belongs to the mini project, not to the exercise set,
   and stays in the private repository** (13 October 2026). Its files are
   written to `tools/miniprojects/data/` and committed there, never into
@@ -477,3 +480,68 @@ were the first built to it, then Ex08.1, Ex08.2, Ex09.1 and Ex09.2
 (1 October), whose builders share `tools/exercises/part2_notebook.py`. Start a
 new set's builder from `tools/exercises/ex08/build_ex08.py`, or from
 `ex092/build_ex092.py` for a set with an inverse section.*
+
+## C14 · Part 2: a mini project is a series of notebooks, solved in Colab
+
+*Agreed 27 October 2026. It extends C10 and replaces its rule that a mini
+project's files stay private.*
+
+**What a mini project is.** An extension of its exercise set, on a harder
+version of the same problem or its inverse, without changing the set's topic.
+Everything runs in Colab: no Jetson board, no real car.
+
+**The notebooks**, in `miniprojects/<MP>/`, all public:
+
+| notebook | given | what it holds |
+|---|---|---|
+| `<MP>_00_problem` | solved | the problem formulation: what is computed and why an engineer wants it; the domain with every dimension and material value; every boundary and initial condition and why it holds |
+| `<MP>_01_data_and_physics` | solved | how the data is generated (cases, ranges, sensors, noise and its seed); the physics the network is trained with: the equation, the conditions, the balances, and the loss terms they become |
+| `<MP>_02_reference` | solved | the reference model, the conventional solver at engineering accuracy, run and timed on the Colab runtime; the ground truth, its convergence study and its physics checks |
+| `<MP>_03_pinn` | TODO cells | the student chooses the network and its hyperparameters, the training method, and how to visualise the result |
+| `<MP>_04_report` | TODO cells | the goal metrics against the reference, and the questions |
+
+The given notebooks explain richly: each step says what it does, why, and
+what it rests on, in the plain language of C5.
+
+**A solved version** of notebooks 03 and 04 (`<MP>_03_pinn_solved`,
+`<MP>_04_report_solved`) is written for every mini project before it is
+offered. It proves the requirements can be met, and it is the lecturer's for
+grading. It stays in the private repository: `sync_public.py` refuses any
+file whose name contains `_solved`.
+
+**No exact solution as the ground truth.** Exact solutions are rare in real
+engineering. Where the exercise has one, the mini project changes the domain
+or a boundary or initial condition, realistically and slightly, so that none
+exists. The change has a strength parameter, and at zero strength the ground
+truth solver must reproduce the exercise's exact solution: that is its check.
+
+**Reference model and ground truth are two things.**
+
+- The **ground truth** is a converged numerical solution (C10's rules: three
+  grids, Richardson extrapolation where it applies, a conservation balance).
+  It scores the answers.
+- The **reference model** is the conventional engineering solver at
+  engineering accuracy (finite differences, finite volumes, a time march,
+  weighted least squares, conventional vision). It is what the network is
+  compared with.
+
+**The goal is a fast solution, not only a solution.**
+
+- *Forward problem*: the accuracy of the reference model or better, and an
+  online time at least ten times shorter on the Colab GPU (a T4). The network's
+  online time is one inference; its training is reported apart, as the
+  offline cost.
+- *Inverse problem* (amortised): one network trained over the range of the
+  hidden parameters answers a new set of readings within the stated accuracy,
+  at least ten times faster than a new least-squares fit with the reference
+  model.
+
+**The report** asks twice as many questions as the exercise set's report,
+each asking for a number, a figure or a comparison.
+
+**MP11** runs on a digital twin of the ROSMASTER R2 with its LiDAR and depth
+camera (no ultrasonic sensor), on a track more complex than Ex11's, with seeded
+noise at rising levels. **MP12** uses conventional stability (the classical
+machine, critical clearing times and trajectories) on the IEEE 39-bus grid
+with inertia-free converters at rising shares; the optional 39-bus set stays as
+it is and does not solve either project.

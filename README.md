@@ -131,6 +131,8 @@ model and the ground truth (given), the network and the report (yours) - with th
 module and ground truth beside it, fetched by the notebook's first cell.
 
 - **MP8.2A · Thermal Cycling with Natural Convection** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.2A/MP8.2A_thermal_cycling.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.2A)
+- **MP9.2A · The SOEC Steam Channel** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2A/MP9.2A_soec_steam_channel.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2A)
+- **MP9.2B · The Air Channel** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2B/MP9.2B_air_channel.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2B)
 
 ## Licence
 

@@ -140,6 +140,8 @@ module and ground truth beside it, fetched by the notebook's first cell.
 - **MP9.1B · The Pump's Speed Reference** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.1B/MP9.1B_pump_speed_reference.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.1B)
 - **MP9.2A · The SOEC Steam Channel** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2A/MP9.2A_soec_steam_channel.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2A)
 - **MP9.2B · The Air Channel** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2B/MP9.2B_air_channel.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2B)
+- **MP10.2A · The Channel Across Its Height, and the Electrode Under It** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2A/MP10.2A_channel_and_electrode.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2A)
+- **MP10.2B · A Day of Operation Under an Hourly Price** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2B/MP10.2B_day_of_operation.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2B)
 
 ## Licence
 

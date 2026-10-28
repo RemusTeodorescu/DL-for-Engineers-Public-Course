@@ -147,6 +147,8 @@ module and ground truth beside it, fetched by the notebook's first cell.
 - **MP10.1B · How Much Has the Cell Aged?** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.1B/MP10.1B_cell_ageing.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.1B)
 - **MP10.2A · The Channel Across Its Height, and the Electrode Under It** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2A/MP10.2A_channel_and_electrode.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2A)
 - **MP10.2B · A Day of Operation Under an Hourly Price** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2B/MP10.2B_day_of_operation.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2B)
+- **MP11A · Faster from A to B** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11A/MP11A_faster_a_to_b.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11A)
+- **MP11B · Fusion of Camera, Depth Camera and LiDAR** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11B/MP11B_sensor_fusion.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11B)
 
 ## Licence
 

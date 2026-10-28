@@ -73,7 +73,8 @@ G_TEST = (0.005, 0.0175, 0.0325)   #: m, gaps whose fields are kept in the truth
 X_HOT = (0.045, 0.095)    #: m, the hottest point lies under the downstream module, in this span, at every gap
 C_AIR = 15.0              #: W/K, heat capacity flow of the air, m_dot c_p        [ASSUMED]
 B_DROP = 0.25             #: relative fall of h from inlet to outlet, ±25 %      [ASSUMED]
-S_AIR = 1.0               #: strength of the change: 0 is Ex08's air
+C_NAT = 1.42              #: W/(m^(7/4) K^(5/4)), natural convection on the fins, MP8.2A's law   [ASSUMED]
+S_AIR = 1.0               #: strength of the change: 0 is Ex08's air (no warming, no fall of h, no natural convection)
 
 
 def patches(gap):
@@ -82,14 +83,20 @@ def patches(gap):
     return ((c - gap / 2 - A_MODULE, c - gap / 2, FLUX), (c + gap / 2, c + gap / 2 + A_MODULE, FLUX))
 
 
-def h_air(x, s=S_AIR):
-    """The air's coefficient on the fins at x (m): highest at the inlet."""
-    return hs.H_AIR * (1.0 + s * B_DROP * (1.0 - 2.0 * np.asarray(x, dtype=float) / hs.W_BASE))
+def h_air(x, dT=0.0, s=S_AIR):
+    """The air's coefficient on the fins (W/(m²K)) at x (m) and at a rise dT (K)
+    of the fin root above the local air: the fan's part, highest at the inlet
+    and falling along the flow, plus natural convection, which grows with the
+    fourth root of the rise (MP8.2A's law)."""
+    x = np.asarray(x, dtype=float)
+    dT = np.maximum(np.asarray(dT, dtype=float), 0.0)
+    return hs.H_AIR * (1.0 + s * B_DROP * (1.0 - 2.0 * x / hs.W_BASE)) + s * C_NAT * (dT / hs.L_FIN) ** 0.25
 
 
-def h_eff(x, s=S_AIR):
-    """The effective coefficient of the finned face at x: Ex08's fin calculation with h(x)."""
-    return hs.fin_efficiency(h_air(x, s))[2]
+def h_eff(x, dT=0.0, s=S_AIR):
+    """The effective coefficient of the finned face at x and a root rise dT:
+    Ex08's fin calculation with h(x, dT)."""
+    return hs.fin_efficiency(h_air(x, dT, s))[2]
 
 
 def flux_top(x, gap):
@@ -114,8 +121,17 @@ def _cover(edges, gap):
 class Plate:
     """Finite volumes on nx by nz cells of the base plate, coupled to the air's
     energy balance along the fin side (one air temperature per cell face in x).
-    Unknowns: the rise of every cell above the inlet air, then θ_a at the nx+1
-    faces. Built once per grid; :meth:`solve` takes a gap."""
+    Unknowns u: the rise of every cell above the inlet air, then θ_a at the
+    nx+1 faces.
+
+    The equations are  L u + P G(Δ) = b : L is linear (conduction, and the
+    air's C dθ_a/dx), G_i = g(x_i, Δ_i) Δ_i is the heat (W per metre of depth)
+    bottom cell i gives to the air, with Δ_i = θ_i - (θ_a,i + θ_a,i+1)/2 its
+    rise above the local air and g the conductance of half a cell of metal in
+    series with h_eff(x_i, Δ_i); P puts +G_i in the cell's balance and
+    -S D G_i in the air's. h_eff depends on Δ, so the system is NONLINEAR and
+    is solved by Newton's method (:meth:`solve`) or by chord iterations with
+    one fixed factorisation (:meth:`solve_chord`)."""
 
     def __init__(self, nx, nz, s=S_AIR):
         self.nx, self.nz, self.s = nx, nz, s
@@ -126,6 +142,8 @@ class Plate:
         self.zc = (np.arange(nz) + 0.5) * dz
         k = hs.K_AL
         n = nx * nz
+        self.n = n
+        na = nx + 1
         I = lambda i, j: j * nx + i                          # cell (i across, j up)
         rows, cols, vals = [], [], []
         def add(r, c, v):
@@ -138,30 +156,76 @@ class Plate:
                 if i < nx - 1: add(p, p, gx); add(p, I(i + 1, j), -gx)
                 if j > 0: add(p, p, gz); add(p, I(i, j - 1), -gz)
                 if j < nz - 1: add(p, p, gz); add(p, I(i, j + 1), -gz)
-        # the fin side: each bottom cell to the air at its centre, θ_a there the mean of its two faces
-        he = h_eff(self.xc, s)
-        g = dx / (1.0 / he + dz / (2 * k))                   # W/(m K) per metre of depth
-        self.g = g
-        na = nx + 1
-        for i in range(nx):
-            p = I(i, 0)
-            add(p, p, g[i]); add(p, n + i, -0.5 * g[i]); add(p, n + i + 1, -0.5 * g[i])
-        # the air: θ_a(0) = 0; C (θ_a,i+1 - θ_a,i) = S D g_i (θ_i - (θ_a,i + θ_a,i+1)/2)
-        add(n, n, 1.0)
-        D = hs.DEPTH
-        for i in range(nx):
-            r = n + i + 1
-            add(r, n + i + 1, C_AIR + 0.5 * s * D * g[i]); add(r, n + i, -C_AIR + 0.5 * s * D * g[i])
-            add(r, I(i, 0), -s * D * g[i])
-        self.A = sp.csc_matrix(sp.coo_matrix((vals, (rows, cols)), shape=(n + na, n + na)))
-        self.lu = spla.splu(self.A)
-        self.n = n
+        add(n, n, 1.0)                                       # θ_a(0) = 0
+        for i in range(nx):                                  # C (θ_a,i+1 - θ_a,i) ...
+            add(n + i + 1, n + i + 1, C_AIR); add(n + i + 1, n + i, -C_AIR)
+        N = n + na
+        self.L = sp.csr_matrix(sp.coo_matrix((vals, (rows, cols)), shape=(N, N)))
+        ib = np.arange(nx)                                   # bottom cells
+        # P (N x nx): +1 in the cell's row, -S D in the air row i+1
+        self.P = sp.csr_matrix((np.r_[np.ones(nx), np.full(nx, -s * hs.DEPTH)],
+                                (np.r_[ib, n + ib + 1], np.r_[ib, ib])), shape=(N, nx))
+        # E (nx x N): Δ = E u
+        self.E = sp.csr_matrix((np.r_[np.ones(nx), np.full(nx, -0.5), np.full(nx, -0.5)],
+                                (np.r_[ib, ib, ib], np.r_[ib, n + ib, n + ib + 1])), shape=(nx, N))
+        self.N = N
+        self._chord = None
 
-    def solve(self, gap):
-        """Returns the rise of every cell (nz, nx) and θ_a at the faces (nx+1), K."""
-        b = np.zeros(self.A.shape[0])
+    # --- the nonlinear fin side
+    def g(self, D):
+        """W/(m K) per metre of depth: half a cell of metal in series with h_eff(x, Δ)."""
+        return self.dx / (1.0 / h_eff(self.xc, D, self.s) + self.dz / (2 * hs.K_AL))
+
+    def G(self, D):
+        return self.g(D) * D
+
+    def dG(self, D, eps=1e-4):
+        return (self.G(D + eps) - self.G(D - eps)) / (2 * eps)
+
+    def rhs(self, gap):
+        b = np.zeros(self.N)
         b[(self.nz - 1) * self.nx: self.n] = _cover(self.xe, gap) * self.dx    # W per metre of depth
-        u = self.lu.solve(b)
+        return b
+
+    def residual(self, u, b):
+        return self.L @ u + self.P @ self.G(self.E @ u) - b
+
+    def solve(self, gap, u0=None, tol=1e-6, maxit=30):
+        """Newton's method: at every iteration the Jacobian L + P diag(G') E is
+        assembled and factorised, and u is corrected until no unknown changes
+        by more than ``tol`` kelvin. Starts from ``u0`` or from the field of a
+        uniform 45 K rise (a warm start from a neighbouring gap converges in
+        fewer iterations). Returns the cells' rise (nz, nx) and θ_a (nx+1);
+        ``self.iterations`` counts the Newton steps."""
+        b = self.rhs(gap)
+        u = np.full(self.N, 45.0) if u0 is None else u0.copy()
+        if u0 is None:
+            u[self.n:] = np.linspace(0, 2 * P_MODULE / C_AIR * self.s, self.nx + 1)
+        for it in range(1, maxit + 1):
+            D = self.E @ u
+            J = (self.L + self.P @ sp.diags(self.dG(D)) @ self.E).tocsc()
+            du = spla.spsolve(J, -self.residual(u, b))
+            u += du
+            if np.abs(du).max() < tol:
+                break
+        self.iterations, self.u = it, u
+        return u[: self.n].reshape(self.nz, self.nx), u[self.n:]
+
+    def solve_chord(self, gap, u0=None, tol=1e-6, maxit=200, D_lin=45.0):
+        """Chord iterations: the Jacobian at a uniform rise D_lin is factorised
+        ONCE per grid and reused for every iteration and every gap; each
+        iteration is one back-substitution. Converges linearly."""
+        if self._chord is None:
+            D0 = np.full(self.nx, D_lin)
+            self._chord = spla.splu((self.L + self.P @ sp.diags(self.dG(D0)) @ self.E).tocsc())
+        b = self.rhs(gap)
+        u = np.full(self.N, 45.0) if u0 is None else u0.copy()
+        for it in range(1, maxit + 1):
+            du = self._chord.solve(-self.residual(u, b))
+            u += du
+            if np.abs(du).max() < tol:
+                break
+        self.iterations, self.u = it, u
         return u[: self.n].reshape(self.nz, self.nx), u[self.n:]
 
     def top_face(self, th, gap):
@@ -179,14 +243,14 @@ class Plate:
         return float(b - 0.25 * (a - c) * s), float(self.xc[i] + s * self.dx)
 
     def balance(self, th, ta):
-        """Heat in from the modules, heat taken by the air (C θ_a at the outlet), W for the depth."""
-        q_in = 2 * P_MODULE
-        q_fins = hs.DEPTH * np.sum(self.g * (th[0] - 0.5 * (ta[1:] + ta[:-1])))
-        return dict(heat_in=q_in, heat_fins=q_fins, heat_air=C_AIR * ta[-1])
+        """Heat in from the modules, heat given by the fins, heat taken by the air (C θ_a at the outlet), W for the depth."""
+        D = th[0] - 0.5 * (ta[1:] + ta[:-1])
+        return dict(heat_in=2 * P_MODULE, heat_fins=hs.DEPTH * np.sum(self.G(D)), heat_air=C_AIR * ta[-1])
 
 
 # ------------------------------------------------------- the reference model
 REF_GRID = (50, 5)        #: cells of 2 mm, the coarsest that meets 0.1 K at every gap (the convergence study)
+REF_TOL = 1e-3            #: K, Newton stops when no unknown changes by more than this
 _CACHE = {}
 
 
@@ -197,26 +261,36 @@ def _plate(grid, s=S_AIR):
     return _CACHE[key]
 
 
-def reference(gap, grid=REF_GRID):
-    """The reference model for one gap (m): the hottest point (K), its x (m),
-    and the wall-clock time (s). The matrix does not depend on the gap and is
-    factorised once, as an engineer's solver would; a new gap is one solve."""
+def reference(gap, grid=REF_GRID, method="newton"):
+    """The reference model for one new gap (m): finite volumes on the
+    engineering grid, Newton's method from a cold start (``method="chord"``:
+    chord iterations with the one factorisation kept from earlier calls).
+    Returns the hottest point (K), its x (m), the fields, the iterations and the
+    wall-clock time (s)."""
     m = _plate(grid)
     t0 = time.perf_counter()
-    th, ta = m.solve(gap)
+    th, ta = (m.solve if method == "newton" else m.solve_chord)(gap, tol=REF_TOL)
     hot, xh = m.hottest(th, gap)
-    return dict(hottest=hot, x_hot=xh, theta=th, theta_air=ta, x=m.xc, z=m.zc, seconds=time.perf_counter() - t0)
+    return dict(hottest=hot, x_hot=xh, theta=th, theta_air=ta, x=m.xc, z=m.zc, iterations=m.iterations,
+                seconds=time.perf_counter() - t0)
 
 
-def reference_best_gap(grid=REF_GRID, xatol=1e-4):
+def reference_best_gap(grid=REF_GRID, xatol=1e-4, method="newton"):
     """The best gap by the reference model: a bounded scalar search (Brent) of
-    the hottest point over the gap, one plate solve per trial. Returns the gap
-    (m), the hottest point there (K), the number of solves and the time (s)."""
+    the hottest point over the gap, one nonlinear solve per trial gap, each
+    warm-started from the previous trial's field. Returns the gap (m), the
+    hottest point there (K), the number of solves and of iterations, and the
+    time (s)."""
     m = _plate(grid)
+    state = dict(u=None, its=0)
+    def f(g):
+        th, ta = (m.solve if method == "newton" else m.solve_chord)(g, u0=state["u"], tol=REF_TOL)
+        state["u"] = m.u; state["its"] += m.iterations
+        return m.hottest(th, g)[0]
     t0 = time.perf_counter()
-    res = minimize_scalar(lambda g: m.hottest(m.solve(g)[0], g)[0], bounds=(G_MIN, G_MAX),
-                          method="bounded", options=dict(xatol=xatol))
-    return dict(gap=float(res.x), hottest=float(res.fun), solves=int(res.nfev), seconds=time.perf_counter() - t0)
+    res = minimize_scalar(f, bounds=(G_MIN, G_MAX), method="bounded", options=dict(xatol=xatol))
+    return dict(gap=float(res.x), hottest=float(res.fun), solves=int(res.nfev), iterations=state["its"],
+                seconds=time.perf_counter() - t0)
 
 
 # -------------------------------------------------------- the ground truth

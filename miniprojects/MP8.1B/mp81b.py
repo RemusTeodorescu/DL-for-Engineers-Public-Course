@@ -14,42 +14,48 @@ the notebook of MP8.1B (course policy C14).
 Two modules of 75 W each, 15 mm wide, sit on Ex08's base plate symmetrically
 about its centre, a gap ``g`` apart (0 to 40 mm). Ex08 cools the fin side with
 one coefficient in air of one temperature. Here the fan blows the air across
-the sink in the direction of x, from x = 0 to x = W, and two things change
-along its path:
+the sink in the direction of x, from x = 0 to x = W, and three things change:
 
 * **the air warms.** The heat the fins give up at x is carried downstream by
   the air, whose heat capacity flow is C = m_dot c_p (W/K). Its rise above the
   inlet, θ_a(x), obeys the air's energy balance
 
-      C dθ_a/dx = S · D · h_eff(x) (θ(x, 0) - θ_a(x)),     θ_a(0) = 0
+      C dθ_a/dx = S · D · h_eff(x, ΔT) (θ(x, 0) - θ_a(x)),     θ_a(0) = 0
 
   where D is the sink's depth and θ the rise of the base above the inlet air.
-* **the coefficient falls.** The boundary layer on the fins grows along the
-  flow, so h is highest at the inlet. A linear fall is assumed,
+* **the fan's coefficient falls along the flow.** The boundary layer on the
+  fins grows, so h is highest at the inlet: H_AIR (1 + S B_DROP (1 - 2x/W)),
+  50 W/(m²K) at the inlet and 30 at the outlet at S = 1.
+* **natural convection** adds S C_NAT (ΔT / L_fin)^(1/4) (MP8.2A's law), with
+  ΔT = θ(x, 0) - θ_a(x) the fin root's rise above the LOCAL air: the hotter
+  the fins, the stronger the cooling.
 
-      h(x) = H_AIR (1 + S · B_DROP (1 - 2 x / W))
-
-  50 W/(m²K) at the inlet and 30 at the outlet at S = 1, the mean unchanged.
-
-The fin-side condition becomes k ∂θ/∂z = h_eff(x)(θ - θ_a(x)), with a
-coefficient that varies along x and an air temperature that depends on the
-solution itself. Cosines in x are no longer eigenfunctions of the problem, the
-series of Ex08 does not separate, and **no exact solution exists**. ``S`` is
-the strength of the change: at ``S = 0`` the air keeps its inlet temperature
-and h = H_AIR everywhere, which is Ex08's problem with two footprints, and the
-solver must reproduce Ex08's exact series with those patches
-(:func:`check_zero_strength`).
+The fin-side condition becomes k ∂θ/∂z = h_eff(x, ΔT) ΔT: a coefficient that
+varies along x, an air temperature that depends on the solution, and a
+coefficient that depends on the solution itself - the problem is
+**nonlinear**. Cosines in x are no longer eigenfunctions, superposition fails,
+and **no exact solution exists**. Every solver must iterate for every gap.
+``S`` is the strength of all three changes: at ``S = 0`` the air keeps its
+inlet temperature and h = H_AIR everywhere, which is Ex08's linear problem
+with two footprints, and the solver must reproduce Ex08's exact series with
+those patches (:func:`check_zero_strength`).
 
 Values: C = 15 W/K (about 0.015 kg/s of air, 4 m/s through the fins' open
 area; ASSUMED, chosen so that the air warms by 10 K over the sink at 150 W);
-B_DROP = 0.25 (ASSUMED, a developing boundary layer).
+B_DROP = 0.25 (ASSUMED, a developing boundary layer); C_NAT = 1.42
+W/(m^(7/4) K^(5/4)) (laminar vertical plate in air, Incropera & DeWitt ch. 9,
+from memory, ASSUMED; MP8.2A's value). The conductivity of the aluminium is
+kept constant (Ex08's 167 W/(m·K)).
 
 ## Two solvers
 
 * the **reference model** (:func:`reference` and :func:`reference_best_gap`):
-  finite volumes on an engineering grid, solved for one gap; the best gap by a
-  bounded one-dimensional search, which solves the plate once per trial gap.
-* the **ground truth** (:func:`ground_truth`): the same scheme on grids each
+  finite volumes on an engineering grid, solved for one gap by Newton's method
+  (a few iterations, each assembling and factorising the Jacobian); the best
+  gap by a bounded one-dimensional search, one nonlinear solve per trial gap.
+  Chord iterations with one kept factorisation (:meth:`Plate.solve_chord`)
+  are the cheaper alternative and are timed too.
+* the **ground truth**: the same scheme, Newton to 1e-10 K, on grids each
   twice as fine, converged and extrapolated (:func:`convergence_study`).
 """
 
@@ -70,7 +76,7 @@ A_MODULE = 0.015          #: m, each module's width (half of Ex08's footprint)
 FLUX = P_MODULE / (A_MODULE * hs.DEPTH)   #: W/m², 50 kW/m², Ex08's flux
 G_MIN, G_MAX = 0.0, 0.040   #: m, the range of the gap, an input of the network
 G_TEST = (0.005, 0.0175, 0.0325)   #: m, gaps whose fields are kept in the truth file
-X_HOT = (0.045, 0.095)    #: m, the hottest point lies under the downstream module, in this span, at every gap
+X_HOT = (0.050, 0.083)    #: m, the hottest point lies under the downstream module, in this span (52.6 to 79.5 mm), at every gap
 C_AIR = 15.0              #: W/K, heat capacity flow of the air, m_dot c_p        [ASSUMED]
 B_DROP = 0.25             #: relative fall of h from inlet to outlet, ±25 %      [ASSUMED]
 C_NAT = 1.42              #: W/(m^(7/4) K^(5/4)), natural convection on the fins, MP8.2A's law   [ASSUMED]
@@ -173,8 +179,13 @@ class Plate:
 
     # --- the nonlinear fin side
     def g(self, D):
-        """W/(m K) per metre of depth: half a cell of metal in series with h_eff(x, Δ)."""
-        return self.dx / (1.0 / h_eff(self.xc, D, self.s) + self.dz / (2 * hs.K_AL))
+        """W/(m K) per metre of depth: half a cell of metal in series with h_eff(x, Δs). The coefficient is
+        evaluated at the rise of the SURFACE above the air, Δs = Δ (1/h_eff) / (1/h_eff + dz/2k), not at the
+        cell centre's Δ (that would cost the scheme an order); one fixed-point pass finds Δs."""
+        r = self.dz / (2 * hs.K_AL)
+        he = h_eff(self.xc, D, self.s)
+        he = h_eff(self.xc, D / (1.0 + r * he), self.s)
+        return self.dx / (1.0 / he + r)
 
     def G(self, D):
         return self.g(D) * D
@@ -190,7 +201,7 @@ class Plate:
     def residual(self, u, b):
         return self.L @ u + self.P @ self.G(self.E @ u) - b
 
-    def solve(self, gap, u0=None, tol=1e-6, maxit=30):
+    def solve(self, gap, u0=None, tol=1e-10, maxit=30):
         """Newton's method: at every iteration the Jacobian L + P diag(G') E is
         assembled and factorised, and u is corrected until no unknown changes
         by more than ``tol`` kelvin. Starts from ``u0`` or from the field of a
@@ -298,25 +309,32 @@ TRUTH_GRIDS = ((100, 10), (200, 20), (400, 40), (800, 80))
 
 
 def convergence_study(gap=G_TEST[1], grids=TRUTH_GRIDS, verbose=True):
-    """The hottest point at one gap on grids each twice as fine; second order
-    expected; the last two extrapolated by Richardson."""
+    """Two quantities at one gap on grids each twice as fine: the plate's mean
+    rise, a smooth quantity whose changes show the scheme's order (second), and
+    the hottest point, the scored quantity, read by a parabola through the
+    hottest cells (that reading adds a small noise of a few 1e-04 K, so its
+    changes do not fall cleanly). The last two hottest points are extrapolated
+    by Richardson with order 2."""
     rows = []
     for g in grids:
         t0 = time.perf_counter()
         m = Plate(*g); th, ta = m.solve(gap)
         hot, xh = m.hottest(th, gap)
         b = m.balance(th, ta)
-        rows.append((g, hot, xh, b["heat_air"] / b["heat_in"] - 1, time.perf_counter() - t0))
+        rows.append((g, hot, xh, b["heat_air"] / b["heat_in"] - 1, time.perf_counter() - t0, float(th.mean())))
         if verbose:
-            print(f"   {g[0]:4d} x {g[1]:3d} cells: hottest {hot:.4f} K at x = {xh*1e3:.2f} mm; air takes "
-                  f"{b['heat_air']:.4f} W of {b['heat_in']:.0f} W ({rows[-1][4]:.1f} s)")
+            print(f"   {g[0]:4d} x {g[1]:3d} cells: hottest {hot:.4f} K at x = {xh*1e3:.2f} mm, plate's mean rise "
+                  f"{th.mean():.6f} K; air takes {b['heat_air']:.4f} W of {b['heat_in']:.0f} W ({rows[-1][4]:.1f} s)")
     ext = rows[-1][1] + (rows[-1][1] - rows[-2][1]) / 3
+    dm = np.abs(np.diff([r[5] for r in rows]))
+    order = float(np.log2(dm[-2] / dm[-1]))
     if verbose:
         d = np.abs(np.diff([r[1] for r in rows]))
-        print("   change of the hottest between grids:", np.array2string(d, precision=5),
-              " ratios", np.array2string(d[:-1] / d[1:], precision=2))
+        print("   change of the mean rise between grids:", np.array2string(dm, precision=7),
+              " ratios", np.array2string(dm[:-1] / dm[1:], precision=2), f" observed order {order:.2f}")
+        print("   change of the hottest between grids:", np.array2string(d, precision=5))
         print(f"   extrapolated hottest {ext:.4f} K")
-    return rows, ext
+    return rows, ext, order
 
 
 def truth_curve(gaps, grid=TRUTH_GRIDS[2], fine=TRUTH_GRIDS[3]):
@@ -394,7 +412,7 @@ def write_truth(path=TRUTH_FILE):
     400 x 40 and 800 x 80 grids and extrapolated; the best gap; the fields at
     the three test gaps on 400 x 40; the convergence table; the zero-strength
     check; every parameter with its unit."""
-    rows, ext = convergence_study(verbose=True)
+    rows, ext, order = convergence_study(verbose=True)
     gaps = np.round(np.arange(0.0, 0.040 + 1e-9, 0.0005), 6)
     h1, h2, he = truth_curve(gaps)
     gb, hb = truth_best_gap()
@@ -410,6 +428,7 @@ def write_truth(path=TRUTH_FILE):
     out["conv_grids"] = np.array([r[0] for r in rows], dtype=float)
     out["conv_hottest"] = np.array([r[1] for r in rows]); out["conv_balance"] = np.array([r[3] for r in rows])
     out["conv_hottest_extrapolated"] = np.array(ext)
+    out["conv_mean_rise"] = np.array([r[5] for r in rows]); out["conv_order"] = np.array(order)
     out["zero_strength_error_K"] = np.array(check_zero_strength(verbose=False))
     # the same curve with Ex08's air (S = 0), for comparison
     m0 = Plate(*TRUTH_GRIDS[2], s=0.0)
@@ -417,12 +436,13 @@ def write_truth(path=TRUTH_FILE):
     out["params"] = np.array([f"{k} = {v}" for k, v in dict(
         P_MODULE="75 W each", A_MODULE="15 mm wide, 100 mm deep", GAP="0-40 mm, symmetric about x = 50 mm",
         C_AIR="15 W/K, ASSUMED", B_DROP="0.25: h from 50 to 30 W/(m2K) along x, ASSUMED", S_AIR=S_AIR,
+        C_NAT="1.42 W/(m^1.75 K^1.25): natural convection h = C_NAT (dT/L_fin)^(1/4), MP8.2A's law, ASSUMED",
         H_AIR=f"{hs.H_AIR} W/(m2K) mean", K=f"{hs.K_AL} W/(m K)").items()])
     out["README"] = np.array(
         "MP8.1B ground truth. gaps: m; hottest_400/_800: hottest rise of the module face above the inlet air on 400x40 and "
         "800x80 cells, K; hottest: Richardson-extrapolated (the score); best_gap (m) and best_hottest (K) on 800x80; "
         "field_<g>mm: (nz, nx) cell rises on 400x40 at the test gaps, K, cell centres x, z (m); air_<g>mm: air rise at the "
-        "cell faces x_faces, K; conv_*: convergence at 17.5 mm; zero_strength_error_K: S = 0 against Ex08's exact series; "
+        "cell faces x_faces, K; conv_*: convergence at 17.5 mm (hottest, plate's mean rise, observed order of the mean, balance); zero_strength_error_K: S = 0 against Ex08's exact series; "
         "hottest_S0_400: the curve with Ex08's air; params: the data.")
     np.savez_compressed(path, **out)
     print("written", path)

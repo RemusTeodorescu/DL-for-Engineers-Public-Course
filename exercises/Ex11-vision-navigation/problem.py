@@ -760,7 +760,7 @@ def describe_problem() -> None:
 # MP11A (the camera with a LiDAR) and MP11B (the camera with an ultrasonic
 # sensor) are done on the REAL JetRacer with the real sensor. These functions
 # simulate both sensors from the twin's geometry, so that the fusion can be
-# written and tested before the car is booked. tools/miniprojects/ex11_truth.py
+# written and tested before the car is booked. archive/miniprojects/ex11_truth.py
 # uses them for the worked example. Values marked VENDOR are the
 # manufacturers' figures, confirmed by the lecturer on 13 October 2026; ASSUMED
 # are this course's choices, to be measured on the car.

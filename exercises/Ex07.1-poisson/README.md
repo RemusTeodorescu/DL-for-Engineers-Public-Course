@@ -47,7 +47,7 @@ Ex07.1_pinn_thermal_prediction_light.ipynb   the same notebook with every cell w
 | 4 | the PINN: inputs ξ, η, s, the output θ̂ = Θ(I/I_rated)²𝒩, collocation points against N*, the residual (TODO 3), training with soft and hard enforcement |
 | 5 | the three answers compared against the exact solution at six currents |
 | 6 | the report and its PDF |
-| 7 | mini project proposal |
+| 7 | the mini projects |
 
 Numbers are printed with at most two decimals (C12). Autograd's exactness is
 taken from L7.1 rather than demonstrated. The Helmholtz part of the earlier
@@ -111,14 +111,20 @@ The light version has been executed end to end on a local CPU; the exercise
 version stops at its first TODO. Still to do, as for every set (C8): a run from
 a fresh Colab runtime, and a review by someone other than the author.
 
-## Mini project proposal
+## Mini projects
 
-The notebook ends with two mini projects (section 7). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex071_truth.py` under
-policy C10 (`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP7.1A · The slot with its insulation** | 32 wires resolved: copper r 1.00 mm, grade 2 enamel to 1.04 mm (IEC 60317), resin between; 400 against 0.2 W/m·K | a domain-decomposed PINN, one network per material, heat flow matched across every edge | finite volumes on the quarter slot, 0.0125 mm cells, 7 currents; worked example: hot spot 21.09 K against the averaged 18.74 K | hot spot within 0.1 K, field within 0.5 K, a new current in under 10 ms |
-| **MP7.1B · How old is the insulation?** | the averaged slot with a hidden disc of halved conductivity; 4 or 6 sensors at 4 currents, noise 0.05–0.1 K | an inverse PINN: θ(x, y, I) and k(x, y), fitted to the physics and the sensors | three cases of rising difficulty; worked example: the disc raises the hot spot 0.88 K at rated current | disc within 0.5 mm, its k within 20 %, hot spot within 0.1 K |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP7.1A · The Slot with Its Insulation**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP7.1A) | every wire resolved: 32 copper cores in enamel and resin, the conductivity jumping 2000-fold at each edge | hot spot within 0.1 K, field within 0.5 K at untrained currents | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP7.1A/MP7.1A_slot_with_insulation.ipynb) |
+| [**MP7.1B · How Old Is the Insulation?**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP7.1B) | a hidden disc of aged insulation found from 4 or 6 noisy sensors at four currents (inverse) | centre within 1.2 mm, strength within 35 %, hot spot within 0.3 K | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP7.1B/MP7.1B_insulation_ageing.ipynb) |

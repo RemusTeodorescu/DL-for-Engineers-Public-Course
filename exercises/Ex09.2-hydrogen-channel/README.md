@@ -49,7 +49,7 @@ Ex09.2_hydrogen_channel_light.ipynb   the same notebook with every cell written 
 | 6 | the inlet speed for 25 % hydrogen at the electrode at the outlet, by Newton's method through the network |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
-| 9 | mini project proposal |
+| 9 | the mini projects |
 
 ### What it measures
 
@@ -105,14 +105,20 @@ review by someone other than the author.
 It replaced, on 5 October 2026, the notebook on the mean flow past a tube in a
 duct with one eddy viscosity.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with two mini projects (section 9 of the notebook). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex092_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP9.2A · The SOEC steam channel** | the same channel as an electrolyser: 90 % steam fed, the wall flux reversed; the feed speed for 70 % conversion | the notebook's parametric PINN retrained with the sign and feed changed; the conversion by a gradient through it | the exact solution with the sign reversed; worked example: 0.362 m/s for 70 %, 73.13 % hydrogen at the electrode | speed within 1 %, electrode fraction within 0.1 point, one training |
-| **MP9.2B · The air channel** | the SOFC's air channel: oxygen taken and not returned, so the molar flow falls; stoichiometry 5, D four times smaller | a PINN with the Stefan term in the equation and the wall condition, against the exact solution without it | the balance with the molar flow falling and the fully developed excess; worked example: 17.31 % oxygen at the electrode at the outlet, 0.74 points above the constant-flow balance, Stefan velocity 0.6 % of D/h | electrode fraction within 0.1 point, the Stefan question answered with a number, the speed for 15 % by a gradient |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP9.2A · The SOEC Steam Channel**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2A) | the channel as an electrolyser, the current following the steam at the electrode | electrode steam within 0.05 point, speed for 70 % conversion within 1 % | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2A/MP9.2A_soec_steam_channel.ipynb) |
+| [**MP9.2B · The Air Channel**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.2B) | the air side: oxygen taken, the molar flow falling, the Stefan velocity, the current following the oxygen | electrode oxygen within 0.1 point, the Stefan effect as a number, speed for 15 % within 1 % | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.2B/MP9.2B_air_channel.ipynb) |

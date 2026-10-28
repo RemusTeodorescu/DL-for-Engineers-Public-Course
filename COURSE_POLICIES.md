@@ -299,7 +299,7 @@ run with it.
   the deep learning. Its script is written, and its worked example run, when
   the proposal is written; the full data set is built when a student chooses
   the project. Both follow the rules below. Ex07.1's is
-  `tools/miniprojects/ex071_truth.py`.
+  `tools/miniprojects/ex071_truth.py` (in `archive/miniprojects/` since C14).
 - *Superseded by C14 on 27 October 2026: the mini projects' notebooks and
   data are public; only their `_solved` notebooks stay private.*
 - **The ground truth belongs to the mini project, not to the exercise set,

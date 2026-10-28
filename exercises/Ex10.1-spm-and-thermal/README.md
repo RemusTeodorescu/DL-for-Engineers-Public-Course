@@ -63,7 +63,7 @@ Ex10.1_pinn_particle_diffusion_light.ipynb   the same notebook with every cell w
 | 7 | the design: optimal charging for lifetime — a lumped thermal model and an empirical ageing law (both flagged), the feasible constant rates, and the profile for a deadline no constant rate can meet, by gradient through the trained network |
 | 8 | what the notebook says |
 | 9 | the report and its PDF |
-| 10 | mini project proposal |
+| 10 | the mini projects |
 
 The SPMe and the control panel of the earlier six-notebook version, which
 needed PyBaMM, are left to the lecture and to mini project MP10.1A; the
@@ -150,14 +150,20 @@ version stops at its TODO cells. Still to do, as for every set (C8): the
 a run from a fresh Colab runtime,
 and a review by someone other than the author.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with two mini projects (section 10). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex101_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP10.1A · The full model, where the SPMe stops** | the energy-format LFP (Prada2013, thicknesses ×3) at 1C, 3C, 5C: the Doyle-Fuller-Newman model, electrolyte and particles coupled | coupled PINNs for electrolyte and particles, the terminal voltage from them | PyBaMM's DFN, mesh ×4; worked example: at 5C the DFN gives 2.839 Ah, the SPMe 1.386 Ah | voltage within 20 mV (1C, 3C) and 50 mV (5C); 5C capacity within 2 % |
-| **MP10.1B · How much has the cell aged?** | an aged LG M50 (PyBaMM's Chen2020, not the notebook's cell): slower diffusion and lost lithium, seen only through discharge voltages | an inverse PINN on the SPMe with the two ageing factors trainable | PyBaMM SPMe discharges of the hidden-aged cell; worked example: 5.015 → 4.455 Ah; the two effects correlate at 0.81-0.87 | both factors within 5 %, capacity within 1 % (case 1) |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP10.1A · The Full Model, Where the SPMe Stops**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.1A) | the full Doyle-Fuller-Newman model of an energy-format LFP cell, 0.5C to 6C | voltage within 20 mV (1C, 3C) and 50 mV (5C), 5C capacity within 2 %, electrolyte within 30 mol/m³ | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.1A/MP10.1A_dfn_lfp.ipynb) |
+| [**MP10.1B · How Much Has the Cell Aged?**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.1B) | an aged LG M50: its graphite's diffusivity and lithium hidden, seen only through discharge voltages (inverse) | diffusivity within 5 %, lithium within 1 %, capacity within 1 % (cases 1 - 3) | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.1B/MP10.1B_cell_ageing.ipynb) |

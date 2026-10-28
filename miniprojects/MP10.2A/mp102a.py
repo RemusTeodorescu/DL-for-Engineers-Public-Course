@@ -8,7 +8,7 @@ Noman Khan (nomank@energy.aau.dk).
 This module extends Ex10.2's ``problem.py`` (course policy C10 rule 1: one set
 of physics and constants for the exercise and its mini project) and is used by
 the notebook of MP10.2A (course policy C14). It takes over the model of
-``tools/miniprojects/ex102_truth.py`` (MP10.2A) and writes its solver again,
+``archive/miniprojects/ex102_truth.py`` (MP10.2A) and writes its solver again,
 faster: Newton's method on the current instead of bisection.
 
 ## What changes against Ex10.2, and why

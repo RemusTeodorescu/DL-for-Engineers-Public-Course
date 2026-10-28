@@ -79,15 +79,21 @@ Every light notebook has been run end to end on a local CPU and the exercise
 forms stop at their first TODO. Still to do, as for every set (C8): a run from
 a fresh Colab runtime, and a review by someone other than the author.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with three mini projects (one at the end of each notebook, for its own problem). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex072_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP7.2A · A die with a moving hot spot** | a 10 × 10 mm die; three 2 × 2 mm blocks of 8 W switching on in turn; silicon's k(T) | a PINN for θ(x, y, t) with the power map as input, the initial condition built in, points that follow the power | finite volumes, backward Euler, 0.05 mm and 0.5 ms; worked example: peak 33.79 K at 180 ms, k(T) adds 1.66 K | peak within 1 K and 2 ms; field within 2 K; 200 ms in under 1 s |
-| **MP7.2B · The eigenvalues of a real slot** | a slot tapered from 8 to 12 mm, 20 mm deep; the first three Helmholtz eigenpairs | an eigenvalue PINN with a rebuilt mask, a norm term, a trainable λ and orthogonal higher modes | finite differences to 0.03125 mm, extrapolated; worked example: λ₁ 0.1226 per mm², 0.7 % below the rectangle; runaway 157.9 A | λ₁ within 0.3 %, λ₂ and λ₃ within 1 %, runaway within 0.5 A |
-| **MP7.2C · Where was the panel struck?** | a strike nobody saw; 3 to 6 sensors record the 0.40 m panel's displacement for 20 ms | an inverse PINN: u(x, y, t) and the initial velocity, fitted to the wave equation and the sensors | the exact modal sum, 80 × 80 modes; three cases; worked example: peak 0.23 mm, a mirror strike 2e-19 m apart on the diagonal | strike within 10 mm, velocity within 10 %, motion within 5 % of peak |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP7.2A · A Die with a Moving Hot Spot**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP7.2A) | three blocks switching on in turn and silicon's conductivity falling as it warms: a nonlinear transient | peak within 1 K and 2 ms, field within 2 K | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP7.2A/MP7.2A_moving_hot_spot.ipynb) |
+| [**MP7.2B · The Eigenvalues of a Real Slot**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP7.2B) | a tapered slot: the first three eigenpairs and the runaway current for any taper | λ1 within 0.3 %, λ2 and λ3 within 1 %, runaway current within 0.5 A | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP7.2B/MP7.2B_slot_eigenvalues.ipynb) |
+| [**MP7.2C · Where Was the Panel Struck?**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP7.2C) | a panel with a reinforcing strip and a bolt; the strike's place and speed from 3 to 6 sensors (inverse) | position within 10 mm, velocity within 10 %, motion within 5 % | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP7.2C/MP7.2C_panel_strike.ipynb) |

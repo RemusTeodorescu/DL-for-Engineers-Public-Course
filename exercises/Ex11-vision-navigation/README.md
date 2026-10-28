@@ -10,8 +10,8 @@ with the JetRacer library's `steering_gain`, `steering_offset` and
 `throttle_gain`, and `camera.read()` returning a 224 × 224 colour frame, as
 `CSICamera(width=224, height=224)` does on the car. Each frame is rendered from
 where the car stands on the floor, so the true answer to every question is
-known. The real car is a demonstration in the lab, and the platform of the two
-mini projects.
+known. The real car is a demonstration in the lab; the two mini projects run on
+a digital twin of another car, the ROSMASTER R2 (below).
 
 ```
 Ex11_vision_navigation.ipynb         the notebook: three TODO cells, the answer in the comment inside each
@@ -56,7 +56,7 @@ which an obstacle blocks the path, and the course.
 | 8 | the race: a conventional and a deep-learning JetRacer from A to B, each seeing with its own camera, and the winner celebrated |
 | 9 | what the notebook says |
 | 10 | the report and its PDF: four questions per lecture and one to conclude |
-| 11 | the mini project proposals |
+| 11 | the mini projects |
 
 ### What it measures (CPU, seed 88; about 5.5 minutes, most of it training)
 
@@ -113,32 +113,37 @@ a measurement of the car. About 25 s to draw.
 
 ## The car, for the mini projects
 
-The mini projects run on the lab's **Yahboom ROSMASTER R2**, Superior version
-(26 October 2026): Jetson Orin Nano Super 8 GB, Ackermann steering, 65 mm
-wheels, at most 1.8 m/s, a SLAM A1 LiDAR (Slamtec RPLIDAR A1), an Astra Pro
-Plus depth camera, an IMU and odometry, ROS2 Humble (vendor; see
-`docs/hardware/rosmaster-r2.md` in the course repository for what the vendor
-does and does not state). Its depth camera and LiDAR are built in; the DFRobot
-URM09 ultrasonic sensor is an optional add-on for MP11B, on the Orin Nano's
-I2C bus. The car is driven through ROS2 with Yahboom's
-course materials, not through the JetRacer library, so code written for the
-twin keeps its network and decision rule and changes only how it reads the
-camera and sends the steering and speed. The twin's camera mount, steering and
-speed response are a JetRacer's and assumed: measure the R2's and set them in
-`problem.py` before training on rendered frames.
+The mini projects, MP11A and MP11B (course policy C14), run **on a digital twin
+only**, in Colab: no real car and no ROS (the lecturer, 27 October 2026). The
+twin is of the lab's **Yahboom ROSMASTER R2**, Superior version, and lives in
+`miniprojects/MP11A/r2twin.py`, shared by both projects: Ackermann steering,
+65 mm wheels, at most 1.8 m/s, its built-in Astra Pro Plus depth camera (colour
+and depth) and SLAM A1 LiDAR (Slamtec RPLIDAR A1), odometry and an IMU, on a
+closed track with seeded noise at rising levels. The R2 has no ultrasonic
+sensor, and the twin has none. What the vendor states is in
+`docs/hardware/rosmaster-r2.md` in the course repository; everything else in the
+twin - size, wheelbase, steering limit, sensor mounting, speed lag, friction,
+noise - is assumed and listed by `r2twin.spec()`. The twin extends this set's
+`problem.py`: with the JetRacer's numbers its motion is Ex11's car exactly.
 
 The JetRacer Pro stays for the lecture's demonstration: `SETUP.md` flashes and
 checks it, and `Ex11_on_the_car.ipynb` collects frames, trains, and runs the
 instrumented loop on it.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with two mini projects (in this README, as the set has no report notebook). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex11_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP11A · Faster from A to B, on the ROSMASTER R2** | faster from A to B on the ROSMASTER R2, camera only: better obstacle avoidance and a higher speed | the notebook's network with a position head (blocked and where), feeding the potential field or your own planner | the measured course on the floor; on the twin, perfect perception's 8.76 s (steer around) and 4.24 s (field, 1.5 m/s) | twin: no collision, at most 5.0 s, position within 5 cm; car: five runs without contact, filmed |
-| **MP11B · Depth camera and LiDAR in difficult conditions, on the ROSMASTER R2** | the ROSMASTER R2 with its built-in depth camera and LiDAR, a URM09 sonar optional, in difficult conditions: grey and low obstacles, shadows, glare, a dim room | one network, three branches (frame, scan, range), heads for blocked and for where; twin first, then the car | the measured course on the floor; on the twin, perfect perception's 8.70 s on hard courses; all three rules by OR collide on 12 of 20 | twin: 5 % per kind, no collision, within 10 %; car: five runs without contact in the dimmed lab, filmed |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP11A · Faster from A to B**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11A) | the ROSMASTER R2's digital twin, camera only, on a closed track with 4 - 8 obstacles of four kinds; where the obstacle stands | no collision, lap within 5 % of 18.13 s, at most 5 % missed of every kind, position within 10 cm, a decision in 10 ms | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11A/MP11A_faster_a_to_b.ipynb) |
+| [**MP11B · Fusion of Camera, Depth Camera and LiDAR**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11B) | the twin's three sensors fused in difficult conditions: a dim room, sun on the floor, obstacles each sensor finds hard | as MP11A at noise levels 2 and 3: no collision, 5 % per kind, within 10 cm, 10 ms | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11B/MP11B_sensor_fusion.ipynb) |

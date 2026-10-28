@@ -8,7 +8,7 @@ Noman Khan (nomank@energy.aau.dk).
 This module extends Ex09.1's ``pipe.py`` (course policy C10 rule 1: one set of
 physics and constants for the exercise and its mini project) and is used by
 the notebook of MP9.1B (course policy C14). It takes over the model of
-``tools/miniprojects/ex091_truth.py`` (MP9.1B, cases 1 and 2), unchanged.
+``archive/miniprojects/ex091_truth.py`` (MP9.1B, cases 1 and 2), unchanged.
 
 ## The problem
 

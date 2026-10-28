@@ -1,6 +1,6 @@
 # Ex_11 — Setup Guide for the JetRacer (lab demonstration)
 
-*Since 26 October 2026 the mini projects run on the Yahboom ROSMASTER R2, which is set up with Yahboom's own course materials; this guide is for the JetRacer Pro of the lecture's demonstration.*
+*Since 27 October 2026 the mini projects run on a digital twin of the Yahboom ROSMASTER R2 in Colab (`miniprojects/MP11A/r2twin.py`), with no car; this guide is for the JetRacer Pro of the lecture's demonstration.*
 
 **Print this and keep it on the bench.** Everything here happens before any
 machine learning.

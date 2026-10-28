@@ -57,7 +57,7 @@ Ex08_heatsink_cooling_light.ipynb   the same notebook with every cell written ou
 | 11 | a PINN in time with the lumped response built in (**TODO 3, 4**), and the comparison |
 | 12 – 13 | the inverse problem: h_eff from one thermocouple; what it says |
 | 14 | the report: four questions per lecture and one to conclude, one PDF for Moodle |
-| 15 | four mini project proposals |
+| 15 | the four mini projects |
 
 Measured (exercise run on 5 October 2026): the hottest point 92.45 °C, 4.98 K
 above the hand calculation; FDM meets 0.01 K at 81 × 17 nodes, the PINN about
@@ -110,16 +110,22 @@ The light version has been executed end to end locally; the exercise version
 stops at its first TODO. Still to do, as for every set (C8): a run from a fresh
 Colab runtime, and a review by someone other than the author.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with four mini projects (section 15 of the notebook). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex08_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP8.1A · The fins resolved** | the heat sink of the set, fins resolved: conduction in a comb with h on every air face | a PINN over the comb, points in the metal only, one weighted convection term over all the air faces | finite volumes, 28 800 cells of 0.25 mm; worked example: hottest 51.68 K against the collapsed model's 52.45 K | hottest within 0.1 K, field within 0.2 K, heat out within 1 % |
-| **MP8.1B · Two modules on one sink** | two 75 W modules on the sink of the set; the gap between them from 0 to 40 mm | one PINN with the gap as a third input, then the best gap by a gradient through it | the exact series by superposition; worked example: 52.45 K at no gap, 49.28 K at 30 mm | hottest within 0.1 K at every gap, the optimum within 2 mm, one training |
-| **MP8.2A · Thermal cycling** | the heat sink of the set under a train of ten 20 s pulses, one a minute | a PINN with the lumped train built in, trained period by period or with the cycle as an input | the exact series by superposition; worked example: the swing settles at 13.45 K by the fifth cycle | peaks and troughs within 0.3 K, the settling cycle exact, the final field within 0.5 K |
-| **MP8.2B · Heat capacity and coefficient together** | the thermocouple record of the set with both rho c_p and h_eff unknown | the inverse PINN with two trainable numbers, and the sensitivity of the fit to each | the record and the true values; worked example: the rise fixes rho c_p, the tail h_eff | both within 5 %, the two misfit plots, the paragraph |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP8.1A · The Fins Resolved**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.1A) | the whole comb of base and fins, the air's coefficient on every face; power and coefficient as inputs | hottest point within 0.15 K, field within 0.2 K, heat out within 1 % | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.1A/MP8.1A_fins_resolved.ipynb) |
+| [**MP8.1B · Two Modules on One Sink**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.1B) | two modules a gap apart, the air warming along the sink and the coefficient falling along the flow | hottest point within 0.1 K at every gap, best gap within 2 mm by a gradient, one training | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.1B/MP8.1B_two_modules.ipynb) |
+| [**MP8.2A · Thermal Cycling with Natural Convection**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.2A) | ten 20 s pulses a minute apart, 100 to 200 W, natural convection making the fin side nonlinear | every peak and trough within 0.3 K, field at 600 s within 0.5 K | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.2A/MP8.2A_thermal_cycling.ipynb) |
+| [**MP8.2B · Heat Capacity and Coefficient Together**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP8.2B) | the heat capacity and the fan's coefficient both hidden, natural convection added (inverse) | both numbers within 5 % on five records | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP8.2B/MP8.2B_heat_capacity_and_coefficient.ipynb) |

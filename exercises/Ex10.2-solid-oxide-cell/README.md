@@ -51,7 +51,7 @@ Ex10.2_soec_multiphysics_light.ipynb   the same notebook with every cell written
 | 6 | Part B: the cost of an hour, the 10 K limit as a penalty, gradient descent on the voltage through the network, checked by 81 voltages solved by finite volumes |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
-| 9 | mini project proposal |
+| 9 | the mini projects |
 
 ### What it measures (2-core CPU, seed 88, 11 October 2026)
 
@@ -112,15 +112,20 @@ version stops at its TODO cells. Still to do, as for every set (C8): a run from
 a fresh Colab runtime, and a review by someone other than the author - in
 particular of the estimated parameters.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with two mini projects (section 9). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex102_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP10.2A · The channel across its height, and the electrode under it** | the notebook's cell, isothermal, with the steam resolved across the 1 mm channel and through the 0.5 mm porous electrode | a PINN for y(x, Z) and i(x), the charge transfer at the reaction site as a loss term | Crank–Nicolson march with Rannacher's start; worked example: the 1-D model overstates the current by 5 to 9 % | total current within 0.5 %, outlet mean within 0.005, reaction-site steam within 0.01 |
-| **MP10.2B · A day of operation under an hourly price** | a day under an hourly electricity price: V and T_in for each of 24 hours, a hydrogen contract, the 10 K limit | the notebook's parametric network as the model of every hour; gradient descent on 48 numbers | coupled finite volumes on 81 × 41 operating points, the contract by a Lagrange multiplier; worked example: 0.9 % below the best constant point | the day's cost within 0.5 %, the contract within 0.5 %, the limit checked by finite volumes |
-
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP10.2A · The Channel Across Its Height, and the Electrode Under It**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2A) | the steam resolved across the channel and through the porous electrode, 1.15 to 1.35 V | current within 0.1 %, outlet steam within 5e-04, reaction-site steam within 1e-03 | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2A/MP10.2A_channel_and_electrode.ipynb) |
+| [**MP10.2B · A Day of Operation Under an Hourly Price**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2B) | a day under an hourly price: 48 set points, a hydrogen contract and the 10 K limit | the day's cost and hydrogen within 0.5 %, at most 10.2 K in any hour | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2B/MP10.2B_day_of_operation.ipynb) |

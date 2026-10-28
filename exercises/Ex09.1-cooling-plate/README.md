@@ -47,7 +47,7 @@ Ex09.1_cooling_plate_light.ipynb   the same notebook with every cell written out
 | 6 | the inverse problem: the coolant's viscosity from a flow meter's first second, four ways |
 | 7 | what the notebook says |
 | 8 | the report and its PDF |
-| 9 | mini project proposal |
+| 9 | the mini projects |
 
 ### What it measures
 
@@ -115,14 +115,20 @@ It replaced, on 5 October 2026, the notebook on the coupled Burgers equations
 a front, the PINN's points against a thin feature - are on L9.1's Advanced
 Topics slide.
 
-## Mini project proposal
+## Mini projects
 
-The set ends with two mini projects (section 9 of the notebook). Each student chooses one
-mini project from the Part 2 sets and solves it individually in one month. The
-ground truth is given, built by `tools/miniprojects/ex091_truth.py` under policy C10
-(`COURSE_POLICIES.md`), with a worked example of each.
+Each mini project takes this set's problem further - a harder version of it, or its
+inverse - with no exact solution. Each student chooses **one** mini project from the
+Part 2 sets and solves it individually in one month; the dates and the hand-in are
+given in L13. Each mini project is **one Colab notebook in five parts** under course
+policy C14: A the problem, B the data and the physics and C the reference model and
+the ground truth are given and solved; D the physics-informed network and E the
+report are yours. The goal is the reference model's accuracy with an online answer
+at least ten times faster (for an inverse problem, ten times faster than a new
+least-squares fit); each project's README states the problem, what changed, the
+ground truth, a worked example and the requirements.
 
-| | the problem | the deep learning | the ground truth given | required |
-|---|---|---|---|---|
-| **MP9.1A · One bend of the serpentine, in 3-D** | one 12 mm U-bend between a 20 mm and a 110 mm leg at 0.3 L/min; the velocity in 3-D, the recovery after the bend, the bend's loss coefficient | a marching (parabolised) solver written by the student, then a 3-D PINN scored against it | the two limits the solver must reach: the fully developed bend (Dean, checked against Dean's series) and the notebook's parabola; no 3-D reference | three checks on the solver (parabola 1e-04, long bend 1 %, flow rate 1e-06), PINN within 2 % of it, K with a grid study |
-| **MP9.1B · The pump's speed reference** | the flow to send to the pump, over 30 minutes, for a staircase of module power; the module at or below 80 °C, the least pumping; case 2 with a 700 W step that only turbulent flow can cool | a network for the flow reference in time, bounded by its last layer, with the plate's energy balance and the limit in the loss | direct transcription and SLSQP on the same model; worked example: the flow raised before the step, the reactive controller 6.5 K over | module at most 80.2 °C, pumping within 5 %, the flow raised before the step |
+| mini project | new against the exercise | required | notebook |
+|---|---|---|---|
+| [**MP9.1A · One Bend of the Serpentine**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.1A) | one U-bend with its Dean vortices, 0.15 to 0.45 L/min: the velocity in 3-D and the loss coefficient | axial velocity within 2 % of the centre speed, loss coefficient within 5 % | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.1A/MP9.1A_u_bend.ipynb) |
+| [**MP9.1B · The Pump's Speed Reference**](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP9.1B) | the pump's flow schedule for a power staircase with a 300 to 800 W step, laminar or turbulent | module at most 80.2 °C, pumping energy within 5 %, flow raised before the step | [open in Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP9.1B/MP9.1B_pump_speed_reference.ipynb) |

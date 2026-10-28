@@ -149,6 +149,8 @@ module and ground truth beside it, fetched by the notebook's first cell.
 - **MP10.2B · A Day of Operation Under an Hourly Price** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP10.2B/MP10.2B_day_of_operation.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP10.2B)
 - **MP11A · Faster from A to B** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11A/MP11A_faster_a_to_b.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11A)
 - **MP11B · Fusion of Camera, Depth Camera and LiDAR** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP11B/MP11B_sensor_fusion.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP11B)
+- **MP12A · Stability Estimation after Contingencies** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP12A/MP12A_stability_estimation.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP12A)
+- **MP12B · Stability Prediction after a Contingency** - [Colab](https://colab.research.google.com/github/RemusTeodorescu/DL-for-Engineers-Public-Course/blob/main/miniprojects/MP12B/MP12B_stability_prediction.ipynb), [browse](https://github.com/RemusTeodorescu/DL-for-Engineers-Public-Course/tree/main/miniprojects/MP12B)
 
 ## Licence
 
